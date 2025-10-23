@@ -193,7 +193,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="text-foreground">Accesos Rápidos</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <button 
                 onClick={() => navigate('/clients')}
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
@@ -202,15 +202,29 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-foreground mb-1">Agenda de Clientes</h3>
                 <p className="text-sm text-muted-foreground">Gestiona tus clientes</p>
               </button>
-              <button className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group">
+              <button 
+                onClick={() => navigate('/f29')}
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+              >
                 <TrendingUp className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Declaraciones F29</h3>
                 <p className="text-sm text-muted-foreground">Gestión de impuestos</p>
               </button>
-              <button className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group">
+              <button 
+                onClick={() => navigate('/rrhh')}
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+              >
                 <Calendar className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Recursos Humanos</h3>
                 <p className="text-sm text-muted-foreground">Gestión de RRHH</p>
+              </button>
+              <button 
+                onClick={() => navigate('/documents')}
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+              >
+                <DollarSign className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                <h3 className="font-semibold text-foreground mb-1">Documentos</h3>
+                <p className="text-sm text-muted-foreground">Gestión de archivos</p>
               </button>
             </CardContent>
           </Card>
@@ -224,19 +238,14 @@ export default function Dashboard() {
                   Administración Master
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent>
                 <button 
                   onClick={() => navigate('/admin/users')}
-                  className="p-6 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all text-left group"
+                  className="w-full p-6 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all text-left group"
                 >
                   <Users className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-foreground mb-1">Gestión de Usuarios</h3>
-                  <p className="text-sm text-muted-foreground">Crear y administrar usuarios</p>
-                </button>
-                <button className="p-6 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all text-left group">
-                  <Settings className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-foreground mb-1">Configuración</h3>
-                  <p className="text-sm text-muted-foreground">Opciones avanzadas</p>
+                  <p className="text-sm text-muted-foreground">Crear y administrar usuarios del sistema</p>
                 </button>
               </CardContent>
             </Card>
