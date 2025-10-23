@@ -18,10 +18,11 @@ export default function Dashboard() {
   const [clientsCount, setClientsCount] = useState({ total: 0, activos: 0, inactivos: 0 });
 
   useEffect(() => {
+    console.log('Dashboard - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
     if (!loading && !user) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+  }, [user, userRole, loading, navigate]);
 
   useEffect(() => {
     const timer = setInterval(() => {

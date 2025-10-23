@@ -26,20 +26,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, 'User:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role
-          setTimeout(async () => {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-            
-            setUserRole(profile?.role ?? null);
-          }, 0);
+          // Fetch user role immediately
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          
+          console.log('Profile fetched:', profile, 'Error:', error);
+          setUserRole(profile?.role ?? null);
         } else {
           setUserRole(null);
         }
@@ -49,23 +49,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            setUserRole(profile?.role ?? null);
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
+          .single();
+        
+        console.log('Initial profile fetched:', profile, 'Error:', error);
+        setUserRole(profile?.role ?? null);
       }
+      
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

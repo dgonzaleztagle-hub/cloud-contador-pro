@@ -36,9 +36,11 @@ export default function AdminUsers() {
   const [newRole, setNewRole] = useState<'master' | 'admin' | 'client' | 'viewer'>('viewer');
 
   useEffect(() => {
+    console.log('AdminUsers - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
     if (!loading && !user) {
       navigate('/auth');
     } else if (!loading && userRole !== 'master') {
+      console.log('Access denied - Role is not master:', userRole);
       toast({
         variant: 'destructive',
         title: 'Acceso denegado',
@@ -46,7 +48,7 @@ export default function AdminUsers() {
       });
       navigate('/dashboard');
     }
-  }, [user, userRole, loading, navigate]);
+  }, [user, userRole, loading, navigate, toast]);
 
   useEffect(() => {
     if (user && userRole === 'master') {
