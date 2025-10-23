@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, TrendingUp, DollarSign, Calendar, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, TrendingUp, DollarSign, Calendar, Users, LogOut } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function Dashboard() {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [uf, setUf] = useState('37.456,78');
@@ -49,7 +50,7 @@ export default function Dashboard() {
                 {format(currentDateTime, "EEEE, d 'de' MMMM 'de' yyyy • HH:mm:ss", { locale: es })}
               </p>
             </div>
-            <div className="flex gap-4 flex-wrap">
+            <div className="flex gap-4 flex-wrap items-center">
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-border">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <div className="text-sm">
@@ -71,6 +72,15 @@ export default function Dashboard() {
                   <p className="font-semibold text-foreground">${dollar}</p>
                 </div>
               </div>
+              <Button
+                onClick={signOut}
+                variant="outline"
+                size="sm"
+                className="border-primary/50 text-primary hover:bg-primary/10"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Salir
+              </Button>
             </div>
           </div>
         </div>
