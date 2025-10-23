@@ -130,45 +130,53 @@ export default function Documents() {
     setIsUploading(true);
 
     try {
-      // Note: This is a simplified version. In production, you would need to:
-      // 1. Create a storage bucket using migration
-      // 2. Upload file to storage
-      // 3. Save file record to database
-      
-      toast({
-        variant: 'destructive',
-        title: 'Funcionalidad pendiente',
-        description: 'La subida de archivos requiere configurar Storage. Por ahora solo registra metadata.',
-      });
+      // Upload file to storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Date.now()}_${selectedFile.name}`;
+      const filePath = `${selectedClientId}/${fileName}`;
 
-      // Save file metadata (without actual upload for now)
-      const { error } = await supabase.from('files').insert({
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Save file metadata to database
+      const { error: dbError } = await supabase.from('files').insert({
         client_id: selectedClientId,
         file_name: selectedFile.name,
-        file_path: `/documents/${selectedClientId}/${selectedFile.name}`,
-        file_type: selectedFile.type || 'application/pdf',
+        file_path: filePath,
+        file_type: selectedFile.type || 'application/octet-stream',
         file_category: fileCategory,
         periodo_mes: mes,
         periodo_anio: anio,
         uploaded_by: user?.id,
       });
 
-      if (error) {
-        throw error;
+      if (dbError) {
+        // If DB insert fails, try to delete the uploaded file
+        await supabase.storage.from('documents').remove([filePath]);
+        throw dbError;
       }
 
       toast({
-        title: 'Archivo registrado',
-        description: 'El archivo se registró exitosamente (pendiente upload físico)',
+        title: 'Archivo subido',
+        description: 'El archivo se subió exitosamente',
       });
       resetForm();
       setIsDialogOpen(false);
       loadData();
     } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'No se pudo registrar el archivo',
+        title: 'Error al subir archivo',
+        description: error.message || 'No se pudo subir el archivo',
       });
     } finally {
       setIsUploading(false);
@@ -183,23 +191,70 @@ export default function Documents() {
     setAnio(new Date().getFullYear());
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, filePath: string) => {
     if (confirm('¿Estás seguro de eliminar este archivo?')) {
-      const { error } = await supabase.from('files').delete().eq('id', id);
+      try {
+        // Delete from storage first
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([filePath]);
 
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No se pudo eliminar el archivo',
-        });
-      } else {
+        if (storageError) {
+          console.error('Storage delete error:', storageError);
+        }
+
+        // Delete from database
+        const { error: dbError } = await supabase.from('files').delete().eq('id', id);
+
+        if (dbError) {
+          throw dbError;
+        }
+
         toast({
           title: 'Archivo eliminado',
           description: 'El archivo se eliminó exitosamente',
         });
         loadData();
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'No se pudo eliminar el archivo',
+        });
       }
+    }
+  };
+
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create a download link
+      const url = window.URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Descarga iniciada',
+        description: 'El archivo se está descargando',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al descargar',
+        description: error.message || 'No se pudo descargar el archivo',
+      });
     }
   };
 
@@ -393,14 +448,18 @@ export default function Documents() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" disabled>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDownload(file.file_path, file.file_name)}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                       {canModify && (
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete(file.id)}
+                          onClick={() => handleDelete(file.id, file.file_path)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
