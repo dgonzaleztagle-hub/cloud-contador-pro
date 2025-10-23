@@ -84,7 +84,32 @@ export default function Clients() {
     
     const { data, error, count } = await supabase
       .from('clients')
-      .select('*', { count: 'exact' })
+      .select(`
+        id,
+        rut,
+        razon_social,
+        nombre_fantasia,
+        direccion,
+        comuna,
+        ciudad,
+        telefono,
+        correo,
+        giro,
+        regimen_tributario,
+        tipo_contribuyente,
+        inicio_actividades,
+        contador_asignado,
+        rep_legal_nombre,
+        rep_legal_rut,
+        rep_legal_telefono,
+        rep_legal_correo,
+        clave_sii_encrypted,
+        clave_unica_encrypted,
+        certificado_digital_encrypted,
+        activo,
+        created_at,
+        updated_at
+      `, { count: 'exact' })
       .order('razon_social', { ascending: true });
 
     if (error) {
