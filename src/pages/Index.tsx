@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Calculator, TrendingUp, Users, Shield, FileText } from 'lucide-react';
+import { Footer } from '@/components/Footer';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -17,9 +18,9 @@ const Index = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background flex flex-col">
       {/* Hero Section */}
-      <div className="container mx-auto px-6 py-16">
+      <div className="container mx-auto px-6 py-16 flex-1">
         <div className="text-center space-y-8 max-w-4xl mx-auto">
           {/* Logo */}
           <div className="flex justify-center mb-8">
@@ -121,6 +122,7 @@ const Index = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

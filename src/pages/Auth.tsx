@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Calculator } from 'lucide-react';
+import { Footer } from '@/components/Footer';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -76,8 +77,9 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4">
-      <Card className="w-full max-w-md border-border bg-card/95 backdrop-blur-sm">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-secondary to-background">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
@@ -160,6 +162,8 @@ export default function Auth() {
           </div>
         </CardContent>
       </Card>
+      </div>
+      <Footer />
     </div>
   );
 }

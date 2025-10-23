@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Footer } from "@/components/Footer";
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,14 +10,15 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+      <div className="text-center flex-1 flex flex-col items-center justify-center">
         <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-gray-600">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 underline hover:text-blue-700">
-          Return to Home
+        <p className="mb-4 text-xl text-muted-foreground">Oops! Página no encontrada</p>
+        <a href="/" className="text-primary underline hover:text-primary/80">
+          Volver al inicio
         </a>
       </div>
+      <Footer />
     </div>
   );
 };

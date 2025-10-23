@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, DollarSign, Calendar, Users, LogOut } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Footer } from '@/components/Footer';
 
 export default function Dashboard() {
   const { user, userRole, loading, signOut } = useAuth();
@@ -37,7 +38,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header con datos en tiempo real */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
@@ -87,7 +88,7 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-6 py-8 flex-1">
         <div className="space-y-8">
           {/* Welcome Section */}
           <div className="space-y-2">
@@ -187,6 +188,7 @@ export default function Dashboard() {
           </Card>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
