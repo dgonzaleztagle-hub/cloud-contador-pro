@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Footer } from '@/components/Footer';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo-full-black.png';
 
 export default function MasterSignup() {
   const [email, setEmail] = useState('');
