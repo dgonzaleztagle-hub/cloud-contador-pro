@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
+import { ClientDialog } from '@/components/ClientDialog';
 
 interface Client {
   id: string;
@@ -52,17 +53,17 @@ export default function Clients() {
 
   const loadClients = async () => {
     setLoadingClients(true);
-    console.log('Loading clients with user:', user?.email, 'role:', userRole);
+    console.log('🔍 Cargando clientes...', { user: user?.email, role: userRole });
     
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('clients')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('razon_social', { ascending: true });
 
     if (error) {
-      console.error('Error loading clients:', error);
+      console.error('❌ Error cargando clientes:', error);
     } else {
-      console.log('Clients loaded successfully:', data?.length);
+      console.log('✅ Clientes cargados:', { total: count, data_length: data?.length });
       setClients(data || []);
     }
     setLoadingClients(false);
@@ -103,21 +104,24 @@ export default function Clients() {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-            <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Agenda de Clientes
               </h1>
             </div>
+            {(userRole === 'master' || userRole === 'admin') && (
+              <ClientDialog onClientCreated={loadClients} />
+            )}
           </div>
         </div>
       </header>
