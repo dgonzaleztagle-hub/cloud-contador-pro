@@ -305,9 +305,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
             {/* Claves SII */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Claves SII y Certificados</h3>
-              {userRole !== 'master' && (
+              {userRole !== 'master' && userRole !== 'admin' && (
                 <p className="text-sm text-muted-foreground">
-                  Solo los usuarios master pueden ver las claves completas
+                  Solo los usuarios master y admin pueden ver las claves completas
                 </p>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -315,10 +315,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="clave_sii_encrypted">Clave SII</Label>
                   <Input
                     id="clave_sii_encrypted"
-                    type={userRole === 'master' ? 'text' : 'password'}
+                    type={(userRole === 'master' || userRole === 'admin') ? 'text' : 'password'}
                     value={formData.clave_sii_encrypted || ''}
                     onChange={(e) => setFormData({ ...formData, clave_sii_encrypted: e.target.value })}
-                    placeholder={userRole === 'master' ? '' : '••••••••'}
+                    placeholder={(userRole === 'master' || userRole === 'admin') ? '' : '••••••••'}
                     readOnly={userRole !== 'master' && userRole !== 'admin'}
                   />
                 </div>
@@ -326,10 +326,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="clave_unica_encrypted">Clave Única</Label>
                   <Input
                     id="clave_unica_encrypted"
-                    type={userRole === 'master' ? 'text' : 'password'}
+                    type={(userRole === 'master' || userRole === 'admin') ? 'text' : 'password'}
                     value={formData.clave_unica_encrypted || ''}
                     onChange={(e) => setFormData({ ...formData, clave_unica_encrypted: e.target.value })}
-                    placeholder={userRole === 'master' ? '' : '••••••••'}
+                    placeholder={(userRole === 'master' || userRole === 'admin') ? '' : '••••••••'}
                     readOnly={userRole !== 'master' && userRole !== 'admin'}
                   />
                 </div>
@@ -337,10 +337,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="certificado_digital_encrypted">Certificado Digital</Label>
                   <Input
                     id="certificado_digital_encrypted"
-                    type={userRole === 'master' ? 'text' : 'password'}
+                    type={(userRole === 'master' || userRole === 'admin') ? 'text' : 'password'}
                     value={formData.certificado_digital_encrypted || ''}
                     onChange={(e) => setFormData({ ...formData, certificado_digital_encrypted: e.target.value })}
-                    placeholder={userRole === 'master' ? '' : '••••••••'}
+                    placeholder={(userRole === 'master' || userRole === 'admin') ? '' : '••••••••'}
                     readOnly={userRole !== 'master' && userRole !== 'admin'}
                   />
                 </div>
