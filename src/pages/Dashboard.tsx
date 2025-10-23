@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, DollarSign, Calendar, Users, LogOut } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign, Calendar, Users, LogOut, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
@@ -213,6 +213,33 @@ export default function Dashboard() {
               </button>
             </CardContent>
           </Card>
+
+          {/* Admin Section - Solo para Master */}
+          {userRole === 'master' && (
+            <Card className="border-border bg-card border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  Administración Master
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button 
+                  onClick={() => navigate('/admin/users')}
+                  className="p-6 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all text-left group"
+                >
+                  <Users className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-foreground mb-1">Gestión de Usuarios</h3>
+                  <p className="text-sm text-muted-foreground">Crear y administrar usuarios</p>
+                </button>
+                <button className="p-6 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all text-left group">
+                  <Settings className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-foreground mb-1">Configuración</h3>
+                  <p className="text-sm text-muted-foreground">Opciones avanzadas</p>
+                </button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
       <Footer />
