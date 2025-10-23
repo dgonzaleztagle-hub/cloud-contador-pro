@@ -188,7 +188,10 @@ export default function Dashboard() {
               <CardTitle className="text-foreground">Accesos Rápidos</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group">
+              <button 
+                onClick={() => navigate('/clients')}
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+              >
                 <Users className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Agenda de Clientes</h3>
                 <p className="text-sm text-muted-foreground">Gestiona tus clientes</p>
