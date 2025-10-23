@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX } from 'lucide-react';
+import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
 import { ClientDialog } from '@/components/ClientDialog';
+import { ClientEditDialog } from '@/components/ClientEditDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface Client {
@@ -15,10 +16,22 @@ interface Client {
   razon_social: string;
   nombre_fantasia: string | null;
   direccion: string | null;
+  comuna: string | null;
   ciudad: string | null;
   telefono: string | null;
   correo: string | null;
   giro: string | null;
+  regimen_tributario: string | null;
+  tipo_contribuyente: string | null;
+  inicio_actividades: string | null;
+  contador_asignado: string | null;
+  rep_legal_nombre: string | null;
+  rep_legal_rut: string | null;
+  rep_legal_telefono: string | null;
+  rep_legal_correo: string | null;
+  clave_sii_encrypted: string | null;
+  clave_unica_encrypted: string | null;
+  certificado_digital_encrypted: string | null;
   activo: boolean;
 }
 
@@ -30,6 +43,18 @@ export default function Clients() {
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const handleClientClick = (client: Client) => {
+    setSelectedClient(client);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setSelectedClient(null);
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -219,8 +244,23 @@ export default function Clients() {
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
                     <Button
                       size="sm"
+                      variant="default"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClientClick(client);
+                      }}
+                      className="bg-gradient-to-r from-primary to-accent"
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      Ver Detalles
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
-                      onClick={() => handleCall(client.telefono)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCall(client.telefono);
+                      }}
                       disabled={!client.telefono}
                       className={!client.telefono ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
                     >
@@ -230,7 +270,10 @@ export default function Clients() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleEmail(client.correo)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEmail(client.correo);
+                      }}
                       disabled={!client.correo}
                       className={!client.correo ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
                     >
@@ -240,7 +283,10 @@ export default function Clients() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleWaze(client.direccion, client.ciudad)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleWaze(client.direccion, client.ciudad);
+                      }}
                       disabled={!client.direccion}
                       className={!client.direccion ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
                     >
@@ -268,6 +314,14 @@ export default function Clients() {
           </div>
         )}
       </main>
+      
+      <ClientEditDialog
+        client={selectedClient}
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseEditDialog}
+        onClientUpdated={loadClients}
+      />
+      
       <Footer />
     </div>
   );
