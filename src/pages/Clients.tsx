@@ -345,6 +345,7 @@ export default function Clients() {
         isOpen={isEditDialogOpen}
         onClose={handleCloseEditDialog}
         onClientUpdated={loadClients}
+        userRole={userRole}
       />
       
       <Footer />

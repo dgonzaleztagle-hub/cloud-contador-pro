@@ -48,9 +48,10 @@ interface ClientEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onClientUpdated: () => void;
+  userRole?: string | null;
 }
 
-export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated }: ClientEditDialogProps) {
+export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, userRole }: ClientEditDialogProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -304,35 +305,43 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated }: C
             {/* Claves SII */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Claves SII y Certificados</h3>
+              {userRole !== 'master' && (
+                <p className="text-sm text-muted-foreground">
+                  Solo los usuarios master pueden ver las claves completas
+                </p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="clave_sii_encrypted">Clave SII</Label>
                   <Input
                     id="clave_sii_encrypted"
-                    type="password"
+                    type={userRole === 'master' ? 'text' : 'password'}
                     value={formData.clave_sii_encrypted || ''}
                     onChange={(e) => setFormData({ ...formData, clave_sii_encrypted: e.target.value })}
-                    placeholder="••••••••"
+                    placeholder={userRole === 'master' ? '' : '••••••••'}
+                    readOnly={userRole !== 'master' && userRole !== 'admin'}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="clave_unica_encrypted">Clave Única</Label>
                   <Input
                     id="clave_unica_encrypted"
-                    type="password"
+                    type={userRole === 'master' ? 'text' : 'password'}
                     value={formData.clave_unica_encrypted || ''}
                     onChange={(e) => setFormData({ ...formData, clave_unica_encrypted: e.target.value })}
-                    placeholder="••••••••"
+                    placeholder={userRole === 'master' ? '' : '••••••••'}
+                    readOnly={userRole !== 'master' && userRole !== 'admin'}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="certificado_digital_encrypted">Certificado Digital</Label>
                   <Input
                     id="certificado_digital_encrypted"
-                    type="password"
+                    type={userRole === 'master' ? 'text' : 'password'}
                     value={formData.certificado_digital_encrypted || ''}
                     onChange={(e) => setFormData({ ...formData, certificado_digital_encrypted: e.target.value })}
-                    placeholder="••••••••"
+                    placeholder={userRole === 'master' ? '' : '••••••••'}
+                    readOnly={userRole !== 'master' && userRole !== 'admin'}
                   />
                 </div>
               </div>
