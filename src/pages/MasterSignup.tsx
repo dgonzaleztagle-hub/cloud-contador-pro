@@ -64,7 +64,7 @@ export default function MasterSignup() {
         <Card className="w-full max-w-md border-border bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <div className="h-24 w-24 flex items-center justify-center">
+            <div className="h-24 w-24 flex items-center justify-center bg-card rounded-2xl">
               <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
             </div>
           </div>

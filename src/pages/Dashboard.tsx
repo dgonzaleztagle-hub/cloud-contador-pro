@@ -7,6 +7,7 @@ import { Loader2, TrendingUp, DollarSign, Calendar, Users, LogOut, Settings } fr
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
+import logo from '@/assets/logo.png';
 
 export default function Dashboard() {
   const { user, userRole, loading, signOut } = useAuth();
@@ -68,13 +69,18 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Plus Contable
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {format(currentDateTime, "EEEE, d 'de' MMMM 'de' yyyy • HH:mm:ss", { locale: es })}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 flex items-center justify-center">
+                <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
+              </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Plus Contable
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {format(currentDateTime, "EEEE, d 'de' MMMM 'de' yyyy • HH:mm:ss", { locale: es })}
+                </p>
+              </div>
             </div>
             <div className="flex gap-4 flex-wrap items-center">
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-border">

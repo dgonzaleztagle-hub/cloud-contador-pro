@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Calculator, TrendingUp, Users, Shield, FileText } from 'lucide-react';
+import { TrendingUp, Users, Shield, FileText } from 'lucide-react';
 import { Footer } from '@/components/Footer';
+import logo from '@/assets/logo.png';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -24,8 +25,8 @@ const Index = () => {
         <div className="text-center space-y-8 max-w-4xl mx-auto">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20">
-              <Calculator className="h-10 w-10 text-primary-foreground" />
+            <div className="h-32 w-32 rounded-2xl flex items-center justify-center">
+              <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
             </div>
           </div>
 
