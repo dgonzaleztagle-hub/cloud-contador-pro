@@ -70,7 +70,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 flex items-center justify-center">
+              <div className="h-12 w-12 flex items-center justify-center bg-card rounded-lg">
                 <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
               </div>
               <div className="space-y-1">

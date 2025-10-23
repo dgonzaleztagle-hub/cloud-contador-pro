@@ -25,7 +25,7 @@ const Index = () => {
         <div className="text-center space-y-8 max-w-4xl mx-auto">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="h-32 w-32 rounded-2xl flex items-center justify-center">
+            <div className="h-32 w-32 rounded-2xl flex items-center justify-center bg-card">
               <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
             </div>
           </div>
@@ -42,19 +42,12 @@ const Index = () => {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+          <div className="flex justify-center mt-8">
             <Button 
               onClick={() => navigate('/auth')}
               className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-semibold px-8 py-6 text-lg"
             >
               Iniciar Sesión
-            </Button>
-            <Button 
-              onClick={() => navigate('/auth')}
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary/10 px-8 py-6 text-lg"
-            >
-              Crear Cuenta
             </Button>
           </div>
 
