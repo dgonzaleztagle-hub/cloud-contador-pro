@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calculator } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Footer } from '@/components/Footer';
+import logo from '@/assets/logo.png';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -62,8 +63,8 @@ export default function Auth() {
         <Card className="w-full max-w-md border-border bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-              <Calculator className="h-8 w-8 text-primary-foreground" />
+            <div className="h-24 w-24 rounded-2xl flex items-center justify-center">
+              <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
             </div>
           </div>
           <div className="space-y-2 text-center">
