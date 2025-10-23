@@ -7,6 +7,7 @@ import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX } from 'lucid
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
 import { ClientDialog } from '@/components/ClientDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface Client {
   id: string;
@@ -24,6 +25,7 @@ interface Client {
 export default function Clients() {
   const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
