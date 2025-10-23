@@ -52,13 +52,18 @@ export default function Clients() {
 
   const loadClients = async () => {
     setLoadingClients(true);
+    console.log('Loading clients with user:', user?.email, 'role:', userRole);
+    
     const { data, error } = await supabase
       .from('clients')
       .select('*')
       .order('razon_social', { ascending: true });
 
-    if (data) {
-      setClients(data);
+    if (error) {
+      console.error('Error loading clients:', error);
+    } else {
+      console.log('Clients loaded successfully:', data?.length);
+      setClients(data || []);
     }
     setLoadingClients(false);
   };

@@ -37,11 +37,16 @@ export default function Dashboard() {
         supabase
           .from('clients')
           .select('activo', { count: 'exact' })
-          .then(({ data, count }) => {
+          .then(({ data, count, error }) => {
+            if (error) {
+              console.error('Error fetching clients:', error);
+              return;
+            }
             if (data) {
               const activos = data.filter(c => c.activo).length;
               const inactivos = data.filter(c => !c.activo).length;
               setClientsCount({ total: count || 0, activos, inactivos });
+              console.log('Clients loaded:', { total: count, activos, inactivos });
             }
           });
       });
