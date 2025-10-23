@@ -23,49 +23,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener - MUST NOT be async!
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, 'User:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Defer Supabase calls with setTimeout to prevent deadlock
         if (session?.user) {
-          // Fetch user role immediately
+          setTimeout(async () => {
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+            
+            console.log('Profile fetched:', profile, 'Error:', error);
+            setUserRole(profile?.role ?? null);
+            setLoading(false);
+          }, 0);
+        } else {
+          setUserRole(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setTimeout(async () => {
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .single();
           
-          console.log('Profile fetched:', profile, 'Error:', error);
+          console.log('Initial profile fetched:', profile, 'Error:', error);
           setUserRole(profile?.role ?? null);
-        } else {
-          setUserRole(null);
-        }
-        
+          setLoading(false);
+        }, 0);
+      } else {
         setLoading(false);
       }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        console.log('Initial profile fetched:', profile, 'Error:', error);
-        setUserRole(profile?.role ?? null);
-      }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
