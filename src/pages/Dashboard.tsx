@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [uf, setUf] = useState('37.456,78');
   const [utm, setUtm] = useState('67.210');
   const [dollar, setDollar] = useState('985,45');
+  const [clientsCount, setClientsCount] = useState({ total: 0, activos: 0, inactivos: 0 });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,6 +29,24 @@ export default function Dashboard() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (user && userRole) {
+      // Fetch clients count
+      import('@/integrations/supabase/client').then(({ supabase }) => {
+        supabase
+          .from('clients')
+          .select('activo', { count: 'exact' })
+          .then(({ data, count }) => {
+            if (data) {
+              const activos = data.filter(c => c.activo).length;
+              const inactivos = data.filter(c => !c.activo).length;
+              setClientsCount({ total: count || 0, activos, inactivos });
+            }
+          });
+      });
+    }
+  }, [user, userRole]);
 
   if (loading) {
     return (
@@ -110,9 +129,9 @@ export default function Dashboard() {
                 <Users className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">0</div>
+                <div className="text-2xl font-bold text-foreground">{clientsCount.activos}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Sin clientes registrados aún
+                  {clientsCount.inactivos} inactivos
                 </p>
               </CardContent>
             </Card>
