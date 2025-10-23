@@ -119,8 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Then sign out from Supabase
       await supabase.auth.signOut();
       
-      // Navigate after state is cleared
-      navigate('/auth', { replace: true });
+      // Navigate to home page after state is cleared
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
     }
