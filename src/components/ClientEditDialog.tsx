@@ -146,10 +146,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
               <Label htmlFor="activo">Cliente Activo</Label>
             </div>
 
-            {/* Información Básica de la Empresa */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Información Básica de la Empresa</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Formulario en 2 columnas como el Excel original */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Columna Izquierda */}
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="razon_social">Razón Social *</Label>
                   <Input
@@ -159,149 +159,18 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     required
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="rut">RUT *</Label>
+                  <Label htmlFor="rut">Rut</Label>
                   <Input
                     id="rut"
                     value={formData.rut || ''}
                     onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-                    required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="valor">Valor</Label>
-                  <Input
-                    id="valor"
-                    value={formData.valor || ''}
-                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cod_actividad">Código Actividad</Label>
-                  <Input
-                    id="cod_actividad"
-                    value={formData.cod_actividad || ''}
-                    onChange={(e) => setFormData({ ...formData, cod_actividad: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="giro">Giro</Label>
-                  <Input
-                    id="giro"
-                    value={formData.giro || ''}
-                    onChange={(e) => setFormData({ ...formData, giro: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="regimen_tributario">Régimen Tributario</Label>
-                  <Input
-                    id="regimen_tributario"
-                    value={formData.regimen_tributario || ''}
-                    onChange={(e) => setFormData({ ...formData, regimen_tributario: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contabilidad">Contabilidad</Label>
-                  <Input
-                    id="contabilidad"
-                    value={formData.contabilidad || ''}
-                    onChange={(e) => setFormData({ ...formData, contabilidad: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fecha_incorporacion">Fecha Incorporación</Label>
-                  <Input
-                    id="fecha_incorporacion"
-                    type="date"
-                    value={formData.fecha_incorporacion || ''}
-                    onChange={(e) => setFormData({ ...formData, fecha_incorporacion: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
 
-            {/* Ubicación y Contacto */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Ubicación y Contacto</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="direccion">Dirección</Label>
-                  <Input
-                    id="direccion"
-                    value={formData.direccion || ''}
-                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ciudad">Ciudad</Label>
-                  <Input
-                    id="ciudad"
-                    value={formData.ciudad || ''}
-                    onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="region">Región</Label>
-                  <Input
-                    id="region"
-                    value={formData.region || ''}
-                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fono">Fono</Label>
-                  <Input
-                    id="fono"
-                    value={formData.fono || ''}
-                    onChange={(e) => setFormData({ ...formData, fono: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Representante Legal */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Representante Legal</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="representante_legal">Representante Legal</Label>
-                  <Input
-                    id="representante_legal"
-                    value={formData.representante_legal || ''}
-                    onChange={(e) => setFormData({ ...formData, representante_legal: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rut_representante">RUT Representante</Label>
-                  <Input
-                    id="rut_representante"
-                    value={formData.rut_representante || ''}
-                    onChange={(e) => setFormData({ ...formData, rut_representante: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Claves y Certificados */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Claves y Certificados</h3>
-              {!canEditPasswords && (
-                <p className="text-sm text-muted-foreground">
-                  Solo los usuarios master y admin pueden ver y editar las claves
-                </p>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clave_sii">Clave SII</Label>
+                  <Label htmlFor="clave_sii">Clave Sii</Label>
                   <Input
                     id="clave_sii"
                     type={canEditPasswords ? 'text' : 'password'}
@@ -311,6 +180,7 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     readOnly={!canEditPasswords}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="clave_certificado">Clave Certificado</Label>
                   <Input
@@ -322,8 +192,133 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     readOnly={!canEditPasswords}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="clave_sii_repr">Clave SII Repr.</Label>
+                  <Label htmlFor="direccion">Dirección</Label>
+                  <Input
+                    id="direccion"
+                    value={formData.direccion || ''}
+                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ciudad">Ciudad</Label>
+                  <Input
+                    id="ciudad"
+                    value={formData.ciudad || ''}
+                    onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fono">Fono</Label>
+                  <Input
+                    id="fono"
+                    value={formData.fono || ''}
+                    onChange={(e) => setFormData({ ...formData, fono: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="giro">Giro</Label>
+                  <Input
+                    id="giro"
+                    value={formData.giro || ''}
+                    onChange={(e) => setFormData({ ...formData, giro: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cod_actividad">Código Actividad</Label>
+                  <Input
+                    id="cod_actividad"
+                    value={formData.cod_actividad || ''}
+                    onChange={(e) => setFormData({ ...formData, cod_actividad: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="observacion_1">Observación 1</Label>
+                  <Textarea
+                    id="observacion_1"
+                    value={formData.observacion_1 || ''}
+                    onChange={(e) => setFormData({ ...formData, observacion_1: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="observacion_2">Observación 2</Label>
+                  <Textarea
+                    id="observacion_2"
+                    value={formData.observacion_2 || ''}
+                    onChange={(e) => setFormData({ ...formData, observacion_2: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="observacion_3">Observación 3</Label>
+                  <Textarea
+                    id="observacion_3"
+                    value={formData.observacion_3 || ''}
+                    onChange={(e) => setFormData({ ...formData, observacion_3: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              {/* Columna Derecha */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="regimen_tributario">Régimen Tributario</Label>
+                  <Input
+                    id="regimen_tributario"
+                    value={formData.regimen_tributario || ''}
+                    onChange={(e) => setFormData({ ...formData, regimen_tributario: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="contabilidad">Contabilidad</Label>
+                  <Input
+                    id="contabilidad"
+                    value={formData.contabilidad || ''}
+                    onChange={(e) => setFormData({ ...formData, contabilidad: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="representante_legal">Representante Legal</Label>
+                  <Input
+                    id="representante_legal"
+                    value={formData.representante_legal || ''}
+                    onChange={(e) => setFormData({ ...formData, representante_legal: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rut_representante">RUT Representante</Label>
+                  <Input
+                    id="rut_representante"
+                    value={formData.rut_representante || ''}
+                    onChange={(e) => setFormData({ ...formData, rut_representante: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="clave_sii_repr">Clave SII Representante</Label>
                   <Input
                     id="clave_sii_repr"
                     type={canEditPasswords ? 'text' : 'password'}
@@ -333,6 +328,7 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     readOnly={!canEditPasswords}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="clave_unica">Clave Única</Label>
                   <Input
@@ -344,6 +340,7 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     readOnly={!canEditPasswords}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="previred">Previred</Label>
                   <Input
@@ -352,50 +349,51 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     onChange={(e) => setFormData({ ...formData, previred: e.target.value })}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="portal_electronico">Portal Electrónico</Label>
+                  <Label htmlFor="portal_electronico">Portal Eléctronico</Label>
                   <Input
                     id="portal_electronico"
                     value={formData.portal_electronico || ''}
                     onChange={(e) => setFormData({ ...formData, portal_electronico: e.target.value })}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fecha_incorporacion">Fecha Incorporación</Label>
+                  <Input
+                    id="fecha_incorporacion"
+                    type="date"
+                    value={formData.fecha_incorporacion || ''}
+                    onChange={(e) => setFormData({ ...formData, fecha_incorporacion: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="valor">Valor</Label>
+                  <Input
+                    id="valor"
+                    value={formData.valor || ''}
+                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="region">Región</Label>
+                  <Input
+                    id="region"
+                    value={formData.region || ''}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Observaciones */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Observaciones</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="observacion_1">Observación 1</Label>
-                  <Textarea
-                    id="observacion_1"
-                    value={formData.observacion_1 || ''}
-                    onChange={(e) => setFormData({ ...formData, observacion_1: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="observacion_2">Observación 2</Label>
-                  <Textarea
-                    id="observacion_2"
-                    value={formData.observacion_2 || ''}
-                    onChange={(e) => setFormData({ ...formData, observacion_2: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="observacion_3">Observación 3</Label>
-                  <Textarea
-                    id="observacion_3"
-                    value={formData.observacion_3 || ''}
-                    onChange={(e) => setFormData({ ...formData, observacion_3: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </div>
+            {!canEditPasswords && (
+              <p className="text-sm text-muted-foreground text-center">
+                Solo los usuarios master y admin pueden ver y editar las claves
+              </p>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4 border-t">
@@ -419,7 +417,7 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                       Guardando...
                     </>
                   ) : (
-                    'Guardar Cambios'
+                    'Guardar'
                   )}
                 </Button>
               </div>
