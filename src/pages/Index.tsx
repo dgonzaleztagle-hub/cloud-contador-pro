@@ -38,7 +38,7 @@ const Index = () => {
           </h1>
           
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Sistema Contable Chileno Profesional en la Nube
+            Sistema de gestión en la nube
           </p>
 
           {/* CTA Buttons */}
