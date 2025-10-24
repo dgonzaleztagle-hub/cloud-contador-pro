@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
 import logo from '@/assets/logo.png';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Dashboard() {
   const { user, userRole, loading, signOut } = useAuth();
@@ -37,30 +38,19 @@ export default function Dashboard() {
     const loadEconomicIndicators = async () => {
       try {
         console.log('Fetching economic indicators...');
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/economic-indicators`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-          }
-        );
         
-        console.log('Response status:', response.status);
+        const { data, error } = await supabase.functions.invoke('economic-indicators');
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
+        if (error) {
+          console.error('Error invoking function:', error);
           return;
         }
         
-        const data = await response.json();
         console.log('Economic indicators loaded:', data);
         
-        if (data.uf && data.uf !== '0') setUf(data.uf);
-        if (data.utm && data.utm !== '0') setUtm(data.utm);
-        if (data.usd && data.usd !== '0') setDollar(data.usd);
+        if (data?.uf && data.uf !== '0') setUf(data.uf);
+        if (data?.utm && data.utm !== '0') setUtm(data.utm);
+        if (data?.usd && data.usd !== '0') setDollar(data.usd);
       } catch (error) {
         console.error('Error loading economic indicators:', error);
       }
