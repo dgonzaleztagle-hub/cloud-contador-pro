@@ -260,48 +260,75 @@ export type Database = {
       }
       rrhh_workers: {
         Row: {
-          anticipo: number | null
-          atrasos: number | null
+          anticipo_monto: number | null
+          atrasos_horas: number | null
+          atrasos_minutos: number | null
           client_id: string
+          contrato_pdf_path: string | null
           created_at: string
-          faltas: number | null
+          faltas_dia_completo: number | null
+          faltas_medio_dia: number | null
+          fecha_termino: string | null
           id: string
           nombre: string
           periodo_anio: number
           periodo_mes: number
-          permisos: number | null
-          plazo_contrato: string | null
+          permisos_dia_completo: number | null
+          permisos_horas: number | null
+          permisos_medio_dia: number | null
+          permisos_minutos: number | null
           rut: string
+          sucursal_id: string | null
+          tipo_jornada: string
+          tipo_plazo: string
           updated_at: string
         }
         Insert: {
-          anticipo?: number | null
-          atrasos?: number | null
+          anticipo_monto?: number | null
+          atrasos_horas?: number | null
+          atrasos_minutos?: number | null
           client_id: string
+          contrato_pdf_path?: string | null
           created_at?: string
-          faltas?: number | null
+          faltas_dia_completo?: number | null
+          faltas_medio_dia?: number | null
+          fecha_termino?: string | null
           id?: string
           nombre: string
           periodo_anio: number
           periodo_mes: number
-          permisos?: number | null
-          plazo_contrato?: string | null
+          permisos_dia_completo?: number | null
+          permisos_horas?: number | null
+          permisos_medio_dia?: number | null
+          permisos_minutos?: number | null
           rut: string
+          sucursal_id?: string | null
+          tipo_jornada?: string
+          tipo_plazo?: string
           updated_at?: string
         }
         Update: {
-          anticipo?: number | null
-          atrasos?: number | null
+          anticipo_monto?: number | null
+          atrasos_horas?: number | null
+          atrasos_minutos?: number | null
           client_id?: string
+          contrato_pdf_path?: string | null
           created_at?: string
-          faltas?: number | null
+          faltas_dia_completo?: number | null
+          faltas_medio_dia?: number | null
+          fecha_termino?: string | null
           id?: string
           nombre?: string
           periodo_anio?: number
           periodo_mes?: number
-          permisos?: number | null
-          plazo_contrato?: string | null
+          permisos_dia_completo?: number | null
+          permisos_horas?: number | null
+          permisos_medio_dia?: number | null
+          permisos_minutos?: number | null
           rut?: string
+          sucursal_id?: string | null
+          tipo_jornada?: string
+          tipo_plazo?: string
           updated_at?: string
         }
         Relationships: [
@@ -312,7 +339,32 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rrhh_workers_sucursal_id_fkey"
+            columns: ["sucursal_id"]
+            isOneToOne: false
+            referencedRelation: "sucursales"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      sucursales: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
       }
     }
     Views: {

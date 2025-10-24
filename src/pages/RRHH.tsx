@@ -7,15 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
+import jsPDF from 'jspdf';
 
 interface Client {
   id: string;
   rut: string;
   razon_social: string;
+}
+
+interface Sucursal {
+  id: string;
+  nombre: string;
 }
 
 interface Worker {
@@ -25,13 +31,23 @@ interface Worker {
   nombre: string;
   periodo_mes: number;
   periodo_anio: number;
-  atrasos: number;
-  permisos: number;
-  faltas: number;
-  anticipo: number;
-  plazo_contrato: string | null;
+  tipo_plazo: string;
+  fecha_termino: string | null;
+  tipo_jornada: string;
+  sucursal_id: string | null;
+  contrato_pdf_path: string | null;
+  atrasos_horas: number;
+  atrasos_minutos: number;
+  permisos_horas: number;
+  permisos_minutos: number;
+  permisos_medio_dia: number;
+  permisos_dia_completo: number;
+  faltas_dia_completo: number;
+  faltas_medio_dia: number;
+  anticipo_monto: number;
   created_at: string;
   clients?: { rut: string; razon_social: string };
+  sucursales?: { nombre: string };
 }
 
 export default function RRHH() {
@@ -39,10 +55,12 @@ export default function RRHH() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [filterClientId, setFilterClientId] = useState<string>('all');
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -50,11 +68,24 @@ export default function RRHH() {
   const [workerNombre, setWorkerNombre] = useState('');
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(new Date().getFullYear());
-  const [atrasos, setAtrasos] = useState('0');
-  const [permisos, setPermisos] = useState('0');
-  const [faltas, setFaltas] = useState('0');
-  const [anticipo, setAnticipo] = useState('0');
-  const [plazoContrato, setPlazoContrato] = useState('');
+  const [tipoplazo, setTipoPlazo] = useState('indefinido');
+  const [fechaTermino, setFechaTermino] = useState('');
+  const [tipoJornada, setTipoJornada] = useState('completa');
+  const [sucursalId, setSucursalId] = useState('');
+  const [nuevaSucursal, setNuevaSucursal] = useState('');
+  const [mostrarNuevaSucursal, setMostrarNuevaSucursal] = useState(false);
+  const [contratoPdf, setContratoPdf] = useState<File | null>(null);
+  
+  // Descuentos
+  const [atrasosHoras, setAtrasosHoras] = useState('0');
+  const [atrasosMinutos, setAtrasosMinutos] = useState('0');
+  const [permisosHoras, setPermisosHoras] = useState('0');
+  const [permisosMinutos, setPermisosMinutos] = useState('0');
+  const [permisosMedioDia, setPermisosMedioDia] = useState('0');
+  const [permisosDiaCompleto, setPermisosDiaCompleto] = useState('0');
+  const [faltasDiaCompleto, setFaltasDiaCompleto] = useState('0');
+  const [faltasMedioDia, setFaltasMedioDia] = useState('0');
+  const [anticipoMonto, setAnticipoMonto] = useState('0');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -80,29 +111,31 @@ export default function RRHH() {
 
     if (clientsError) {
       console.error('Error loading clients:', clientsError);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron cargar los clientes',
-      });
     } else {
       setClients(clientsData || []);
+    }
+
+    // Load sucursales
+    const { data: sucursalesData, error: sucursalesError } = await supabase
+      .from('sucursales')
+      .select('*')
+      .order('nombre');
+
+    if (sucursalesError) {
+      console.error('Error loading sucursales:', sucursalesError);
+    } else {
+      setSucursales(sucursalesData || []);
     }
 
     // Load workers
     const { data: workersData, error: workersError } = await supabase
       .from('rrhh_workers')
-      .select('*, clients(rut, razon_social)')
+      .select('*, clients(rut, razon_social), sucursales(nombre)')
       .order('periodo_anio', { ascending: false })
       .order('periodo_mes', { ascending: false });
 
     if (workersError) {
       console.error('Error loading workers:', workersError);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron cargar los trabajadores',
-      });
     } else {
       setWorkers(workersData || []);
     }
@@ -121,7 +154,61 @@ export default function RRHH() {
       return;
     }
 
+    if (tipoplazo === 'fijo' && !fechaTermino) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Debes especificar la fecha de término para contrato de plazo fijo',
+      });
+      return;
+    }
+
     setIsSaving(true);
+
+    let finalSucursalId = sucursalId;
+
+    // Crear nueva sucursal si se especificó
+    if (mostrarNuevaSucursal && nuevaSucursal.trim()) {
+      const { data: newSucursal, error: sucursalError } = await supabase
+        .from('sucursales')
+        .insert({ nombre: nuevaSucursal.trim() })
+        .select()
+        .single();
+
+      if (sucursalError) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo crear la sucursal',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      finalSucursalId = newSucursal.id;
+      await loadData(); // Recargar sucursales
+    }
+
+    // Subir contrato PDF si existe
+    let contratoPdfPath = null;
+    if (contratoPdf) {
+      const fileName = `${selectedClientId}/${workerRut}_${Date.now()}.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, contratoPdf);
+
+      if (uploadError) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo subir el contrato',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      contratoPdfPath = fileName;
+    }
 
     const { error } = await supabase.from('rrhh_workers').insert({
       client_id: selectedClientId,
@@ -129,11 +216,20 @@ export default function RRHH() {
       nombre: workerNombre,
       periodo_mes: mes,
       periodo_anio: anio,
-      atrasos: parseFloat(atrasos) || 0,
-      permisos: parseFloat(permisos) || 0,
-      faltas: parseFloat(faltas) || 0,
-      anticipo: parseFloat(anticipo) || 0,
-      plazo_contrato: plazoContrato || null,
+      tipo_plazo: tipoplazo,
+      fecha_termino: tipoplazo === 'fijo' ? fechaTermino : null,
+      tipo_jornada: tipoJornada,
+      sucursal_id: finalSucursalId || null,
+      contrato_pdf_path: contratoPdfPath,
+      atrasos_horas: parseInt(atrasosHoras) || 0,
+      atrasos_minutos: parseInt(atrasosMinutos) || 0,
+      permisos_horas: parseInt(permisosHoras) || 0,
+      permisos_minutos: parseInt(permisosMinutos) || 0,
+      permisos_medio_dia: parseInt(permisosMedioDia) || 0,
+      permisos_dia_completo: parseInt(permisosDiaCompleto) || 0,
+      faltas_dia_completo: parseInt(faltasDiaCompleto) || 0,
+      faltas_medio_dia: parseInt(faltasMedioDia) || 0,
+      anticipo_monto: parseFloat(anticipoMonto) || 0,
     });
 
     if (error) {
@@ -158,11 +254,22 @@ export default function RRHH() {
     setSelectedClientId('');
     setWorkerRut('');
     setWorkerNombre('');
-    setAtrasos('0');
-    setPermisos('0');
-    setFaltas('0');
-    setAnticipo('0');
-    setPlazoContrato('');
+    setTipoPlazo('indefinido');
+    setFechaTermino('');
+    setTipoJornada('completa');
+    setSucursalId('');
+    setNuevaSucursal('');
+    setMostrarNuevaSucursal(false);
+    setContratoPdf(null);
+    setAtrasosHoras('0');
+    setAtrasosMinutos('0');
+    setPermisosHoras('0');
+    setPermisosMinutos('0');
+    setPermisosMedioDia('0');
+    setPermisosDiaCompleto('0');
+    setFaltasDiaCompleto('0');
+    setFaltasMedioDia('0');
+    setAnticipoMonto('0');
   };
 
   const handleDelete = async (id: string) => {
@@ -185,12 +292,62 @@ export default function RRHH() {
     }
   };
 
+  const exportToPDF = (worker: Worker) => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Informe de Descuentos Mensuales', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${worker.clients?.razon_social || 'N/A'}`, 20, 35);
+    doc.text(`Trabajador: ${worker.nombre}`, 20, 42);
+    doc.text(`RUT: ${worker.rut}`, 20, 49);
+    doc.text(`Período: ${meses[worker.periodo_mes - 1]} ${worker.periodo_anio}`, 20, 56);
+    
+    doc.line(20, 62, 190, 62);
+    
+    doc.setFontSize(14);
+    doc.text('Atrasos', 20, 72);
+    doc.setFontSize(11);
+    doc.text(`${worker.atrasos_horas} horas ${worker.atrasos_minutos} minutos`, 20, 79);
+    
+    doc.setFontSize(14);
+    doc.text('Permisos', 20, 93);
+    doc.setFontSize(11);
+    doc.text(`${worker.permisos_horas} horas ${worker.permisos_minutos} minutos`, 20, 100);
+    doc.text(`${worker.permisos_medio_dia} medios días`, 20, 107);
+    doc.text(`${worker.permisos_dia_completo} días completos`, 20, 114);
+    
+    doc.setFontSize(14);
+    doc.text('Faltas', 20, 128);
+    doc.setFontSize(11);
+    doc.text(`${worker.faltas_dia_completo} días completos`, 20, 135);
+    doc.text(`${worker.faltas_medio_dia} medios días`, 20, 142);
+    
+    doc.setFontSize(14);
+    doc.text('Anticipos', 20, 156);
+    doc.setFontSize(11);
+    doc.text(`$${worker.anticipo_monto.toLocaleString('es-CL')}`, 20, 163);
+    
+    const fileName = `Informe_RRHH_${worker.rut}_${meses[worker.periodo_mes - 1]}_${worker.periodo_anio}.pdf`;
+    doc.save(fileName);
+    
+    toast({
+      title: 'PDF exportado',
+      description: 'El informe se exportó correctamente',
+    });
+  };
+
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
   const canModify = userRole === 'master' || userRole === 'admin';
+
+  const filteredWorkers = filterClientId === 'all' 
+    ? workers 
+    : workers.filter(w => w.client_id === filterClientId);
 
   if (loading || loadingData) {
     return (
@@ -227,7 +384,7 @@ export default function RRHH() {
                     Nuevo Trabajador
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Nuevo Registro de Trabajador</DialogTitle>
                   </DialogHeader>
@@ -238,7 +395,7 @@ export default function RRHH() {
                         <SelectTrigger className="bg-input border-border">
                           <SelectValue placeholder="Seleccionar cliente" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-card border-border z-50">
                           {clients.map((client) => (
                             <SelectItem key={client.id} value={client.id}>
                               {client.rut} - {client.razon_social}
@@ -273,12 +430,118 @@ export default function RRHH() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
+                        <Label>Plazo del Contrato *</Label>
+                        <Select value={tipoplazo} onValueChange={(v) => {
+                          setTipoPlazo(v);
+                          if (v === 'indefinido') setFechaTermino('');
+                        }}>
+                          <SelectTrigger className="bg-input border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border z-50">
+                            <SelectItem value="indefinido">Indefinido</SelectItem>
+                            <SelectItem value="fijo">Plazo Fijo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {tipoplazo === 'fijo' && (
+                        <div>
+                          <Label>Fecha de Término *</Label>
+                          <Input
+                            type="date"
+                            value={fechaTermino}
+                            onChange={(e) => setFechaTermino(e.target.value)}
+                            required
+                            className="bg-input border-border"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label>Tipo de Jornada *</Label>
+                      <Select value={tipoJornada} onValueChange={setTipoJornada}>
+                        <SelectTrigger className="bg-input border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border z-50">
+                          <SelectItem value="completa">Completa</SelectItem>
+                          <SelectItem value="parcial_30">Parcial 30 hrs</SelectItem>
+                          <SelectItem value="parcial_20">Parcial 20 hrs</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>Sucursal de Trabajo</Label>
+                      <div className="space-y-2">
+                        {!mostrarNuevaSucursal ? (
+                          <>
+                            <Select value={sucursalId} onValueChange={setSucursalId}>
+                              <SelectTrigger className="bg-input border-border">
+                                <SelectValue placeholder="Seleccionar sucursal" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border z-50">
+                                {sucursales.map((suc) => (
+                                  <SelectItem key={suc.id} value={suc.id}>
+                                    {suc.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMostrarNuevaSucursal(true)}
+                              className="w-full"
+                            >
+                              + Agregar Nueva Sucursal
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Input
+                              value={nuevaSucursal}
+                              onChange={(e) => setNuevaSucursal(e.target.value)}
+                              placeholder="Nombre de la nueva sucursal"
+                              className="bg-input border-border"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setMostrarNuevaSucursal(false);
+                                setNuevaSucursal('');
+                              }}
+                              className="w-full"
+                            >
+                              Cancelar
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Contrato PDF</Label>
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => setContratoPdf(e.target.files?.[0] || null)}
+                        className="bg-input border-border"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
                         <Label>Mes</Label>
                         <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v))}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-card border-border z-50">
                             {meses.map((m, i) => (
                               <SelectItem key={i} value={(i + 1).toString()}>
                                 {m}
@@ -299,55 +562,120 @@ export default function RRHH() {
                     </div>
 
                     <div className="space-y-2">
-                      <h3 className="font-semibold text-foreground">Novedades</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                      <h3 className="font-semibold text-foreground">Informes de Descuentos</h3>
+                      
+                      <div className="space-y-3">
                         <div>
-                          <Label>Atrasos ($)</Label>
-                          <Input
-                            type="number"
-                            value={atrasos}
-                            onChange={(e) => setAtrasos(e.target.value)}
-                            className="bg-input border-border"
-                          />
+                          <Label className="text-sm font-medium">Atrasos</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Horas</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={atrasosHoras}
+                                onChange={(e) => setAtrasosHoras(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Minutos</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="59"
+                                value={atrasosMinutos}
+                                onChange={(e) => setAtrasosMinutos(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                          </div>
                         </div>
+
                         <div>
-                          <Label>Permisos ($)</Label>
-                          <Input
-                            type="number"
-                            value={permisos}
-                            onChange={(e) => setPermisos(e.target.value)}
-                            className="bg-input border-border"
-                          />
+                          <Label className="text-sm font-medium">Permisos</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Horas</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={permisosHoras}
+                                onChange={(e) => setPermisosHoras(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Minutos</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="59"
+                                value={permisosMinutos}
+                                onChange={(e) => setPermisosMinutos(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Medios Días</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={permisosMedioDia}
+                                onChange={(e) => setPermisosMedioDia(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Días Completos</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={permisosDiaCompleto}
+                                onChange={(e) => setPermisosDiaCompleto(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                          </div>
                         </div>
+
                         <div>
-                          <Label>Faltas ($)</Label>
-                          <Input
-                            type="number"
-                            value={faltas}
-                            onChange={(e) => setFaltas(e.target.value)}
-                            className="bg-input border-border"
-                          />
+                          <Label className="text-sm font-medium">Faltas</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Días Completos</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={faltasDiaCompleto}
+                                onChange={(e) => setFaltasDiaCompleto(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Medios Días</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={faltasMedioDia}
+                                onChange={(e) => setFaltasMedioDia(e.target.value)}
+                                className="bg-input border-border"
+                              />
+                            </div>
+                          </div>
                         </div>
+
                         <div>
-                          <Label>Anticipo ($)</Label>
+                          <Label className="text-sm font-medium">Anticipos ($)</Label>
                           <Input
                             type="number"
-                            value={anticipo}
-                            onChange={(e) => setAnticipo(e.target.value)}
+                            min="0"
+                            value={anticipoMonto}
+                            onChange={(e) => setAnticipoMonto(e.target.value)}
                             className="bg-input border-border"
                           />
                         </div>
                       </div>
-                    </div>
-
-                    <div>
-                      <Label>Plazo de Contrato</Label>
-                      <Input
-                        type="date"
-                        value={plazoContrato}
-                        onChange={(e) => setPlazoContrato(e.target.value)}
-                        className="bg-input border-border"
-                      />
                     </div>
 
                     <Button
@@ -373,19 +701,36 @@ export default function RRHH() {
       </header>
 
       <main className="container mx-auto px-6 py-8 flex-1">
+        <div className="mb-4">
+          <Label>Filtrar por Cliente</Label>
+          <Select value={filterClientId} onValueChange={setFilterClientId}>
+            <SelectTrigger className="bg-input border-border max-w-md">
+              <SelectValue placeholder="Todos los clientes" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50">
+              <SelectItem value="all">Todos los clientes</SelectItem>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.rut} - {client.razon_social}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Trabajadores Registrados ({workers.length})</CardTitle>
+            <CardTitle>Trabajadores Registrados ({filteredWorkers.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {workers.length === 0 ? (
+            {filteredWorkers.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No hay trabajadores registrados</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {workers.map((worker) => (
+                {filteredWorkers.map((worker) => (
                   <div
                     key={worker.id}
                     className="flex items-start justify-between p-4 rounded-lg bg-secondary border border-border"
@@ -398,48 +743,65 @@ export default function RRHH() {
                       <p className="text-sm text-muted-foreground">
                         {worker.clients?.razon_social || 'Cliente'} • {meses[worker.periodo_mes - 1]} {worker.periodo_anio}
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-2">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Contrato:</span>
+                          <span className="ml-1 font-medium text-foreground">
+                            {worker.tipo_plazo === 'fijo' ? 'Plazo Fijo' : 'Indefinido'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Jornada:</span>
+                          <span className="ml-1 font-medium text-foreground">
+                            {worker.tipo_jornada === 'completa' ? 'Completa' : worker.tipo_jornada === 'parcial_30' ? '30 hrs' : '20 hrs'}
+                          </span>
+                        </div>
+                        {worker.sucursales && (
+                          <div>
+                            <span className="text-muted-foreground">Sucursal:</span>
+                            <span className="ml-1 font-medium text-foreground">{worker.sucursales.nombre}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mt-2 pt-2 border-t border-border">
                         <div>
                           <span className="text-muted-foreground">Atrasos:</span>
-                          <span className="ml-2 font-semibold text-foreground">
-                            ${worker.atrasos.toLocaleString('es-CL')}
-                          </span>
+                          <span className="ml-1 font-medium">{worker.atrasos_horas}h {worker.atrasos_minutos}m</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Permisos:</span>
-                          <span className="ml-2 font-semibold text-foreground">
-                            ${worker.permisos.toLocaleString('es-CL')}
-                          </span>
+                          <span className="ml-1 font-medium">{worker.permisos_horas}h {worker.permisos_minutos}m + {worker.permisos_dia_completo}d + {worker.permisos_medio_dia}½d</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Faltas:</span>
-                          <span className="ml-2 font-semibold text-foreground">
-                            ${worker.faltas.toLocaleString('es-CL')}
-                          </span>
+                          <span className="ml-1 font-medium">{worker.faltas_dia_completo}d + {worker.faltas_medio_dia}½d</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Anticipo:</span>
-                          <span className="ml-2 font-semibold text-foreground">
-                            ${worker.anticipo.toLocaleString('es-CL')}
-                          </span>
+                          <span className="ml-1 font-medium">${worker.anticipo_monto.toLocaleString('es-CL')}</span>
                         </div>
                       </div>
-                      {worker.plazo_contrato && (
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-semibold">Contrato hasta:</span>{' '}
-                          {new Date(worker.plazo_contrato).toLocaleDateString('es-CL')}
-                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportToPDF(worker)}
+                        className="text-primary hover:text-primary"
+                        title="Exportar Informe"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      {canModify && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(worker.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
-                    {canModify && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(worker.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>
