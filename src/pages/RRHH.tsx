@@ -62,6 +62,7 @@ export default function RRHH() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [filterClientId, setFilterClientId] = useState<string>('all');
+  const [fromClientView, setFromClientView] = useState(false); // Indica si viene desde vista de cliente
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -105,6 +106,7 @@ export default function RRHH() {
     const state = location.state as { clientId?: string };
     if (state?.clientId) {
       setFilterClientId(state.clientId);
+      setFromClientView(true);
       // Limpiar el state después de usarlo
       window.history.replaceState({}, document.title);
     }
@@ -384,7 +386,10 @@ export default function RRHH() {
                 Volver
               </Button>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Recursos Humanos
+                {fromClientView && filterClientId !== 'all' 
+                  ? `RRHH - ${clients.find(c => c.id === filterClientId)?.razon_social || 'Cliente'}`
+                  : 'Recursos Humanos'
+                }
               </h1>
             </div>
             {canModify && (
@@ -712,22 +717,25 @@ export default function RRHH() {
       </header>
 
       <main className="container mx-auto px-6 py-8 flex-1">
-        <div className="mb-4">
-          <Label>Filtrar por Cliente</Label>
-          <Select value={filterClientId} onValueChange={setFilterClientId}>
-            <SelectTrigger className="bg-input border-border max-w-md">
-              <SelectValue placeholder="Todos los clientes" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50">
-              <SelectItem value="all">Todos los clientes</SelectItem>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.rut} - {client.razon_social}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Solo mostrar filtro si NO viene desde vista de cliente */}
+        {!fromClientView && (
+          <div className="mb-4">
+            <Label>Filtrar por Cliente</Label>
+            <Select value={filterClientId} onValueChange={setFilterClientId}>
+              <SelectTrigger className="bg-input border-border max-w-md">
+                <SelectValue placeholder="Todos los clientes" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border z-50">
+                <SelectItem value="all">Todos los clientes</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.rut} - {client.razon_social}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <Card className="border-border">
           <CardHeader>
