@@ -76,10 +76,16 @@ export default function Clients() {
 
   // Función para normalizar texto (quitar tildes y pasar a minúsculas)
   const normalizeText = (text: string): string => {
-    return text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    if (!text) return '';
+    try {
+      return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    } catch (e) {
+      // Fallback para navegadores que no soportan normalize
+      return text.toLowerCase();
+    }
   };
 
   useEffect(() => {
@@ -96,17 +102,22 @@ export default function Clients() {
     if (searchTerm.trim()) {
       const normalizedSearch = normalizeText(searchTerm.trim());
       filtered = filtered.filter((client) => {
-        const razonSocial = normalizeText(client.razon_social || '');
-        const rutEmpresa = normalizeText(client.rut || '');
-        const nombreRepLegal = normalizeText(client.representante_legal || '');
-        const rutRepLegal = normalizeText(client.rut_representante || '');
+        try {
+          const razonSocial = normalizeText(client.razon_social || '');
+          const rutEmpresa = normalizeText(client.rut || '');
+          const nombreRepLegal = normalizeText(client.representante_legal || '');
+          const rutRepLegal = normalizeText(client.rut_representante || '');
 
-        return (
-          razonSocial.includes(normalizedSearch) ||
-          rutEmpresa.includes(normalizedSearch) ||
-          nombreRepLegal.includes(normalizedSearch) ||
-          rutRepLegal.includes(normalizedSearch)
-        );
+          return (
+            razonSocial.includes(normalizedSearch) ||
+            rutEmpresa.includes(normalizedSearch) ||
+            nombreRepLegal.includes(normalizedSearch) ||
+            rutRepLegal.includes(normalizedSearch)
+          );
+        } catch (e) {
+          console.error('Error en filtro de búsqueda:', e);
+          return true; // Mantener el cliente en la lista en caso de error
+        }
       });
     }
 
