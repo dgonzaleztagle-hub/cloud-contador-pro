@@ -811,15 +811,16 @@ export default function RRHH() {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(worker.id)}
-                        disabled={!canModify}
-                        title="Eliminar Trabajador"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canModify && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(worker.id)}
+                          title="Eliminar Trabajador"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
