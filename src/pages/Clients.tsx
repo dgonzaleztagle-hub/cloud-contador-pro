@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX, Eye } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX, Eye, Search, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
 import { ClientDialog } from '@/components/ClientDialog';
@@ -45,6 +46,7 @@ export default function Clients() {
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('active');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleClientClick = (client: Client) => {
     setSelectedClient(client);
@@ -68,15 +70,46 @@ export default function Clients() {
     }
   }, [user, userRole]);
 
+  // Función para normalizar texto (quitar tildes y pasar a minúsculas)
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  };
+
   useEffect(() => {
-    if (filter === 'all') {
-      setFilteredClients(clients);
-    } else if (filter === 'active') {
-      setFilteredClients(clients.filter(c => c.activo));
-    } else {
-      setFilteredClients(clients.filter(c => !c.activo));
+    let filtered = clients;
+    
+    // Aplicar filtro de estado
+    if (filter === 'active') {
+      filtered = clients.filter(c => c.activo);
+    } else if (filter === 'inactive') {
+      filtered = clients.filter(c => !c.activo);
     }
-  }, [filter, clients]);
+
+    // Aplicar búsqueda si hay término
+    if (searchTerm.trim()) {
+      const normalizedSearch = normalizeText(searchTerm.trim());
+      filtered = filtered.filter((client) => {
+        const razonSocial = normalizeText(client.razon_social || '');
+        const nombreFantasia = normalizeText(client.nombre_fantasia || '');
+        const rutEmpresa = normalizeText(client.rut || '');
+        const nombreRepLegal = normalizeText(client.rep_legal_nombre || '');
+        const rutRepLegal = normalizeText(client.rep_legal_rut || '');
+
+        return (
+          razonSocial.includes(normalizedSearch) ||
+          nombreFantasia.includes(normalizedSearch) ||
+          rutEmpresa.includes(normalizedSearch) ||
+          nombreRepLegal.includes(normalizedSearch) ||
+          rutRepLegal.includes(normalizedSearch)
+        );
+      });
+    }
+
+    setFilteredClients(filtered);
+  }, [filter, clients, searchTerm]);
 
   const loadClients = async () => {
     setLoadingClients(true);
@@ -180,6 +213,31 @@ export default function Clients() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8 flex-1">
+        {/* Search Bar */}
+        <div className="mb-6 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            type="text"
+            placeholder="Buscar por empresa, cliente o RUT..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value.slice(0, 100))}
+            className="pl-10 pr-10"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Results Counter */}
+        <div className="mb-4 text-sm text-muted-foreground">
+          Mostrando {filteredClients.length} de {clients.length} clientes
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-8">
           <Button
@@ -213,9 +271,15 @@ export default function Clients() {
             <CardContent className="py-16 text-center">
               <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                {filter === 'active' && 'No hay clientes activos'}
-                {filter === 'inactive' && 'No hay clientes inactivos'}
-                {filter === 'all' && 'No hay clientes registrados'}
+                {searchTerm ? (
+                  <>No se encontraron clientes que coincidan con "{searchTerm}"</>
+                ) : (
+                  <>
+                    {filter === 'active' && 'No hay clientes activos'}
+                    {filter === 'inactive' && 'No hay clientes inactivos'}
+                    {filter === 'all' && 'No hay clientes registrados'}
+                  </>
+                )}
               </p>
             </CardContent>
           </Card>
