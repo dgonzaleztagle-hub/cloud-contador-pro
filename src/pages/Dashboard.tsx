@@ -82,33 +82,17 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-4 flex-wrap items-center">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-border">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <div className="text-sm">
-                  <p className="text-muted-foreground">UF</p>
-                  <p className="font-semibold text-foreground">${uf}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-border">
-                <Calendar className="h-4 w-4 text-primary" />
-                <div className="text-sm">
-                  <p className="text-muted-foreground">UTM</p>
-                  <p className="font-semibold text-foreground">${utm}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-border">
-                <DollarSign className="h-4 w-4 text-primary" />
-                <div className="text-sm">
-                  <p className="text-muted-foreground">Dólar</p>
-                  <p className="font-semibold text-foreground">${dollar}</p>
-                </div>
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-muted-foreground">UF: <span className="font-medium text-foreground">${uf}</span></span>
+                <span className="text-muted-foreground">UTM: <span className="font-medium text-foreground">${utm}</span></span>
+                <span className="text-muted-foreground">USD: <span className="font-medium text-foreground">${dollar}</span></span>
               </div>
               <Button
                 onClick={signOut}
                 variant="outline"
                 size="sm"
-                className="border-primary/50 text-primary hover:bg-primary/10"
+                className="border-primary/50 text-primary hover:bg-primary/10 ml-2"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Salir
