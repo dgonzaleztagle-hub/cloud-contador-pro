@@ -13,9 +13,9 @@ export default function Dashboard() {
   const { user, userRole, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
-  const [uf, setUf] = useState('37.456,78');
-  const [utm, setUtm] = useState('67.210');
-  const [dollar, setDollar] = useState('985,45');
+  const [uf, setUf] = useState('...');
+  const [utm, setUtm] = useState('...');
+  const [dollar, setDollar] = useState('...');
   const [clientsCount, setClientsCount] = useState({ total: 0, activos: 0, inactivos: 0 });
 
   useEffect(() => {
@@ -30,6 +30,41 @@ export default function Dashboard() {
       setCurrentDateTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Cargar indicadores económicos desde la edge function
+    const loadEconomicIndicators = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/economic-indicators`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+        if (!response.ok) {
+          console.error('Error fetching economic indicators:', response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Economic indicators loaded:', data);
+        
+        if (data.uf) setUf(data.uf);
+        if (data.utm) setUtm(data.utm);
+        if (data.usd) setDollar(data.usd);
+      } catch (error) {
+        console.error('Error loading economic indicators:', error);
+      }
+    };
+    
+    loadEconomicIndicators();
+    // Actualizar cada hora
+    const intervalId = setInterval(loadEconomicIndicators, 3600000);
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
