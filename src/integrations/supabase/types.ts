@@ -17,84 +17,96 @@ export type Database = {
       clients: {
         Row: {
           activo: boolean
-          certificado_digital_encrypted: string | null
           ciudad: string | null
-          clave_sii_encrypted: string | null
-          clave_unica_encrypted: string | null
-          comuna: string | null
-          contador_asignado: string | null
-          correo: string | null
+          clave_certificado: string | null
+          clave_sii: string | null
+          clave_sii_repr: string | null
+          clave_unica: string | null
+          cod_actividad: string | null
+          contabilidad: string | null
           created_at: string
           direccion: string | null
+          email: string | null
+          fecha_incorporacion: string | null
+          fono: string | null
           giro: string | null
           id: string
-          inicio_actividades: string | null
-          nombre_fantasia: string | null
+          observacion_1: string | null
+          observacion_2: string | null
+          observacion_3: string | null
+          portal_electronico: string | null
+          previred: string | null
           razon_social: string
           regimen_tributario: string | null
-          rep_legal_correo: string | null
-          rep_legal_nombre: string | null
-          rep_legal_rut: string | null
-          rep_legal_telefono: string | null
+          region: string | null
+          representante_legal: string | null
           rut: string
-          telefono: string | null
-          tipo_contribuyente: string | null
+          rut_representante: string | null
           updated_at: string
           user_id: string | null
+          valor: string | null
         }
         Insert: {
           activo?: boolean
-          certificado_digital_encrypted?: string | null
           ciudad?: string | null
-          clave_sii_encrypted?: string | null
-          clave_unica_encrypted?: string | null
-          comuna?: string | null
-          contador_asignado?: string | null
-          correo?: string | null
+          clave_certificado?: string | null
+          clave_sii?: string | null
+          clave_sii_repr?: string | null
+          clave_unica?: string | null
+          cod_actividad?: string | null
+          contabilidad?: string | null
           created_at?: string
           direccion?: string | null
+          email?: string | null
+          fecha_incorporacion?: string | null
+          fono?: string | null
           giro?: string | null
           id?: string
-          inicio_actividades?: string | null
-          nombre_fantasia?: string | null
+          observacion_1?: string | null
+          observacion_2?: string | null
+          observacion_3?: string | null
+          portal_electronico?: string | null
+          previred?: string | null
           razon_social: string
           regimen_tributario?: string | null
-          rep_legal_correo?: string | null
-          rep_legal_nombre?: string | null
-          rep_legal_rut?: string | null
-          rep_legal_telefono?: string | null
+          region?: string | null
+          representante_legal?: string | null
           rut: string
-          telefono?: string | null
-          tipo_contribuyente?: string | null
+          rut_representante?: string | null
           updated_at?: string
           user_id?: string | null
+          valor?: string | null
         }
         Update: {
           activo?: boolean
-          certificado_digital_encrypted?: string | null
           ciudad?: string | null
-          clave_sii_encrypted?: string | null
-          clave_unica_encrypted?: string | null
-          comuna?: string | null
-          contador_asignado?: string | null
-          correo?: string | null
+          clave_certificado?: string | null
+          clave_sii?: string | null
+          clave_sii_repr?: string | null
+          clave_unica?: string | null
+          cod_actividad?: string | null
+          contabilidad?: string | null
           created_at?: string
           direccion?: string | null
+          email?: string | null
+          fecha_incorporacion?: string | null
+          fono?: string | null
           giro?: string | null
           id?: string
-          inicio_actividades?: string | null
-          nombre_fantasia?: string | null
+          observacion_1?: string | null
+          observacion_2?: string | null
+          observacion_3?: string | null
+          portal_electronico?: string | null
+          previred?: string | null
           razon_social?: string
           regimen_tributario?: string | null
-          rep_legal_correo?: string | null
-          rep_legal_nombre?: string | null
-          rep_legal_rut?: string | null
-          rep_legal_telefono?: string | null
+          region?: string | null
+          representante_legal?: string | null
           rut?: string
-          telefono?: string | null
-          tipo_contribuyente?: string | null
+          rut_representante?: string | null
           updated_at?: string
           user_id?: string | null
+          valor?: string | null
         }
         Relationships: []
       }

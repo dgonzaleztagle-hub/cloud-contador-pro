@@ -15,24 +15,28 @@ interface Client {
   id: string;
   rut: string;
   razon_social: string;
-  nombre_fantasia: string | null;
+  valor: string | null;
+  clave_sii: string | null;
+  clave_certificado: string | null;
   direccion: string | null;
-  comuna: string | null;
   ciudad: string | null;
-  telefono: string | null;
-  correo: string | null;
+  email: string | null;
+  fono: string | null;
+  cod_actividad: string | null;
   giro: string | null;
   regimen_tributario: string | null;
-  tipo_contribuyente: string | null;
-  inicio_actividades: string | null;
-  contador_asignado: string | null;
-  rep_legal_nombre: string | null;
-  rep_legal_rut: string | null;
-  rep_legal_telefono: string | null;
-  rep_legal_correo: string | null;
-  clave_sii_encrypted: string | null;
-  clave_unica_encrypted: string | null;
-  certificado_digital_encrypted: string | null;
+  contabilidad: string | null;
+  fecha_incorporacion: string | null;
+  representante_legal: string | null;
+  rut_representante: string | null;
+  clave_sii_repr: string | null;
+  clave_unica: string | null;
+  previred: string | null;
+  portal_electronico: string | null;
+  region: string | null;
+  observacion_1: string | null;
+  observacion_2: string | null;
+  observacion_3: string | null;
   activo: boolean;
 }
 
@@ -93,14 +97,12 @@ export default function Clients() {
       const normalizedSearch = normalizeText(searchTerm.trim());
       filtered = filtered.filter((client) => {
         const razonSocial = normalizeText(client.razon_social || '');
-        const nombreFantasia = normalizeText(client.nombre_fantasia || '');
         const rutEmpresa = normalizeText(client.rut || '');
-        const nombreRepLegal = normalizeText(client.rep_legal_nombre || '');
-        const rutRepLegal = normalizeText(client.rep_legal_rut || '');
+        const nombreRepLegal = normalizeText(client.representante_legal || '');
+        const rutRepLegal = normalizeText(client.rut_representante || '');
 
         return (
           razonSocial.includes(normalizedSearch) ||
-          nombreFantasia.includes(normalizedSearch) ||
           rutEmpresa.includes(normalizedSearch) ||
           nombreRepLegal.includes(normalizedSearch) ||
           rutRepLegal.includes(normalizedSearch)
@@ -117,32 +119,7 @@ export default function Clients() {
     
     const { data, error, count } = await supabase
       .from('clients')
-      .select(`
-        id,
-        rut,
-        razon_social,
-        nombre_fantasia,
-        direccion,
-        comuna,
-        ciudad,
-        telefono,
-        correo,
-        giro,
-        regimen_tributario,
-        tipo_contribuyente,
-        inicio_actividades,
-        contador_asignado,
-        rep_legal_nombre,
-        rep_legal_rut,
-        rep_legal_telefono,
-        rep_legal_correo,
-        clave_sii_encrypted,
-        clave_unica_encrypted,
-        certificado_digital_encrypted,
-        activo,
-        created_at,
-        updated_at
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .order('razon_social', { ascending: true });
 
     if (error) {
@@ -154,15 +131,15 @@ export default function Clients() {
     setLoadingClients(false);
   };
 
-  const handleCall = (telefono: string | null) => {
-    if (telefono) {
-      window.location.href = `tel:${telefono}`;
+  const handleCall = (fono: string | null) => {
+    if (fono) {
+      window.location.href = `tel:${fono}`;
     }
   };
 
-  const handleEmail = (correo: string | null) => {
-    if (correo) {
-      window.location.href = `mailto:${correo}`;
+  const handleEmail = (email: string | null) => {
+    if (email) {
+      window.location.href = `mailto:${email}`;
     }
   };
 
@@ -301,9 +278,6 @@ export default function Clients() {
                       </span>
                     )}
                   </CardTitle>
-                  {client.nombre_fantasia && (
-                    <p className="text-sm text-muted-foreground mt-1">{client.nombre_fantasia}</p>
-                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Info */}
@@ -348,10 +322,10 @@ export default function Clients() {
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCall(client.telefono);
+                        handleCall(client.fono);
                       }}
-                      disabled={!client.telefono}
-                      className={!client.telefono ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
+                      disabled={!client.fono}
+                      className={!client.fono ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
                     >
                       <Phone className="h-3.5 w-3.5 mr-1" />
                       Llamar
@@ -361,10 +335,10 @@ export default function Clients() {
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleEmail(client.correo);
+                        handleEmail(client.email);
                       }}
-                      disabled={!client.correo}
-                      className={!client.correo ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
+                      disabled={!client.email}
+                      className={!client.email ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
                     >
                       <Mail className="h-3.5 w-3.5 mr-1" />
                       Email
@@ -385,12 +359,12 @@ export default function Clients() {
                   </div>
 
                   {/* Missing data indicators */}
-                  {(!client.telefono || !client.correo || !client.direccion) && (
+                  {(!client.fono || !client.email || !client.direccion) && (
                     <div className="text-xs text-destructive pt-2">
                       Faltan datos:{' '}
                       {[
-                        !client.telefono && 'teléfono',
-                        !client.correo && 'correo',
+                        !client.fono && 'fono',
+                        !client.email && 'email',
                         !client.direccion && 'dirección',
                       ]
                         .filter(Boolean)

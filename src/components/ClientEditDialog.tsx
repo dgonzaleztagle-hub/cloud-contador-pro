@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -22,24 +23,28 @@ interface Client {
   id: string;
   rut: string;
   razon_social: string;
-  nombre_fantasia: string | null;
+  valor: string | null;
+  clave_sii: string | null;
+  clave_certificado: string | null;
   direccion: string | null;
-  comuna: string | null;
   ciudad: string | null;
-  telefono: string | null;
-  correo: string | null;
+  email: string | null;
+  fono: string | null;
+  cod_actividad: string | null;
   giro: string | null;
   regimen_tributario: string | null;
-  tipo_contribuyente: string | null;
-  inicio_actividades: string | null;
-  contador_asignado: string | null;
-  rep_legal_nombre: string | null;
-  rep_legal_rut: string | null;
-  rep_legal_telefono: string | null;
-  rep_legal_correo: string | null;
-  clave_sii_encrypted: string | null;
-  clave_unica_encrypted: string | null;
-  certificado_digital_encrypted: string | null;
+  contabilidad: string | null;
+  fecha_incorporacion: string | null;
+  representante_legal: string | null;
+  rut_representante: string | null;
+  clave_sii_repr: string | null;
+  clave_unica: string | null;
+  previred: string | null;
+  portal_electronico: string | null;
+  region: string | null;
+  observacion_1: string | null;
+  observacion_2: string | null;
+  observacion_3: string | null;
   activo: boolean;
 }
 
@@ -58,7 +63,6 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState<Partial<Client>>(client || {});
 
-  // Update formData when client changes
   useEffect(() => {
     if (client) {
       setFormData(client);
@@ -121,10 +125,12 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
   if (!client) return null;
 
+  const canEditPasswords = userRole === 'master' || userRole === 'admin';
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
           </DialogHeader>
@@ -140,19 +146,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
               <Label htmlFor="activo">Cliente Activo</Label>
             </div>
 
-            {/* Información Básica */}
+            {/* Información Básica de la Empresa */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Información Básica</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="rut">RUT *</Label>
-                  <Input
-                    id="rut"
-                    value={formData.rut || ''}
-                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-                    required
-                  />
-                </div>
+              <h3 className="font-semibold text-lg">Información Básica de la Empresa</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="razon_social">Razón Social *</Label>
                   <Input
@@ -163,11 +160,28 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nombre_fantasia">Nombre Fantasía</Label>
+                  <Label htmlFor="rut">RUT *</Label>
                   <Input
-                    id="nombre_fantasia"
-                    value={formData.nombre_fantasia || ''}
-                    onChange={(e) => setFormData({ ...formData, nombre_fantasia: e.target.value })}
+                    id="rut"
+                    value={formData.rut || ''}
+                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="valor">Valor</Label>
+                  <Input
+                    id="valor"
+                    value={formData.valor || ''}
+                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cod_actividad">Código Actividad</Label>
+                  <Input
+                    id="cod_actividad"
+                    value={formData.cod_actividad || ''}
+                    onChange={(e) => setFormData({ ...formData, cod_actividad: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -187,51 +201,35 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tipo_contribuyente">Tipo Contribuyente</Label>
+                  <Label htmlFor="contabilidad">Contabilidad</Label>
                   <Input
-                    id="tipo_contribuyente"
-                    value={formData.tipo_contribuyente || ''}
-                    onChange={(e) => setFormData({ ...formData, tipo_contribuyente: e.target.value })}
+                    id="contabilidad"
+                    value={formData.contabilidad || ''}
+                    onChange={(e) => setFormData({ ...formData, contabilidad: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="inicio_actividades">Inicio de Actividades</Label>
+                  <Label htmlFor="fecha_incorporacion">Fecha Incorporación</Label>
                   <Input
-                    id="inicio_actividades"
+                    id="fecha_incorporacion"
                     type="date"
-                    value={formData.inicio_actividades || ''}
-                    onChange={(e) => setFormData({ ...formData, inicio_actividades: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contador_asignado">Contador Asignado</Label>
-                  <Input
-                    id="contador_asignado"
-                    value={formData.contador_asignado || ''}
-                    onChange={(e) => setFormData({ ...formData, contador_asignado: e.target.value })}
+                    value={formData.fecha_incorporacion || ''}
+                    onChange={(e) => setFormData({ ...formData, fecha_incorporacion: e.target.value })}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Contacto */}
+            {/* Ubicación y Contacto */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Contacto</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h3 className="font-semibold text-lg">Ubicación y Contacto</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="direccion">Dirección</Label>
                   <Input
                     id="direccion"
                     value={formData.direccion || ''}
                     onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="comuna">Comuna</Label>
-                  <Input
-                    id="comuna"
-                    value={formData.comuna || ''}
-                    onChange={(e) => setFormData({ ...formData, comuna: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -243,20 +241,28 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="telefono">Teléfono</Label>
+                  <Label htmlFor="region">Región</Label>
                   <Input
-                    id="telefono"
-                    value={formData.telefono || ''}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    id="region"
+                    value={formData.region || ''}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="correo">Correo Electrónico</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="correo"
+                    id="email"
                     type="email"
-                    value={formData.correo || ''}
-                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fono">Fono</Label>
+                  <Input
+                    id="fono"
+                    value={formData.fono || ''}
+                    onChange={(e) => setFormData({ ...formData, fono: e.target.value })}
                   />
                 </div>
               </div>
@@ -267,81 +273,125 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
               <h3 className="font-semibold text-lg">Representante Legal</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rep_legal_nombre">Nombre</Label>
+                  <Label htmlFor="representante_legal">Representante Legal</Label>
                   <Input
-                    id="rep_legal_nombre"
-                    value={formData.rep_legal_nombre || ''}
-                    onChange={(e) => setFormData({ ...formData, rep_legal_nombre: e.target.value })}
+                    id="representante_legal"
+                    value={formData.representante_legal || ''}
+                    onChange={(e) => setFormData({ ...formData, representante_legal: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="rep_legal_rut">RUT</Label>
+                  <Label htmlFor="rut_representante">RUT Representante</Label>
                   <Input
-                    id="rep_legal_rut"
-                    value={formData.rep_legal_rut || ''}
-                    onChange={(e) => setFormData({ ...formData, rep_legal_rut: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rep_legal_telefono">Teléfono</Label>
-                  <Input
-                    id="rep_legal_telefono"
-                    value={formData.rep_legal_telefono || ''}
-                    onChange={(e) => setFormData({ ...formData, rep_legal_telefono: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rep_legal_correo">Correo</Label>
-                  <Input
-                    id="rep_legal_correo"
-                    type="email"
-                    value={formData.rep_legal_correo || ''}
-                    onChange={(e) => setFormData({ ...formData, rep_legal_correo: e.target.value })}
+                    id="rut_representante"
+                    value={formData.rut_representante || ''}
+                    onChange={(e) => setFormData({ ...formData, rut_representante: e.target.value })}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Claves SII */}
+            {/* Claves y Certificados */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Claves SII y Certificados</h3>
-              {userRole !== 'master' && userRole !== 'admin' && (
+              <h3 className="font-semibold text-lg">Claves y Certificados</h3>
+              {!canEditPasswords && (
                 <p className="text-sm text-muted-foreground">
-                  Solo los usuarios master y admin pueden ver las claves completas
+                  Solo los usuarios master y admin pueden ver y editar las claves
                 </p>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="clave_sii_encrypted">Clave SII</Label>
+                  <Label htmlFor="clave_sii">Clave SII</Label>
                   <Input
-                    id="clave_sii_encrypted"
-                    type={(userRole === 'master' || userRole === 'admin') ? 'text' : 'password'}
-                    value={formData.clave_sii_encrypted || ''}
-                    onChange={(e) => setFormData({ ...formData, clave_sii_encrypted: e.target.value })}
-                    placeholder={(userRole === 'master' || userRole === 'admin') ? '' : '••••••••'}
-                    readOnly={userRole !== 'master' && userRole !== 'admin'}
+                    id="clave_sii"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.clave_sii || ''}
+                    onChange={(e) => setFormData({ ...formData, clave_sii: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="clave_unica_encrypted">Clave Única</Label>
+                  <Label htmlFor="clave_certificado">Clave Certificado</Label>
                   <Input
-                    id="clave_unica_encrypted"
-                    type={(userRole === 'master' || userRole === 'admin') ? 'text' : 'password'}
-                    value={formData.clave_unica_encrypted || ''}
-                    onChange={(e) => setFormData({ ...formData, clave_unica_encrypted: e.target.value })}
-                    placeholder={(userRole === 'master' || userRole === 'admin') ? '' : '••••••••'}
-                    readOnly={userRole !== 'master' && userRole !== 'admin'}
+                    id="clave_certificado"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.clave_certificado || ''}
+                    onChange={(e) => setFormData({ ...formData, clave_certificado: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="certificado_digital_encrypted">Certificado Digital</Label>
+                  <Label htmlFor="clave_sii_repr">Clave SII Repr.</Label>
                   <Input
-                    id="certificado_digital_encrypted"
-                    type={(userRole === 'master' || userRole === 'admin') ? 'text' : 'password'}
-                    value={formData.certificado_digital_encrypted || ''}
-                    onChange={(e) => setFormData({ ...formData, certificado_digital_encrypted: e.target.value })}
-                    placeholder={(userRole === 'master' || userRole === 'admin') ? '' : '••••••••'}
-                    readOnly={userRole !== 'master' && userRole !== 'admin'}
+                    id="clave_sii_repr"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.clave_sii_repr || ''}
+                    onChange={(e) => setFormData({ ...formData, clave_sii_repr: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="clave_unica">Clave Única</Label>
+                  <Input
+                    id="clave_unica"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.clave_unica || ''}
+                    onChange={(e) => setFormData({ ...formData, clave_unica: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="previred">Previred</Label>
+                  <Input
+                    id="previred"
+                    value={formData.previred || ''}
+                    onChange={(e) => setFormData({ ...formData, previred: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="portal_electronico">Portal Electrónico</Label>
+                  <Input
+                    id="portal_electronico"
+                    value={formData.portal_electronico || ''}
+                    onChange={(e) => setFormData({ ...formData, portal_electronico: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Observaciones */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg">Observaciones</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="observacion_1">Observación 1</Label>
+                  <Textarea
+                    id="observacion_1"
+                    value={formData.observacion_1 || ''}
+                    onChange={(e) => setFormData({ ...formData, observacion_1: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="observacion_2">Observación 2</Label>
+                  <Textarea
+                    id="observacion_2"
+                    value={formData.observacion_2 || ''}
+                    onChange={(e) => setFormData({ ...formData, observacion_2: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="observacion_3">Observación 3</Label>
+                  <Textarea
+                    id="observacion_3"
+                    value={formData.observacion_3 || ''}
+                    onChange={(e) => setFormData({ ...formData, observacion_3: e.target.value })}
+                    rows={3}
                   />
                 </div>
               </div>
