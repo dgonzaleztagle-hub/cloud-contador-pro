@@ -306,58 +306,68 @@ export default function Clients() {
             {filteredClients.map((client) => (
               <Card
                 key={client.id}
-                className={`border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all ${
+                className={`border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all overflow-hidden ${
                   !client.activo ? 'opacity-60' : ''
                 }`}
               >
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-start justify-between gap-2">
-                    <span className="text-foreground">{client.razon_social}</span>
-                    {!client.activo && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-destructive/10 text-destructive font-normal">
-                        Inactivo
-                      </span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Info */}
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">RUT:</span>{' '}
-                      <span className="text-foreground font-medium">{client.rut}</span>
-                    </div>
-                    {client.giro && (
-                      <div>
-                        <span className="text-muted-foreground">Giro:</span>{' '}
-                        <span className="text-foreground text-xs">{client.giro}</span>
-                      </div>
-                    )}
-                    {client.direccion && (
-                      <div>
-                        <span className="text-muted-foreground">Dirección:</span>{' '}
-                        <span className="text-foreground">
-                          {client.direccion}
-                          {client.ciudad && `, ${client.ciudad}`}
+                {/* Área clickeable - toda la información */}
+                <div 
+                  onClick={() => handleClientClick(client)}
+                  className="cursor-pointer hover:bg-secondary/50 transition-colors"
+                >
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-start justify-between gap-2">
+                      <span className="text-foreground">{client.razon_social}</span>
+                      {!client.activo && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-destructive/10 text-destructive font-normal">
+                          Inactivo
                         </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {/* Info */}
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">RUT:</span>{' '}
+                        <span className="text-foreground font-medium">{client.rut}</span>
+                      </div>
+                      {client.giro && (
+                        <div>
+                          <span className="text-muted-foreground">Giro:</span>{' '}
+                          <span className="text-foreground text-xs">{client.giro}</span>
+                        </div>
+                      )}
+                      {client.direccion && (
+                        <div>
+                          <span className="text-muted-foreground">Dirección:</span>{' '}
+                          <span className="text-foreground">
+                            {client.direccion}
+                            {client.ciudad && `, ${client.ciudad}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Missing data indicators */}
+                    {(!client.fono || !client.email || !client.direccion) && (
+                      <div className="text-xs text-destructive pt-2">
+                        Faltan datos:{' '}
+                        {[
+                          !client.fono && 'fono',
+                          !client.email && 'email',
+                          !client.direccion && 'dirección',
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
                       </div>
                     )}
-                  </div>
+                  </CardContent>
+                </div>
 
-                  {/* Action Buttons */}
+                {/* Botones de acción - NO clickeables con el card */}
+                <CardContent className="pt-0">
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClientClick(client);
-                      }}
-                      className="bg-gradient-to-r from-primary to-accent"
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      Ver Detalles
-                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -397,20 +407,6 @@ export default function Clients() {
                       RRHH
                     </Button>
                   </div>
-
-                  {/* Missing data indicators */}
-                  {(!client.fono || !client.email || !client.direccion) && (
-                    <div className="text-xs text-destructive pt-2">
-                      Faltan datos:{' '}
-                      {[
-                        !client.fono && 'fono',
-                        !client.email && 'email',
-                        !client.direccion && 'dirección',
-                      ]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             ))}
