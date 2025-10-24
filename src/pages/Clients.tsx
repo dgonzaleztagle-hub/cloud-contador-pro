@@ -89,57 +89,89 @@ export default function Clients() {
   };
 
   useEffect(() => {
-    let filtered = clients;
-    
-    // Aplicar filtro de estado
-    if (filter === 'active') {
-      filtered = clients.filter(c => c.activo);
-    } else if (filter === 'inactive') {
-      filtered = clients.filter(c => !c.activo);
-    }
-
-    // Aplicar búsqueda si hay término
-    if (searchTerm.trim()) {
-      const normalizedSearch = normalizeText(searchTerm.trim());
-      filtered = filtered.filter((client) => {
-        try {
-          const razonSocial = normalizeText(client.razon_social || '');
-          const rutEmpresa = normalizeText(client.rut || '');
-          const nombreRepLegal = normalizeText(client.representante_legal || '');
-          const rutRepLegal = normalizeText(client.rut_representante || '');
-
-          return (
-            razonSocial.includes(normalizedSearch) ||
-            rutEmpresa.includes(normalizedSearch) ||
-            nombreRepLegal.includes(normalizedSearch) ||
-            rutRepLegal.includes(normalizedSearch)
-          );
-        } catch (e) {
-          console.error('Error en filtro de búsqueda:', e);
-          return true; // Mantener el cliente en la lista en caso de error
-        }
+    try {
+      console.log('🔄 Aplicando filtros...', { 
+        totalClients: clients.length, 
+        filter, 
+        searchTerm: searchTerm.substring(0, 20) 
       });
-    }
+      
+      let filtered = [...clients];
+      
+      // Aplicar filtro de estado
+      if (filter === 'active') {
+        filtered = filtered.filter(c => c && c.activo === true);
+      } else if (filter === 'inactive') {
+        filtered = filtered.filter(c => c && c.activo === false);
+      }
 
-    setFilteredClients(filtered);
+      // Aplicar búsqueda si hay término
+      if (searchTerm && searchTerm.trim()) {
+        const normalizedSearch = normalizeText(searchTerm.trim());
+        filtered = filtered.filter((client) => {
+          if (!client) return false;
+          try {
+            const razonSocial = normalizeText(client.razon_social || '');
+            const rutEmpresa = normalizeText(client.rut || '');
+            const nombreRepLegal = normalizeText(client.representante_legal || '');
+            const rutRepLegal = normalizeText(client.rut_representante || '');
+
+            return (
+              razonSocial.includes(normalizedSearch) ||
+              rutEmpresa.includes(normalizedSearch) ||
+              nombreRepLegal.includes(normalizedSearch) ||
+              rutRepLegal.includes(normalizedSearch)
+            );
+          } catch (e) {
+            console.error('Error en filtro de búsqueda:', e);
+            return true;
+          }
+        });
+      }
+
+      console.log('✅ Filtros aplicados:', { resultados: filtered.length });
+      setFilteredClients(filtered);
+    } catch (err) {
+      console.error('💥 Error en useEffect de filtros:', err);
+      setFilteredClients([]);
+    }
   }, [filter, clients, searchTerm]);
 
   const loadClients = async () => {
-    setLoadingClients(true);
-    console.log('🔍 Cargando clientes...', { user: user?.email, role: userRole });
-    
-    const { data, error, count } = await supabase
-      .from('clients')
-      .select('*', { count: 'exact' })
-      .order('razon_social', { ascending: true });
+    try {
+      setLoadingClients(true);
+      console.log('🔍 Cargando clientes...', { user: user?.email, role: userRole });
+      
+      const { data, error, count } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact' })
+        .order('razon_social', { ascending: true });
 
-    if (error) {
-      console.error('❌ Error cargando clientes:', error);
-    } else {
-      console.log('✅ Clientes cargados:', { total: count, data_length: data?.length });
-      setClients(data || []);
+      if (error) {
+        console.error('❌ Error cargando clientes:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los clientes. Por favor, recarga la página.",
+          variant: "destructive",
+        });
+        setClients([]);
+      } else {
+        console.log('✅ Clientes cargados:', { total: count, data_length: data?.length, sample: data?.[0] });
+        const clientsData = Array.isArray(data) ? data : [];
+        console.log('📊 Datos procesados:', { isArray: Array.isArray(clientsData), length: clientsData.length });
+        setClients(clientsData);
+      }
+    } catch (err) {
+      console.error('💥 Excepción cargando clientes:', err);
+      toast({
+        title: "Error inesperado",
+        description: "Ocurrió un error al cargar los clientes.",
+        variant: "destructive",
+      });
+      setClients([]);
+    } finally {
+      setLoadingClients(false);
     }
-    setLoadingClients(false);
   };
 
   const handleCall = (fono: string | null) => {
