@@ -115,6 +115,7 @@ export type Database = {
           client_id: string
           created_at: string
           created_by: string | null
+          estado_honorarios: string
           honorarios: number
           id: string
           impuesto_unico: number
@@ -135,6 +136,7 @@ export type Database = {
           client_id: string
           created_at?: string
           created_by?: string | null
+          estado_honorarios?: string
           honorarios?: number
           id?: string
           impuesto_unico?: number
@@ -155,6 +157,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           created_by?: string | null
+          estado_honorarios?: string
           honorarios?: number
           id?: string
           impuesto_unico?: number

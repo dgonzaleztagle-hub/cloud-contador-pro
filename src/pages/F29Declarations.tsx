@@ -8,15 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, FileText } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
+import jsPDF from 'jspdf';
 
 interface Client {
   id: string;
   rut: string;
   razon_social: string;
+  valor: string | null;
 }
 
 interface F29Declaration {
@@ -37,6 +39,7 @@ interface F29Declaration {
   total_general: number;
   observaciones: string | null;
   created_at: string;
+  estado_honorarios: string;
   clients?: { rut: string; razon_social: string };
 }
 
@@ -62,6 +65,7 @@ export default function F29Declarations() {
   const [impuestoUnico, setImpuestoUnico] = useState('0');
   const [remanenteAnterior, setRemanenteAnterior] = useState('0');
   const [observaciones, setObservaciones] = useState('');
+  const [estadoHonorarios, setEstadoHonorarios] = useState('pendiente');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -81,7 +85,7 @@ export default function F29Declarations() {
     // Load clients
     const { data: clientsData, error: clientsError } = await supabase
       .from('clients')
-      .select('id, rut, razon_social')
+      .select('id, rut, razon_social, valor')
       .eq('activo', true)
       .order('razon_social');
 
@@ -120,21 +124,54 @@ export default function F29Declarations() {
   const calculateTotals = () => {
     const ventas = parseFloat(ivaVentas) || 0;
     const compras = parseFloat(ivaCompras) || 0;
-    const ivaNeto = ventas - compras;
     const ppmVal = parseFloat(ppm) || 0;
-    const honorariosVal = parseFloat(honorarios) || 0;
+    const honorariosVal = estadoHonorarios === 'pendiente' ? (parseFloat(honorarios) || 0) : 0;
     const retencionVal = parseFloat(retencion2cat) || 0;
     const impuestoVal = parseFloat(impuestoUnico) || 0;
     const remanenteAnt = parseFloat(remanenteAnterior) || 0;
 
-    const totalImpuestos = ppmVal + honorariosVal + retencionVal + impuestoVal;
-    const totalGeneral = ivaNeto + totalImpuestos - remanenteAnt;
-    const remanenteProx = totalGeneral < 0 ? Math.abs(totalGeneral) : 0;
+    let totalImpuestos = 0;
+    let remanenteProx = 0;
+    let ivaNeto = 0;
+
+    // Caso 1: IVA Ventas es 0 y existe IVA Compras
+    if (ventas === 0 && compras > 0) {
+      remanenteProx = compras + remanenteAnt;
+      totalImpuestos = retencionVal + impuestoVal;
+      ivaNeto = 0;
+    }
+    // Caso 2: IVA Ventas > 0 y (IVA Ventas - IVA Compras) < 0
+    else if (ventas > 0) {
+      const diferencia = ventas - compras;
+      
+      if (diferencia < 0) {
+        remanenteProx = Math.abs(diferencia) + remanenteAnt;
+        totalImpuestos = retencionVal + impuestoVal + ppmVal;
+        ivaNeto = 0;
+      }
+      // Caso 3: IVA Ventas > 0 y (IVA Ventas - IVA Compras - Remanente Anterior) > 0
+      else {
+        const diferenciaConRemanente = diferencia - remanenteAnt;
+        
+        if (diferenciaConRemanente > 0) {
+          totalImpuestos = diferenciaConRemanente + ppmVal + retencionVal + impuestoVal;
+          remanenteProx = 0;
+          ivaNeto = diferencia;
+        } else {
+          remanenteProx = Math.abs(diferenciaConRemanente);
+          totalImpuestos = ppmVal + retencionVal + impuestoVal;
+          ivaNeto = diferencia;
+        }
+      }
+    }
+
+    // Total a Pagar = Total Impuestos + Honorarios (solo si están pendientes)
+    const totalGeneral = totalImpuestos + honorariosVal;
 
     return {
       ivaNeto,
       totalImpuestos,
-      totalGeneral: Math.max(0, totalGeneral),
+      totalGeneral,
       remanenteProximo: remanenteProx,
     };
   };
@@ -170,6 +207,7 @@ export default function F29Declarations() {
       total_general: totals.totalGeneral,
       observaciones: observaciones || null,
       created_by: user?.id,
+      estado_honorarios: estadoHonorarios,
     });
 
     if (error) {
@@ -200,6 +238,7 @@ export default function F29Declarations() {
     setImpuestoUnico('0');
     setRemanenteAnterior('0');
     setObservaciones('');
+    setEstadoHonorarios('pendiente');
   };
 
   const handleDelete = async (id: string) => {
@@ -220,6 +259,91 @@ export default function F29Declarations() {
         loadData();
       }
     }
+  };
+
+  const exportToPDF = (declaration: F29Declaration) => {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text('Declaración F29', 105, 20, { align: 'center' });
+    
+    // Información del cliente
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${declaration.clients?.razon_social || 'N/A'}`, 20, 35);
+    doc.text(`RUT: ${declaration.clients?.rut || 'N/A'}`, 20, 42);
+    doc.text(`Período: ${meses[declaration.periodo_mes - 1]} ${declaration.periodo_anio}`, 20, 49);
+    
+    // Línea separadora
+    doc.line(20, 55, 190, 55);
+    
+    // Detalle IVA
+    doc.setFontSize(14);
+    doc.text('IVA', 20, 65);
+    doc.setFontSize(11);
+    doc.text(`IVA Ventas:`, 20, 72);
+    doc.text(`$${declaration.iva_ventas.toLocaleString('es-CL')}`, 140, 72, { align: 'right' });
+    doc.text(`IVA Compras:`, 20, 79);
+    doc.text(`$${declaration.iva_compras.toLocaleString('es-CL')}`, 140, 79, { align: 'right' });
+    doc.text(`IVA Neto:`, 20, 86);
+    doc.text(`$${declaration.iva_neto.toLocaleString('es-CL')}`, 140, 86, { align: 'right' });
+    
+    // Otros impuestos
+    doc.setFontSize(14);
+    doc.text('Otros Impuestos', 20, 100);
+    doc.setFontSize(11);
+    doc.text(`PPM:`, 20, 107);
+    doc.text(`$${declaration.ppm.toLocaleString('es-CL')}`, 140, 107, { align: 'right' });
+    doc.text(`Retención 2da Cat.:`, 20, 114);
+    doc.text(`$${declaration.retencion_2cat.toLocaleString('es-CL')}`, 140, 114, { align: 'right' });
+    doc.text(`Impuesto Único:`, 20, 121);
+    doc.text(`$${declaration.impuesto_unico.toLocaleString('es-CL')}`, 140, 121, { align: 'right' });
+    
+    // Honorarios
+    doc.setFontSize(14);
+    doc.text('Honorarios', 20, 135);
+    doc.setFontSize(11);
+    doc.text(`Estado:`, 20, 142);
+    doc.text(declaration.estado_honorarios === 'pendiente' ? 'Pendiente' : 'Pagado', 140, 142, { align: 'right' });
+    doc.text(`Valor:`, 20, 149);
+    doc.text(`$${declaration.honorarios.toLocaleString('es-CL')}`, 140, 149, { align: 'right' });
+    
+    // Remanentes
+    doc.text(`Remanente Anterior:`, 20, 163);
+    doc.text(`$${declaration.remanente_anterior.toLocaleString('es-CL')}`, 140, 163, { align: 'right' });
+    doc.text(`Remanente Próximo:`, 20, 170);
+    doc.text(`$${declaration.remanente_proximo.toLocaleString('es-CL')}`, 140, 170, { align: 'right' });
+    
+    // Línea separadora
+    doc.line(20, 177, 190, 177);
+    
+    // Totales
+    doc.setFontSize(12);
+    doc.text(`Total Impuestos:`, 20, 185);
+    doc.text(`$${declaration.total_impuestos.toLocaleString('es-CL')}`, 140, 185, { align: 'right' });
+    
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Total a Pagar:`, 20, 195);
+    doc.text(`$${declaration.total_general.toLocaleString('es-CL')}`, 140, 195, { align: 'right' });
+    
+    // Observaciones
+    if (declaration.observaciones) {
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(11);
+      doc.text('Observaciones:', 20, 210);
+      const splitObservaciones = doc.splitTextToSize(declaration.observaciones, 170);
+      doc.text(splitObservaciones, 20, 217);
+    }
+    
+    // Guardar PDF
+    const fileName = `F29_${declaration.clients?.rut}_${meses[declaration.periodo_mes - 1]}_${declaration.periodo_anio}.pdf`;
+    doc.save(fileName);
+    
+    toast({
+      title: 'PDF exportado',
+      description: 'La declaración se exportó correctamente',
+    });
   };
 
   const totals = calculateTotals();
@@ -273,7 +397,15 @@ export default function F29Declarations() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <Label>Cliente</Label>
-                        <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                        <Select value={selectedClientId} onValueChange={(value) => {
+                          setSelectedClientId(value);
+                          if (estadoHonorarios === 'pendiente') {
+                            const client = clients.find(c => c.id === value);
+                            if (client?.valor) {
+                              setHonorarios(client.valor);
+                            }
+                          }
+                        }}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue placeholder="Seleccionar cliente" />
                           </SelectTrigger>
@@ -352,15 +484,6 @@ export default function F29Declarations() {
                           />
                         </div>
                         <div>
-                          <Label>Honorarios</Label>
-                          <Input
-                            type="number"
-                            value={honorarios}
-                            onChange={(e) => setHonorarios(e.target.value)}
-                            className="bg-input border-border"
-                          />
-                        </div>
-                        <div>
                           <Label>Retención 2da Cat.</Label>
                           <Input
                             type="number"
@@ -378,6 +501,47 @@ export default function F29Declarations() {
                             className="bg-input border-border"
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-foreground">Honorarios</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Estado Honorarios</Label>
+                          <Select value={estadoHonorarios} onValueChange={(value) => {
+                            setEstadoHonorarios(value);
+                            if (value === 'pendiente' && selectedClientId) {
+                              const client = clients.find(c => c.id === selectedClientId);
+                              if (client?.valor) {
+                                setHonorarios(client.valor);
+                              }
+                            } else if (value === 'pagado') {
+                              setHonorarios('0');
+                            }
+                          }}>
+                            <SelectTrigger className="bg-input border-border">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pendiente">Pendiente</SelectItem>
+                              <SelectItem value="pagado">Pagado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Valor Honorarios</Label>
+                          <Input
+                            type="number"
+                            value={honorarios}
+                            onChange={(e) => setHonorarios(e.target.value)}
+                            className="bg-input border-border"
+                            disabled={estadoHonorarios === 'pagado'}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Los honorarios {estadoHonorarios === 'pendiente' ? 'pendientes se suman' : 'pagados no se incluyen en'} al Total a Pagar
                       </div>
                     </div>
 
@@ -497,15 +661,25 @@ export default function F29Declarations() {
                         </p>
                       )}
                     </div>
-                    {canModify && (
+                    <div className="flex gap-2">
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(declaration.id)}
+                        onClick={() => exportToPDF(declaration)}
+                        className="text-primary hover:text-primary"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Download className="h-4 w-4" />
                       </Button>
-                    )}
+                      {canModify && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(declaration.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
