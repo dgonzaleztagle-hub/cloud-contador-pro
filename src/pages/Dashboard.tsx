@@ -36,26 +36,31 @@ export default function Dashboard() {
     // Cargar indicadores económicos desde la edge function
     const loadEconomicIndicators = async () => {
       try {
+        console.log('Fetching economic indicators...');
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/economic-indicators`,
           {
             headers: {
               'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             },
           }
         );
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-          console.error('Error fetching economic indicators:', response.statusText);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
           return;
         }
         
         const data = await response.json();
         console.log('Economic indicators loaded:', data);
         
-        if (data.uf) setUf(data.uf);
-        if (data.utm) setUtm(data.utm);
-        if (data.usd) setDollar(data.usd);
+        if (data.uf && data.uf !== '0') setUf(data.uf);
+        if (data.utm && data.utm !== '0') setUtm(data.utm);
+        if (data.usd && data.usd !== '0') setDollar(data.usd);
       } catch (error) {
         console.error('Error loading economic indicators:', error);
       }
