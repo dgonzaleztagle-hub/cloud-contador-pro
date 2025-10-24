@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +53,7 @@ interface Worker {
 export default function RRHH() {
   const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
@@ -98,6 +99,16 @@ export default function RRHH() {
       loadData();
     }
   }, [user]);
+
+  useEffect(() => {
+    // Si viene desde Clients con un clientId, establecer el filtro
+    const state = location.state as { clientId?: string };
+    if (state?.clientId) {
+      setFilterClientId(state.clientId);
+      // Limpiar el state después de usarlo
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const loadData = async () => {
     setLoadingData(true);

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Loader2, Phone, Mail, Navigation, ArrowLeft, Users, UserX, Eye, Search, X } from 'lucide-react';
+import { Loader2, Phone, Mail, ArrowLeft, Users, UserX, Eye, Search, X, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
 import { ClientDialog } from '@/components/ClientDialog';
@@ -186,11 +186,9 @@ export default function Clients() {
     }
   };
 
-  const handleWaze = (direccion: string | null, ciudad: string | null) => {
-    if (direccion) {
-      const query = ciudad ? `${direccion}, ${ciudad}` : direccion;
-      window.open(`https://waze.com/ul?q=${encodeURIComponent(query)}`, '_blank');
-    }
+  const handleRRHH = (clientId: string) => {
+    // Navegar a RRHH con el cliente preseleccionado
+    navigate('/rrhh', { state: { clientId } });
   };
 
   if (loading || loadingClients) {
@@ -391,13 +389,12 @@ export default function Clients() {
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleWaze(client.direccion, client.ciudad);
+                        handleRRHH(client.id);
                       }}
-                      disabled={!client.direccion}
-                      className={!client.direccion ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
+                      className="hover:bg-primary/10"
                     >
-                      <Navigation className="h-3.5 w-3.5 mr-1" />
-                      Waze
+                      <Briefcase className="h-3.5 w-3.5 mr-1" />
+                      RRHH
                     </Button>
                   </div>
 
