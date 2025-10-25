@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import jsPDF from 'jspdf';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface Client {
   id: string;
@@ -656,17 +657,51 @@ export default function F29Declarations() {
       doc.text(splitObservaciones, 20, currentY + 5);
     }
     
-    // Convertir PDF a blob para preview
+    // Convertir PDF a imagen usando canvas
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
-    setPreviewUrl(pdfUrl);
-    setIsPreviewOpen(true);
+    
+    // Configurar pdf.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    
+    try {
+      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      
+      const scale = 2; // Escala para mejor calidad
+      const viewport = page.getViewport({ scale });
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      if (context) {
+        const renderContext: any = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+        
+        await page.render(renderContext).promise;
+        
+        const imageUrl = canvas.toDataURL('image/png');
+        setPreviewUrl(imageUrl);
+        setIsPreviewOpen(true);
+      }
+      
+      URL.revokeObjectURL(pdfUrl);
+    } catch (error) {
+      console.error('Error converting PDF to image:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo generar la previsualización',
+      });
+    }
   };
 
   const closePreview = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setPreviewUrl(null);
     setIsPreviewOpen(false);
   };
@@ -1100,16 +1135,16 @@ export default function F29Declarations() {
 
         {/* Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-2xl max-h-[85vh]">
+          <DialogContent className="max-w-3xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Previsualización - F29</DialogTitle>
             </DialogHeader>
-            <div className="flex justify-center items-center overflow-hidden bg-gray-50 rounded">
+            <div className="flex justify-center items-center overflow-auto max-h-[70vh] bg-gray-50 p-4 rounded">
               {previewUrl && (
-                <embed
+                <img
                   src={previewUrl}
-                  type="application/pdf"
-                  className="w-full h-[65vh] rounded"
+                  alt="Preview F29"
+                  className="max-w-full h-auto rounded shadow-lg border"
                 />
               )}
             </div>
