@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -59,6 +59,7 @@ export default function F29Declarations() {
   const [hasFormData, setHasFormData] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isResumenOpen, setIsResumenOpen] = useState(false);
   
   // Filter state
   const [filterClientId, setFilterClientId] = useState('all');
@@ -720,14 +721,24 @@ export default function F29Declarations() {
                 Declaraciones F29
               </h1>
             </div>
-            {canModify && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-primary to-accent">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nueva Declaración
-                  </Button>
-                </DialogTrigger>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsResumenOpen(true)}
+                className="border-primary/20 hover:bg-primary/10"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Resumen Consolidado
+              </Button>
+              {canModify && (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-primary to-accent">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Declaración
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingDeclarationId ? 'Editar Declaración F29' : 'Nueva Declaración F29'}</DialogTitle>
@@ -950,7 +961,8 @@ export default function F29Declarations() {
                   </form>
                 </DialogContent>
               </Dialog>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1153,6 +1165,119 @@ export default function F29Declarations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Diálogo de Resumen Consolidado */}
+      <Dialog open={isResumenOpen} onOpenChange={setIsResumenOpen}>
+        <DialogContent className="bg-card border-border max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Resumen Consolidado de Estados - F29</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Tabla de resumen por cliente */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-3 font-semibold text-sm">Cliente</th>
+                    <th className="text-center p-3 font-semibold text-sm">Declaraciones</th>
+                    <th className="text-center p-3 font-semibold text-sm">Pendientes</th>
+                    <th className="text-center p-3 font-semibold text-sm">Guardadas</th>
+                    <th className="text-center p-3 font-semibold text-sm">Declaradas</th>
+                    <th className="text-center p-3 font-semibold text-sm">Giradas</th>
+                    <th className="text-center p-3 font-semibold text-sm">Hon. Pend.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client) => {
+                    const clientDeclarations = declarations.filter(d => d.client_id === client.id);
+                    const totalDecl = clientDeclarations.length;
+                    const pendientes = clientDeclarations.filter(d => d.estado_declaracion === 'pendiente').length;
+                    const guardadas = clientDeclarations.filter(d => d.estado_declaracion === 'guardado').length;
+                    const declaradas = clientDeclarations.filter(d => d.estado_declaracion === 'declarado').length;
+                    const giradas = clientDeclarations.filter(d => d.estado_declaracion === 'girado').length;
+                    const honPendientes = clientDeclarations.filter(d => d.estado_honorarios === 'pendiente').length;
+                    
+                    if (totalDecl === 0) return null;
+                    
+                    return (
+                      <tr key={client.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
+                        <td className="p-3 text-sm">
+                          <div className="font-medium">{client.razon_social}</div>
+                          <div className="text-xs text-muted-foreground">{client.rut}</div>
+                        </td>
+                        <td className="text-center p-3 text-sm font-medium">{totalDecl}</td>
+                        <td className="text-center p-3">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${
+                            pendientes > 0 ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' : 'bg-secondary text-muted-foreground'
+                          }`}>
+                            {pendientes}
+                          </span>
+                        </td>
+                        <td className="text-center p-3">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${
+                            guardadas > 0 ? 'bg-blue-500/20 text-blue-700 dark:text-blue-400' : 'bg-secondary text-muted-foreground'
+                          }`}>
+                            {guardadas}
+                          </span>
+                        </td>
+                        <td className="text-center p-3">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${
+                            declaradas > 0 ? 'bg-purple-500/20 text-purple-700 dark:text-purple-400' : 'bg-secondary text-muted-foreground'
+                          }`}>
+                            {declaradas}
+                          </span>
+                        </td>
+                        <td className="text-center p-3">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${
+                            giradas > 0 ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-secondary text-muted-foreground'
+                          }`}>
+                            {giradas}
+                          </span>
+                        </td>
+                        <td className="text-center p-3">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${
+                            honPendientes > 0 ? 'bg-orange-500/20 text-orange-700 dark:text-orange-400' : 'bg-secondary text-muted-foreground'
+                          }`}>
+                            {honPendientes}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Resumen global */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">
+                  {declarations.length}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Total Declaraciones</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {declarations.filter(d => d.estado_declaracion === 'pendiente').length}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Pendientes</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {declarations.filter(d => d.estado_declaracion === 'declarado').length}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Declaradas</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {declarations.filter(d => d.estado_honorarios === 'pendiente').length}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Hon. Pendientes</div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
