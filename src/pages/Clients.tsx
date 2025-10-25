@@ -38,21 +38,26 @@ interface Client {
   observacion_2: string | null;
   observacion_3: string | null;
   activo: boolean;
+  saldo_honorarios_pendiente: number;
+}
+
+interface ClientWithSaldo extends Client {
+  saldo_total_honorarios: number;
 }
 
 export default function Clients() {
   const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientWithSaldo[]>([]);
+  const [filteredClients, setFilteredClients] = useState<ClientWithSaldo[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('active');
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientWithSaldo | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleClientClick = (client: Client) => {
+  const handleClientClick = (client: ClientWithSaldo) => {
     setSelectedClient(client);
     setIsEditDialogOpen(true);
   };
@@ -156,10 +161,42 @@ export default function Clients() {
         });
         setClients([]);
       } else {
-        console.log('✅ Clientes cargados:', { total: count, data_length: data?.length, sample: data?.[0] });
+        console.log('✅ Clientes cargados:', { total: count, data_length: data?.length });
         const clientsData = Array.isArray(data) ? data : [];
-        console.log('📊 Datos procesados:', { isArray: Array.isArray(clientsData), length: clientsData.length });
-        setClients(clientsData);
+        
+        // Calcular saldo total de honorarios para cada cliente
+        const clientsWithSaldo = await Promise.all(
+          clientsData.map(async (client) => {
+            // Obtener declaraciones F29 con honorarios pendientes
+            const { data: declarations, error: declError } = await supabase
+              .from('f29_declarations')
+              .select('honorarios, estado_honorarios')
+              .eq('client_id', client.id)
+              .eq('estado_honorarios', 'pendiente');
+
+            if (declError) {
+              console.error('Error cargando declaraciones:', declError);
+              return {
+                ...client,
+                saldo_total_honorarios: client.saldo_honorarios_pendiente || 0
+              };
+            }
+
+            // Sumar honorarios pendientes
+            const honorariosPendientes = declarations?.reduce(
+              (sum, decl) => sum + (decl.honorarios || 0),
+              0
+            ) || 0;
+
+            return {
+              ...client,
+              saldo_total_honorarios: (client.saldo_honorarios_pendiente || 0) + honorariosPendientes
+            };
+          })
+        );
+        
+        console.log('📊 Datos procesados con saldos:', { length: clientsWithSaldo.length });
+        setClients(clientsWithSaldo);
       }
     } catch (err) {
       console.error('💥 Excepción cargando clientes:', err);
@@ -344,6 +381,18 @@ export default function Clients() {
                           <span className="text-foreground">
                             {client.direccion}
                             {client.ciudad && `, ${client.ciudad}`}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Saldo de Honorarios */}
+                      {client.saldo_total_honorarios > 0 && (
+                        <div className="pt-2 border-t border-border">
+                          <span className="text-muted-foreground">Saldo Honorarios:</span>{' '}
+                          <span className={`font-bold ${
+                            client.saldo_total_honorarios > 0 ? 'text-orange-400' : 'text-green-400'
+                          }`}>
+                            ${client.saldo_total_honorarios.toLocaleString('es-CL')}
                           </span>
                         </div>
                       )}

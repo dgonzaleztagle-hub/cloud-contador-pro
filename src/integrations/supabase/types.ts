@@ -71,6 +71,7 @@ export type Database = {
           representante_legal: string | null
           rut: string
           rut_representante: string | null
+          saldo_honorarios_pendiente: number
           updated_at: string
           user_id: string | null
           valor: string | null
@@ -102,6 +103,7 @@ export type Database = {
           representante_legal?: string | null
           rut: string
           rut_representante?: string | null
+          saldo_honorarios_pendiente?: number
           updated_at?: string
           user_id?: string | null
           valor?: string | null
@@ -133,6 +135,7 @@ export type Database = {
           representante_legal?: string | null
           rut?: string
           rut_representante?: string | null
+          saldo_honorarios_pendiente?: number
           updated_at?: string
           user_id?: string | null
           valor?: string | null

@@ -46,6 +46,7 @@ interface Client {
   observacion_2: string | null;
   observacion_3: string | null;
   activo: boolean;
+  saldo_honorarios_pendiente: number;
 }
 
 interface ClientEditDialogProps {
@@ -167,6 +168,28 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     value={formData.rut || ''}
                     onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="valor">Valor (Mensualidad)</Label>
+                  <Input
+                    id="valor"
+                    value={formData.valor || ''}
+                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="saldo_honorarios_pendiente">Saldo Honorarios Pendiente</Label>
+                  <Input
+                    id="saldo_honorarios_pendiente"
+                    type="number"
+                    value={formData.saldo_honorarios_pendiente || 0}
+                    onChange={(e) => setFormData({ ...formData, saldo_honorarios_pendiente: parseFloat(e.target.value) || 0 })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Saldo de honorarios anteriores al sistema. Este monto se suma a los honorarios pendientes de las declaraciones F29.
+                  </p>
                 </div>
 
                 <div className="space-y-2">

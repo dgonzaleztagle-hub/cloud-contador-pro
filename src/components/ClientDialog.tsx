@@ -51,6 +51,7 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
     observacion_2: '',
     observacion_3: '',
     activo: true,
+    saldo_honorarios_pendiente: 0,
   });
 
   // Form state
@@ -193,6 +194,7 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
         observacion_2: '',
         observacion_3: '',
         activo: true,
+        saldo_honorarios_pendiente: 0,
       });
       setSelectedRegionId('');
       setSelectedGiro('');
