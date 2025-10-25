@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      ciudades: {
+        Row: {
+          created_at: string | null
+          id: string
+          nombre: string
+          region_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nombre: string
+          region_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nombre?: string
+          region_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ciudades_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activo: boolean
@@ -234,6 +263,27 @@ export type Database = {
           },
         ]
       }
+      giros: {
+        Row: {
+          cod_actividad: string | null
+          created_at: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          cod_actividad?: string | null
+          created_at?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          cod_actividad?: string | null
+          created_at?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -258,6 +308,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      regimenes_tributarios: {
+        Row: {
+          created_at: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      regiones: {
+        Row: {
+          created_at: string | null
+          id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nombre: string
+          orden: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
         }
         Relationships: []
       }

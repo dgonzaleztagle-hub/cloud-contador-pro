@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,15 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Catálogos
+  const [regiones, setRegiones] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [ciudades, setCiudades] = useState<Array<{ id: string; nombre: string; region_id: string }>>([]);
+  const [ciudadesFiltradas, setCiudadesFiltradas] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [giros, setGiros] = useState<Array<{ id: string; nombre: string; cod_actividad: string | null }>>([]);
+  const [regimenesTributarios, setRegimenesTributarios] = useState<Array<{ id: string; nombre: string }>>([]);
+  
+  // Form data
   const [formData, setFormData] = useState({
     rut: '',
     razon_social: '',
@@ -44,11 +53,108 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
     activo: true,
   });
 
+  // Form state
+  const [selectedRegionId, setSelectedRegionId] = useState('');
+  const [selectedGiro, setSelectedGiro] = useState('');
+  const [isNewGiro, setIsNewGiro] = useState(false);
+
+  useEffect(() => {
+    loadCatalogos();
+  }, []);
+
+  useEffect(() => {
+    if (selectedRegionId) {
+      const filtered = ciudades.filter(c => c.region_id === selectedRegionId);
+      setCiudadesFiltradas(filtered);
+      // Limpiar ciudad si cambió la región
+      if (formData.ciudad && !filtered.find(c => c.nombre === formData.ciudad)) {
+        setFormData({ ...formData, ciudad: '' });
+      }
+    } else {
+      setCiudadesFiltradas([]);
+    }
+  }, [selectedRegionId, ciudades]);
+
+  const loadCatalogos = async () => {
+    // Cargar regiones
+    const { data: regionesData } = await supabase
+      .from('regiones')
+      .select('id, nombre')
+      .order('orden');
+    if (regionesData) setRegiones(regionesData);
+
+    // Cargar ciudades
+    const { data: ciudadesData } = await supabase
+      .from('ciudades')
+      .select('id, nombre, region_id')
+      .order('nombre');
+    if (ciudadesData) setCiudades(ciudadesData);
+
+    // Cargar giros
+    const { data: girosData } = await supabase
+      .from('giros')
+      .select('id, nombre, cod_actividad')
+      .order('nombre');
+    if (girosData) setGiros(girosData);
+
+    // Cargar regímenes tributarios
+    const { data: regimenesData } = await supabase
+      .from('regimenes_tributarios')
+      .select('id, nombre')
+      .order('nombre');
+    if (regimenesData) setRegimenesTributarios(regimenesData);
+  };
+
+  const handleGiroChange = (giroNombre: string) => {
+    setSelectedGiro(giroNombre);
+    
+    if (giroNombre === 'new') {
+      setIsNewGiro(true);
+      setFormData({ ...formData, giro: '', cod_actividad: '' });
+    } else {
+      setIsNewGiro(false);
+      const giro = giros.find(g => g.nombre === giroNombre);
+      if (giro) {
+        setFormData({ 
+          ...formData, 
+          giro: giro.nombre, 
+          cod_actividad: giro.cod_actividad || '' 
+        });
+      }
+    }
+  };
+
+  const handleRegimenChange = async (regimenNombre: string) => {
+    // Si el régimen no existe, agregarlo a la BD
+    const existingRegimen = regimenesTributarios.find(r => r.nombre === regimenNombre);
+    
+    if (!existingRegimen && regimenNombre.trim()) {
+      const { data, error } = await supabase
+        .from('regimenes_tributarios')
+        .insert({ nombre: regimenNombre })
+        .select()
+        .single();
+      
+      if (!error && data) {
+        setRegimenesTributarios([...regimenesTributarios, data]);
+      }
+    }
+    
+    setFormData({ ...formData, regimen_tributario: regimenNombre });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     try {
+      // Si es un giro nuevo, primero guardarlo en la tabla de giros
+      if (isNewGiro && formData.giro.trim()) {
+        await supabase
+          .from('giros')
+          .insert({ nombre: formData.giro, cod_actividad: formData.cod_actividad || null });
+      }
+
       const { error } = await supabase
         .from('clients')
         .insert([formData]);
@@ -88,7 +194,11 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
         observacion_3: '',
         activo: true,
       });
+      setSelectedRegionId('');
+      setSelectedGiro('');
+      setIsNewGiro(false);
       onClientCreated();
+      loadCatalogos(); // Recargar catálogos por si se agregaron nuevos
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -150,6 +260,34 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
                   className="bg-input border-border"
                 />
               </div>
+              
+              {/* Giro - PRIMERO */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="giro">Giro</Label>
+                <Select value={selectedGiro} onValueChange={handleGiroChange}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Seleccionar giro existente o crear nuevo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    <SelectItem value="new">+ Crear nuevo giro</SelectItem>
+                    {giros.map((giro) => (
+                      <SelectItem key={giro.id} value={giro.nombre}>
+                        {giro.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isNewGiro && (
+                  <Input
+                    placeholder="Escribir nuevo giro"
+                    value={formData.giro}
+                    onChange={(e) => setFormData({ ...formData, giro: e.target.value })}
+                    className="bg-input border-border mt-2"
+                  />
+                )}
+              </div>
+              
+              {/* Código Actividad - se carga automáticamente del giro */}
               <div className="space-y-2">
                 <Label htmlFor="cod_actividad">Código Actividad</Label>
                 <Input
@@ -157,27 +295,31 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
                   value={formData.cod_actividad}
                   onChange={(e) => setFormData({ ...formData, cod_actividad: e.target.value })}
                   className="bg-input border-border"
+                  readOnly={!isNewGiro}
+                  placeholder={isNewGiro ? "Código opcional" : "Se carga del giro"}
                 />
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="giro">Giro</Label>
-                <Input
-                  id="giro"
-                  value={formData.giro}
-                  onChange={(e) => setFormData({ ...formData, giro: e.target.value })}
-                  className="bg-input border-border"
-                />
-              </div>
+              
+              {/* Régimen Tributario - con lista y permite nuevos */}
               <div className="space-y-2">
                 <Label htmlFor="regimen_tributario">Régimen Tributario</Label>
-                <Input
-                  id="regimen_tributario"
-                  value={formData.regimen_tributario}
-                  onChange={(e) => setFormData({ ...formData, regimen_tributario: e.target.value })}
-                  placeholder="PRO PYME GRAL 14D"
-                  className="bg-input border-border"
-                />
+                <Select 
+                  value={formData.regimen_tributario} 
+                  onValueChange={handleRegimenChange}
+                >
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Seleccionar régimen" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {regimenesTributarios.map((regimen) => (
+                      <SelectItem key={regimen.id} value={regimen.nombre}>
+                        {regimen.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="contabilidad">Contabilidad</Label>
                 <Input
@@ -214,24 +356,54 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
                   className="bg-input border-border"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ciudad">Ciudad</Label>
-                <Input
-                  id="ciudad"
-                  value={formData.ciudad}
-                  onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
-                  className="bg-input border-border"
-                />
-              </div>
+              
+              {/* Región - PRIMERO con lista precargada */}
               <div className="space-y-2">
                 <Label htmlFor="region">Región</Label>
-                <Input
-                  id="region"
-                  value={formData.region}
-                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                  className="bg-input border-border"
-                />
+                <Select 
+                  value={selectedRegionId}
+                  onValueChange={(value) => {
+                    setSelectedRegionId(value);
+                    const region = regiones.find(r => r.id === value);
+                    if (region) {
+                      setFormData({ ...formData, region: region.nombre });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Seleccionar región" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {regiones.map((region) => (
+                      <SelectItem key={region.id} value={region.id}>
+                        {region.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              
+              {/* Ciudad - se carga según región */}
+              <div className="space-y-2">
+                <Label htmlFor="ciudad">Ciudad</Label>
+                <Select 
+                  value={formData.ciudad}
+                  onValueChange={(value) => setFormData({ ...formData, ciudad: value })}
+                  disabled={!selectedRegionId}
+                >
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder={selectedRegionId ? "Seleccionar ciudad" : "Primero seleccione región"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {ciudadesFiltradas.map((ciudad) => (
+                      <SelectItem key={ciudad.id} value={ciudad.nombre}>
+                        {ciudad.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -341,43 +513,6 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
                   value={formData.portal_electronico}
                   onChange={(e) => setFormData({ ...formData, portal_electronico: e.target.value })}
                   className="bg-input border-border"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Observaciones */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Observaciones</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="observacion_1">Observación 1</Label>
-                <Textarea
-                  id="observacion_1"
-                  value={formData.observacion_1}
-                  onChange={(e) => setFormData({ ...formData, observacion_1: e.target.value })}
-                  className="bg-input border-border"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="observacion_2">Observación 2</Label>
-                <Textarea
-                  id="observacion_2"
-                  value={formData.observacion_2}
-                  onChange={(e) => setFormData({ ...formData, observacion_2: e.target.value })}
-                  className="bg-input border-border"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="observacion_3">Observación 3</Label>
-                <Textarea
-                  id="observacion_3"
-                  value={formData.observacion_3}
-                  onChange={(e) => setFormData({ ...formData, observacion_3: e.target.value })}
-                  className="bg-input border-border"
-                  rows={3}
                 />
               </div>
             </div>
