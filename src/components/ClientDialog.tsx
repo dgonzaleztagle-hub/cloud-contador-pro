@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, PlusCircle, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,6 +16,7 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddFieldDialogOpen, setIsAddFieldDialogOpen] = useState(false);
   
   // Catálogos
   const [regiones, setRegiones] = useState<Array<{ id: string; nombre: string }>>([]);
@@ -23,6 +24,13 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
   const [ciudadesFiltradas, setCiudadesFiltradas] = useState<Array<{ id: string; nombre: string }>>([]);
   const [giros, setGiros] = useState<Array<{ id: string; nombre: string; cod_actividad: string | null }>>([]);
   const [regimenesTributarios, setRegimenesTributarios] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [customFields, setCustomFields] = useState<Array<{ id: string; field_name: string; field_type: string; is_visible: boolean; field_options: string | null }>>([]);
+  
+  // Campos personalizados
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState('text');
+  const [newFieldVisible, setNewFieldVisible] = useState(true);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -61,6 +69,7 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
 
   useEffect(() => {
     loadCatalogos();
+    loadCustomFields();
   }, []);
 
   useEffect(() => {
@@ -104,6 +113,76 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
       .select('id, nombre')
       .order('nombre');
     if (regimenesData) setRegimenesTributarios(regimenesData);
+  };
+
+  const loadCustomFields = async () => {
+    const { data } = await supabase
+      .from('client_custom_fields')
+      .select('*')
+      .eq('is_visible', true)
+      .order('display_order');
+    if (data) setCustomFields(data);
+  };
+
+  const handleAddCustomField = async () => {
+    if (!newFieldName.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'El nombre del campo es obligatorio',
+      });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('client_custom_fields')
+      .insert({
+        field_name: newFieldName,
+        field_type: newFieldType,
+        is_visible: newFieldVisible,
+        display_order: customFields.length
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo crear el campo personalizado',
+      });
+      return;
+    }
+
+    if (data) {
+      setCustomFields([...customFields, data]);
+      setNewFieldName('');
+      setNewFieldType('text');
+      setNewFieldVisible(true);
+      setIsAddFieldDialogOpen(false);
+      toast({
+        title: 'Campo agregado',
+        description: 'El campo personalizado se ha creado exitosamente',
+      });
+    }
+  };
+
+  const handleDeleteCustomField = async (fieldId: string) => {
+    const { error } = await supabase
+      .from('client_custom_fields')
+      .delete()
+      .eq('id', fieldId);
+
+    if (!error) {
+      setCustomFields(customFields.filter(f => f.id !== fieldId));
+      const newValues = { ...customFieldValues };
+      delete newValues[fieldId];
+      setCustomFieldValues(newValues);
+      toast({
+        title: 'Campo eliminado',
+        description: 'El campo personalizado se ha eliminado',
+      });
+    }
   };
 
   const handleGiroChange = (giroNombre: string) => {
@@ -158,9 +237,23 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
 
       const { error } = await supabase
         .from('clients')
-        .insert([formData]);
+        .insert([formData])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Guardar valores de campos personalizados si existen
+      const clientId = (await supabase.from('clients').select('id').eq('rut', formData.rut).single()).data?.id;
+      if (clientId && Object.keys(customFieldValues).length > 0) {
+        const customFieldInserts = Object.entries(customFieldValues).map(([fieldId, value]) => ({
+          client_id: clientId,
+          field_id: fieldId,
+          field_value: value
+        }));
+        
+        await supabase.from('client_custom_field_values').insert(customFieldInserts);
+      }
 
       toast({
         title: 'Cliente creado',
@@ -199,6 +292,7 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
       setSelectedRegionId('');
       setSelectedGiro('');
       setIsNewGiro(false);
+      setCustomFieldValues({});
       onClientCreated();
       loadCatalogos(); // Recargar catálogos por si se agregaron nuevos
     } catch (error: any) {
@@ -540,6 +634,76 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
             <Label htmlFor="activo">Cliente activo</Label>
           </div>
 
+          {/* Campos Personalizados */}
+          {customFields.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">Campos Personalizados</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddFieldDialogOpen(true)}
+                  className="text-xs"
+                >
+                  <PlusCircle className="h-3 w-3 mr-1" />
+                  Agregar Campo
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {customFields.map((field) => (
+                  <div key={field.id} className="space-y-2 relative">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={field.id}>{field.field_name}</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCustomField(field.id)}
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {field.field_type === 'textarea' ? (
+                      <textarea
+                        id={field.id}
+                        value={customFieldValues[field.id] || ''}
+                        onChange={(e) => setCustomFieldValues({ ...customFieldValues, [field.id]: e.target.value })}
+                        className="w-full min-h-[80px] px-3 py-2 bg-input border border-border rounded-md"
+                        rows={3}
+                      />
+                    ) : (
+                      <Input
+                        id={field.id}
+                        type={field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}
+                        value={customFieldValues[field.id] || ''}
+                        onChange={(e) => setCustomFieldValues({ ...customFieldValues, [field.id]: e.target.value })}
+                        className="bg-input border-border"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Botón para agregar campo si no hay campos aún */}
+          {customFields.length === 0 && (
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              <p className="text-sm text-muted-foreground mb-3">No hay campos personalizados</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddFieldDialogOpen(true)}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Agregar Campo Personalizado
+              </Button>
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
@@ -565,6 +729,69 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
           </div>
         </form>
       </DialogContent>
+
+      {/* Diálogo para agregar campo personalizado */}
+      <Dialog open={isAddFieldDialogOpen} onOpenChange={setIsAddFieldDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Agregar Campo Personalizado</DialogTitle>
+            <DialogDescription>
+              Define un nuevo campo personalizado para los clientes
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="field_name">Nombre del Campo *</Label>
+              <Input
+                id="field_name"
+                value={newFieldName}
+                onChange={(e) => setNewFieldName(e.target.value)}
+                placeholder="Ej: Número de Empleados"
+                className="bg-input border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="field_type">Tipo de Campo</Label>
+              <Select value={newFieldType} onValueChange={setNewFieldType}>
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  <SelectItem value="text">Texto</SelectItem>
+                  <SelectItem value="number">Número</SelectItem>
+                  <SelectItem value="date">Fecha</SelectItem>
+                  <SelectItem value="textarea">Texto largo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="field_visible"
+                checked={newFieldVisible}
+                onChange={(e) => setNewFieldVisible(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="field_visible">Mostrar en formulario</Label>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddFieldDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAddCustomField}
+                className="bg-gradient-to-r from-primary to-accent"
+              >
+                Agregar Campo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

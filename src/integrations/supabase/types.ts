@@ -43,6 +43,78 @@ export type Database = {
           },
         ]
       }
+      client_custom_field_values: {
+        Row: {
+          client_id: string
+          created_at: string
+          field_id: string
+          field_value: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          field_id: string
+          field_value?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          field_id?: string
+          field_value?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_custom_field_values_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "client_custom_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_custom_fields: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_name: string
+          field_options: string | null
+          field_type: string
+          id: string
+          is_visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_name: string
+          field_options?: string | null
+          field_type: string
+          id?: string
+          is_visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_name?: string
+          field_options?: string | null
+          field_type?: string
+          id?: string
+          is_visible?: boolean
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           activo: boolean
