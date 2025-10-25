@@ -12,7 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import jsPDF from 'jspdf';
-import * as pdfjsLib from 'pdfjs-dist';
 
 interface Client {
   id: string;
@@ -521,51 +520,17 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
-    // Convertir PDF a imagen usando canvas
+    // Generar PDF y mostrarlo como preview
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
-    
-    // Configurar pdf.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    
-    try {
-      const loadingTask = pdfjsLib.getDocument(pdfUrl);
-      const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1);
-      
-      const scale = 2;
-      const viewport = page.getViewport({ scale });
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      if (context) {
-        const renderContext: any = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-        
-        await page.render(renderContext).promise;
-        
-        const imageUrl = canvas.toDataURL('image/png');
-        setPreviewUrl(imageUrl);
-        setIsPreviewOpen(true);
-      }
-      
-      URL.revokeObjectURL(pdfUrl);
-    } catch (error) {
-      console.error('Error converting PDF to image:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo generar la previsualización',
-      });
-    }
+    setPreviewUrl(pdfUrl);
+    setIsPreviewOpen(true);
   };
 
   const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
     setIsPreviewOpen(false);
   };
@@ -1059,16 +1024,16 @@ export default function RRHH() {
 
         {/* Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogContent className="max-w-2xl h-[85vh]">
             <DialogHeader>
-              <DialogTitle>Previsualización - RRHH</DialogTitle>
+              <DialogTitle>Vista Previa - RRHH</DialogTitle>
             </DialogHeader>
-            <div className="flex justify-center items-center overflow-auto max-h-[70vh] bg-gray-50 p-4 rounded">
+            <div className="flex-1 overflow-hidden rounded border bg-gray-50">
               {previewUrl && (
-                <img
+                <iframe
                   src={previewUrl}
-                  alt="Preview RRHH"
-                  className="max-w-full h-auto rounded shadow-lg border"
+                  className="w-full h-[calc(85vh-80px)]"
+                  title="Vista Previa RRHH"
                 />
               )}
             </div>
