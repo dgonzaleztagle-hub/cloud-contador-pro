@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -61,6 +61,7 @@ export default function RRHH() {
   const [loadingData, setLoadingData] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [filterClientId, setFilterClientId] = useState<string>('all');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -160,33 +161,15 @@ export default function RRHH() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClientId || !workerRut || !workerNombre) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Completa todos los campos obligatorios',
-      });
-      return;
-    }
-
-    if (tipoplazo === 'fijo' && !fechaTermino) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Debes especificar la fecha de término para contrato de plazo fijo',
-      });
-      return;
-    }
-
     setIsSaving(true);
 
     let finalSucursalId = sucursalId;
 
-    // Crear nueva sucursal si se especificó
+    // Si está creando nueva sucursal
     if (mostrarNuevaSucursal && nuevaSucursal.trim()) {
       const { data: newSucursal, error: sucursalError } = await supabase
         .from('sucursales')
-        .insert({ nombre: nuevaSucursal.trim() })
+        .insert({ nombre: nuevaSucursal })
         .select()
         .single();
 
@@ -205,7 +188,7 @@ export default function RRHH() {
     }
 
     // Subir contrato PDF si existe
-    let contratoPdfPath = null;
+    let contratoPdfPath = editingWorkerId ? workers.find(w => w.id === editingWorkerId)?.contrato_pdf_path : null;
     if (contratoPdf) {
       const fileName = `${selectedClientId}/${workerRut}_${Date.now()}.pdf`;
       const { error: uploadError } = await supabase.storage
@@ -225,7 +208,7 @@ export default function RRHH() {
       contratoPdfPath = fileName;
     }
 
-    const { error } = await supabase.from('rrhh_workers').insert({
+    const workerData = {
       client_id: selectedClientId,
       rut: workerRut,
       nombre: workerNombre,
@@ -245,18 +228,32 @@ export default function RRHH() {
       faltas_dia_completo: parseInt(faltasDiaCompleto) || 0,
       faltas_medio_dia: parseInt(faltasMedioDia) || 0,
       anticipo_monto: parseFloat(anticipoMonto) || 0,
-    });
+    };
+
+    let error;
+    if (editingWorkerId) {
+      // Actualizar trabajador existente
+      const result = await supabase
+        .from('rrhh_workers')
+        .update(workerData)
+        .eq('id', editingWorkerId);
+      error = result.error;
+    } else {
+      // Crear nuevo trabajador
+      const result = await supabase.from('rrhh_workers').insert(workerData);
+      error = result.error;
+    }
 
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo guardar el trabajador',
+        description: editingWorkerId ? 'No se pudo actualizar el trabajador' : 'No se pudo guardar el trabajador',
       });
     } else {
       toast({
-        title: 'Trabajador guardado',
-        description: 'El registro del trabajador se guardó exitosamente',
+        title: editingWorkerId ? 'Trabajador actualizado' : 'Trabajador guardado',
+        description: editingWorkerId ? 'Los datos del trabajador se actualizaron exitosamente' : 'El registro del trabajador se guardó exitosamente',
       });
       resetForm();
       setIsDialogOpen(false);
@@ -265,7 +262,31 @@ export default function RRHH() {
     setIsSaving(false);
   };
 
+  const handleEdit = (worker: Worker) => {
+    setEditingWorkerId(worker.id);
+    setSelectedClientId(worker.client_id);
+    setWorkerRut(worker.rut);
+    setWorkerNombre(worker.nombre);
+    setMes(worker.periodo_mes);
+    setAnio(worker.periodo_anio);
+    setTipoPlazo(worker.tipo_plazo);
+    setFechaTermino(worker.fecha_termino || '');
+    setTipoJornada(worker.tipo_jornada);
+    setSucursalId(worker.sucursal_id || '');
+    setAtrasosHoras(worker.atrasos_horas.toString());
+    setAtrasosMinutos(worker.atrasos_minutos.toString());
+    setPermisosHoras(worker.permisos_horas.toString());
+    setPermisosMinutos(worker.permisos_minutos.toString());
+    setPermisosMedioDia(worker.permisos_medio_dia.toString());
+    setPermisosDiaCompleto(worker.permisos_dia_completo.toString());
+    setFaltasDiaCompleto(worker.faltas_dia_completo.toString());
+    setFaltasMedioDia(worker.faltas_medio_dia.toString());
+    setAnticipoMonto(worker.anticipo_monto.toString());
+    setIsDialogOpen(true);
+  };
+
   const resetForm = () => {
+    setEditingWorkerId(null);
     setSelectedClientId('');
     setWorkerRut('');
     setWorkerNombre('');
@@ -586,7 +607,7 @@ export default function RRHH() {
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Nuevo Registro de Trabajador</DialogTitle>
+                    <DialogTitle>{editingWorkerId ? 'Editar Trabajador' : 'Nuevo Registro de Trabajador'}</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -886,10 +907,10 @@ export default function RRHH() {
                       {isSaving ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Guardando...
+                          {editingWorkerId ? 'Actualizando...' : 'Guardando...'}
                         </>
                       ) : (
-                        'Guardar Registro'
+                        editingWorkerId ? 'Actualizar Registro' : 'Guardar Registro'
                       )}
                     </Button>
                   </form>
@@ -986,6 +1007,17 @@ export default function RRHH() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      {canModify && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(worker)}
+                          className="text-primary hover:text-primary"
+                          title="Editar Trabajador"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
