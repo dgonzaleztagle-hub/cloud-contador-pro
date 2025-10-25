@@ -350,7 +350,7 @@ export default function F29Declarations() {
       setSelectedClientId(newClientId);
       checkExistingDeclaration(newClientId, mes, anio);
       
-      // Contar declaraciones del mes actual para este cliente
+      // Contar declaraciones acumuladas hasta el mes actual para este cliente
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
       
@@ -358,8 +358,8 @@ export default function F29Declarations() {
         .from('f29_declarations')
         .select('*', { count: 'exact', head: true })
         .eq('client_id', newClientId)
-        .eq('periodo_mes', currentMonth)
-        .eq('periodo_anio', currentYear);
+        .eq('periodo_anio', currentYear)
+        .lte('periodo_mes', currentMonth);
       
       setCurrentMonthCount(count || 0);
     }
