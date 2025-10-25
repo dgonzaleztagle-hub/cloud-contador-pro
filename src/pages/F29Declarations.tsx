@@ -56,8 +56,14 @@ export default function F29Declarations() {
   const [showClearFormAlert, setShowClearFormAlert] = useState(false);
   const [pendingClientId, setPendingClientId] = useState<string | null>(null);
   const [hasFormData, setHasFormData] = useState(false);
+  
+  // Filter state
+  const [filterClientId, setFilterClientId] = useState('');
+  const [filterMes, setFilterMes] = useState(0); // 0 = todos
+  const [filterAnio, setFilterAnio] = useState(0); // 0 = todos
 
   // Form state
+  const [editingDeclarationId, setEditingDeclarationId] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(new Date().getFullYear());
@@ -194,7 +200,7 @@ export default function F29Declarations() {
     setIsSaving(true);
     const totals = calculateTotals();
 
-    const { error } = await supabase.from('f29_declarations').insert({
+    const declarationData = {
       client_id: selectedClientId,
       periodo_mes: mes,
       periodo_anio: anio,
@@ -210,20 +216,35 @@ export default function F29Declarations() {
       total_impuestos: totals.totalImpuestos,
       total_general: totals.totalGeneral,
       observaciones: observaciones || null,
-      created_by: user?.id,
       estado_honorarios: estadoHonorarios,
-    });
+    };
+
+    let error;
+    if (editingDeclarationId) {
+      // Update existing declaration
+      const result = await supabase
+        .from('f29_declarations')
+        .update(declarationData)
+        .eq('id', editingDeclarationId);
+      error = result.error;
+    } else {
+      // Insert new declaration
+      const result = await supabase
+        .from('f29_declarations')
+        .insert({ ...declarationData, created_by: user?.id });
+      error = result.error;
+    }
 
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo guardar la declaración',
+        description: editingDeclarationId ? 'No se pudo actualizar la declaración' : 'No se pudo guardar la declaración',
       });
     } else {
       toast({
-        title: 'Declaración guardada',
-        description: 'La declaración F29 se guardó exitosamente',
+        title: editingDeclarationId ? 'Declaración actualizada' : 'Declaración guardada',
+        description: editingDeclarationId ? 'La declaración F29 se actualizó exitosamente' : 'La declaración F29 se guardó exitosamente',
       });
       resetForm();
       setIsDialogOpen(false);
@@ -233,7 +254,10 @@ export default function F29Declarations() {
   };
 
   const resetForm = () => {
+    setEditingDeclarationId(null);
     setSelectedClientId('');
+    setMes(new Date().getMonth() + 1);
+    setAnio(new Date().getFullYear());
     setIvaVentas('0');
     setIvaCompras('0');
     setPpm('0');
@@ -244,6 +268,67 @@ export default function F29Declarations() {
     setObservaciones('');
     setEstadoHonorarios('pendiente');
     setHasFormData(false);
+  };
+
+  const checkExistingDeclaration = async (clientId: string, month: number, year: number) => {
+    if (!clientId) return;
+
+    const { data, error } = await supabase
+      .from('f29_declarations')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('periodo_mes', month)
+      .eq('periodo_anio', year)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking existing declaration:', error);
+      return;
+    }
+
+    if (data) {
+      // Load existing declaration into form
+      setEditingDeclarationId(data.id);
+      setIvaVentas(data.iva_ventas.toString());
+      setIvaCompras(data.iva_compras.toString());
+      setPpm(data.ppm.toString());
+      setHonorarios(data.honorarios.toString());
+      setRetencion2cat(data.retencion_2cat.toString());
+      setImpuestoUnico(data.impuesto_unico.toString());
+      setRemanenteAnterior(data.remanente_anterior.toString());
+      setObservaciones(data.observaciones || '');
+      setEstadoHonorarios(data.estado_honorarios);
+      setHasFormData(true);
+      
+      toast({
+        title: 'Declaración existente',
+        description: 'Se cargó la declaración existente para este período',
+      });
+    } else {
+      // No existing declaration, reset to defaults
+      setEditingDeclarationId(null);
+      setIvaVentas('0');
+      setIvaCompras('0');
+      setPpm('0');
+      setRetencion2cat('0');
+      setImpuestoUnico('0');
+      setRemanenteAnterior('0');
+      setObservaciones('');
+      setEstadoHonorarios('pendiente');
+      setHasFormData(false);
+      
+      // Set honorarios from client value if pending
+      if (estadoHonorarios === 'pendiente') {
+        const client = clients.find(c => c.id === clientId);
+        if (client?.valor) {
+          setHonorarios(client.valor);
+        } else {
+          setHonorarios('0');
+        }
+      } else {
+        setHonorarios('0');
+      }
+    }
   };
 
   const checkIfFormHasData = () => {
@@ -262,32 +347,29 @@ export default function F29Declarations() {
   const handleClientChange = (newClientId: string) => {
     const hasData = checkIfFormHasData();
     
-    if (hasData && selectedClientId) {
+    if (hasData && selectedClientId && !editingDeclarationId) {
       // Si hay datos en el formulario y ya había un cliente seleccionado, preguntar
       setPendingClientId(newClientId);
       setShowClearFormAlert(true);
     } else {
-      // Si no hay datos, cambiar directamente
+      // Si no hay datos o está editando, cambiar directamente
       setSelectedClientId(newClientId);
-      if (estadoHonorarios === 'pendiente') {
-        const client = clients.find(c => c.id === newClientId);
-        if (client?.valor) {
-          setHonorarios(client.valor);
-        }
-      }
+      checkExistingDeclaration(newClientId, mes, anio);
+    }
+  };
+
+  const handlePeriodChange = (newMes: number, newAnio: number) => {
+    setMes(newMes);
+    setAnio(newAnio);
+    if (selectedClientId) {
+      checkExistingDeclaration(selectedClientId, newMes, newAnio);
     }
   };
 
   const confirmClientChange = () => {
     if (pendingClientId) {
-      resetForm();
       setSelectedClientId(pendingClientId);
-      if (estadoHonorarios === 'pendiente') {
-        const client = clients.find(c => c.id === pendingClientId);
-        if (client?.valor) {
-          setHonorarios(client.valor);
-        }
-      }
+      checkExistingDeclaration(pendingClientId, mes, anio);
       setPendingClientId(null);
     }
     setShowClearFormAlert(false);
@@ -448,7 +530,7 @@ export default function F29Declarations() {
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Nueva Declaración F29</DialogTitle>
+                    <DialogTitle>{editingDeclarationId ? 'Editar Declaración F29' : 'Nueva Declaración F29'}</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -469,7 +551,7 @@ export default function F29Declarations() {
                       </div>
                       <div>
                         <Label>Mes</Label>
-                        <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v))}>
+                        <Select value={mes.toString()} onValueChange={(v) => handlePeriodChange(parseInt(v), anio)}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue />
                           </SelectTrigger>
@@ -487,7 +569,7 @@ export default function F29Declarations() {
                         <Input
                           type="number"
                           value={anio}
-                          onChange={(e) => setAnio(parseInt(e.target.value))}
+                          onChange={(e) => handlePeriodChange(mes, parseInt(e.target.value))}
                           className="bg-input border-border"
                         />
                       </div>
@@ -654,9 +736,60 @@ export default function F29Declarations() {
       <main className="container mx-auto px-6 py-8 flex-1">
         <Card className="border-border">
           <CardHeader>
-            <CardTitle>Declaraciones F29 ({declarations.length})</CardTitle>
+            <CardTitle>Declaraciones F29</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Filtros */}
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+              <div>
+                <Label>Cliente</Label>
+                <Select value={filterClientId} onValueChange={setFilterClientId}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Todos los clientes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los clientes</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.rut} - {client.razon_social}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Mes</Label>
+                <Select value={filterMes.toString()} onValueChange={(v) => setFilterMes(parseInt(v))}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Todos los meses</SelectItem>
+                    {meses.map((m, i) => (
+                      <SelectItem key={i} value={(i + 1).toString()}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Año</Label>
+                <Select value={filterAnio.toString()} onValueChange={(v) => setFilterAnio(parseInt(v))}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Todos los años</SelectItem>
+                    {[2024, 2025, 2026, 2027, 2028].map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {declarations.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -664,7 +797,14 @@ export default function F29Declarations() {
               </div>
             ) : (
               <div className="space-y-4">
-                {declarations.map((declaration) => (
+                {declarations
+                  .filter((declaration) => {
+                    if (filterClientId && declaration.client_id !== filterClientId) return false;
+                    if (filterMes !== 0 && declaration.periodo_mes !== filterMes) return false;
+                    if (filterAnio !== 0 && declaration.periodo_anio !== filterAnio) return false;
+                    return true;
+                  })
+                  .map((declaration) => (
                   <div
                     key={declaration.id}
                     className="flex items-start justify-between p-4 rounded-lg bg-secondary border border-border"
