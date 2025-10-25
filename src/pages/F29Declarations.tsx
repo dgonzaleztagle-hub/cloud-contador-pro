@@ -94,7 +94,6 @@ export default function F29Declarations() {
   const loadData = async () => {
     setLoadingData(true);
 
-    // Load clients
     const { data: clientsData, error: clientsError } = await supabase
       .from('clients')
       .select('id, rut, razon_social, valor')
@@ -112,7 +111,6 @@ export default function F29Declarations() {
       setClients(clientsData || []);
     }
 
-    // Load F29 declarations
     const { data: declarationsData, error: declarationsError } = await supabase
       .from('f29_declarations')
       .select('*, clients(rut, razon_social)')
@@ -146,23 +144,18 @@ export default function F29Declarations() {
     let remanenteProx = 0;
     let ivaNeto = 0;
 
-    // Caso 1: IVA Ventas es 0 y existe IVA Compras
     if (ventas === 0 && compras > 0) {
       remanenteProx = compras + remanenteAnt;
       totalImpuestos = retencionVal + impuestoVal;
       ivaNeto = 0;
-    }
-    // Caso 2: IVA Ventas > 0 y (IVA Ventas - IVA Compras) < 0
-    else if (ventas > 0) {
+    } else if (ventas > 0) {
       const diferencia = ventas - compras;
       
       if (diferencia < 0) {
         remanenteProx = Math.abs(diferencia) + remanenteAnt;
         totalImpuestos = retencionVal + impuestoVal + ppmVal;
         ivaNeto = 0;
-      }
-      // Caso 3: IVA Ventas > 0 y (IVA Ventas - IVA Compras - Remanente Anterior) > 0
-      else {
+      } else {
         const diferenciaConRemanente = diferencia - remanenteAnt;
         
         if (diferenciaConRemanente > 0) {
@@ -177,7 +170,6 @@ export default function F29Declarations() {
       }
     }
 
-    // Total a Pagar = Total Impuestos + Honorarios (solo si están pendientes)
     const totalGeneral = totalImpuestos + honorariosVal;
 
     return {
@@ -224,14 +216,12 @@ export default function F29Declarations() {
 
     let error;
     if (editingDeclarationId) {
-      // Update existing declaration
       const result = await supabase
         .from('f29_declarations')
         .update(declarationData)
         .eq('id', editingDeclarationId);
       error = result.error;
     } else {
-      // Insert new declaration
       const result = await supabase
         .from('f29_declarations')
         .insert({ ...declarationData, created_by: user?.id });
@@ -291,7 +281,6 @@ export default function F29Declarations() {
     }
 
     if (data) {
-      // Load existing declaration into form
       setEditingDeclarationId(data.id);
       setIvaVentas(data.iva_ventas.toString());
       setIvaCompras(data.iva_compras.toString());
@@ -310,7 +299,6 @@ export default function F29Declarations() {
         description: 'Se cargó la declaración existente para este período',
       });
     } else {
-      // No existing declaration, reset to defaults
       setEditingDeclarationId(null);
       setIvaVentas('0');
       setIvaCompras('0');
@@ -323,7 +311,6 @@ export default function F29Declarations() {
       setEstadoDeclaracion('pendiente');
       setHasFormData(false);
       
-      // Set honorarios from client value if pending
       if (estadoHonorarios === 'pendiente') {
         const client = clients.find(c => c.id === clientId);
         if (client?.valor) {
@@ -354,11 +341,9 @@ export default function F29Declarations() {
     const hasData = checkIfFormHasData();
     
     if (hasData && selectedClientId && !editingDeclarationId) {
-      // Si hay datos en el formulario y ya había un cliente seleccionado, preguntar
       setPendingClientId(newClientId);
       setShowClearFormAlert(true);
     } else {
-      // Si no hay datos o está editando, cambiar directamente
       setSelectedClientId(newClientId);
       checkExistingDeclaration(newClientId, mes, anio);
     }
@@ -409,20 +394,16 @@ export default function F29Declarations() {
   const exportToPDF = (declaration: F29Declaration) => {
     const doc = new jsPDF();
     
-    // Título
     doc.setFontSize(18);
     doc.text('Declaración F29', 105, 20, { align: 'center' });
     
-    // Información del cliente
     doc.setFontSize(12);
     doc.text(`Cliente: ${declaration.clients?.razon_social || 'N/A'}`, 20, 35);
     doc.text(`RUT: ${declaration.clients?.rut || 'N/A'}`, 20, 42);
     doc.text(`Período: ${meses[declaration.periodo_mes - 1]} ${declaration.periodo_anio}`, 20, 49);
     
-    // Línea separadora
     doc.line(20, 55, 190, 55);
     
-    // Detalle IVA
     doc.setFontSize(14);
     doc.text('IVA', 20, 65);
     doc.setFontSize(11);
@@ -433,7 +414,6 @@ export default function F29Declarations() {
     doc.text(`IVA Neto:`, 20, 86);
     doc.text(`$${declaration.iva_neto.toLocaleString('es-CL')}`, 140, 86, { align: 'right' });
     
-    // Otros impuestos
     doc.setFontSize(14);
     doc.text('Otros Impuestos', 20, 100);
     doc.setFontSize(11);
@@ -444,7 +424,6 @@ export default function F29Declarations() {
     doc.text(`Impuesto Único:`, 20, 121);
     doc.text(`$${declaration.impuesto_unico.toLocaleString('es-CL')}`, 140, 121, { align: 'right' });
     
-    // Honorarios
     doc.setFontSize(14);
     doc.text('Honorarios', 20, 135);
     doc.setFontSize(11);
@@ -453,16 +432,13 @@ export default function F29Declarations() {
     doc.text(`Valor:`, 20, 149);
     doc.text(`$${declaration.honorarios.toLocaleString('es-CL')}`, 140, 149, { align: 'right' });
     
-    // Remanentes
     doc.text(`Remanente Anterior:`, 20, 163);
     doc.text(`$${declaration.remanente_anterior.toLocaleString('es-CL')}`, 140, 163, { align: 'right' });
     doc.text(`Remanente Próximo:`, 20, 170);
     doc.text(`$${declaration.remanente_proximo.toLocaleString('es-CL')}`, 140, 170, { align: 'right' });
     
-    // Línea separadora
     doc.line(20, 177, 190, 177);
     
-    // Totales
     doc.setFontSize(12);
     doc.text(`Total Impuestos:`, 20, 185);
     doc.text(`$${declaration.total_impuestos.toLocaleString('es-CL')}`, 140, 185, { align: 'right' });
@@ -472,7 +448,6 @@ export default function F29Declarations() {
     doc.text(`Total a Pagar:`, 20, 195);
     doc.text(`$${declaration.total_general.toLocaleString('es-CL')}`, 140, 195, { align: 'right' });
     
-    // Observaciones
     if (declaration.observaciones) {
       doc.setFont(undefined, 'normal');
       doc.setFontSize(11);
@@ -481,7 +456,6 @@ export default function F29Declarations() {
       doc.text(splitObservaciones, 20, 217);
     }
     
-    // Guardar PDF
     const fileName = `F29_${declaration.clients?.rut}_${meses[declaration.periodo_mes - 1]}_${declaration.periodo_anio}.pdf`;
     doc.save(fileName);
     
@@ -910,7 +884,6 @@ export default function F29Declarations() {
       </main>
       <Footer />
 
-      {/* Alert Dialog para confirmar cambio de cliente */}
       <AlertDialog open={showClearFormAlert} onOpenChange={setShowClearFormAlert}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
