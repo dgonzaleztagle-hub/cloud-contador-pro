@@ -305,42 +305,107 @@ export default function RRHH() {
     }
   };
 
-  const exportToPDF = (worker: Worker) => {
+  const exportToPDF = async (worker: Worker) => {
     const doc = new jsPDF();
     
-    doc.setFontSize(18);
-    doc.text('Informe de Descuentos Mensuales', 105, 20, { align: 'center' });
+    // Logo
+    try {
+      const logoImg = new Image();
+      logoImg.src = '/logo-pdf.png';
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve;
+      });
+      if (logoImg.complete) {
+        doc.addImage(logoImg, 'PNG', 15, 10, 30, 30);
+      }
+    } catch (e) {
+      console.log('Logo no disponible');
+    }
     
+    // Título
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(52, 73, 94);
+    const mesTexto = meses[worker.periodo_mes - 1].toUpperCase();
+    doc.text(`INFORME DESCUENTOS ${mesTexto} ${worker.periodo_anio}`, 105, 25, { align: 'center' });
+    
+    // Empresa y trabajador
     doc.setFontSize(12);
-    doc.text(`Cliente: ${worker.clients?.razon_social || 'N/A'}`, 20, 35);
-    doc.text(`Trabajador: ${worker.nombre}`, 20, 42);
-    doc.text(`RUT: ${worker.rut}`, 20, 49);
-    doc.text(`Período: ${meses[worker.periodo_mes - 1]} ${worker.periodo_anio}`, 20, 56);
-    
-    doc.line(20, 62, 190, 62);
-    
-    doc.setFontSize(14);
-    doc.text('Atrasos', 20, 72);
+    doc.setFont(undefined, 'normal');
+    doc.text(`EMPRESA: ${worker.clients?.razon_social || 'N/A'}`, 105, 35, { align: 'center' });
     doc.setFontSize(11);
-    doc.text(`${worker.atrasos_horas} horas ${worker.atrasos_minutos} minutos`, 20, 79);
+    doc.text(`TRABAJADOR: ${worker.nombre} - RUT: ${worker.rut}`, 105, 42, { align: 'center' });
     
-    doc.setFontSize(14);
-    doc.text('Permisos', 20, 93);
-    doc.setFontSize(11);
-    doc.text(`${worker.permisos_horas} horas ${worker.permisos_minutos} minutos`, 20, 100);
-    doc.text(`${worker.permisos_medio_dia} medios días`, 20, 107);
-    doc.text(`${worker.permisos_dia_completo} días completos`, 20, 114);
+    // Tabla
+    const startY = 55;
+    const tableWidth = 120;
+    const leftMargin = (210 - tableWidth) / 2;
+    const rightCol = leftMargin + tableWidth;
+    const labelCol = leftMargin + 5;
+    const valueCol = rightCol - 5;
     
-    doc.setFontSize(14);
-    doc.text('Faltas', 20, 128);
-    doc.setFontSize(11);
-    doc.text(`${worker.faltas_dia_completo} días completos`, 20, 135);
-    doc.text(`${worker.faltas_medio_dia} medios días`, 20, 142);
+    let currentY = startY;
+    const rowHeight = 8;
     
+    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number]) => {
+      if (fillColor) {
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+        doc.rect(leftMargin, currentY, tableWidth, rowHeight, 'F');
+      }
+      
+      doc.setFont(undefined, isBold ? 'bold' : 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(fillColor ? 255 : 0);
+      doc.text(label, labelCol, currentY + 5.5);
+      
+      const valueText = typeof value === 'number' ? value.toLocaleString('es-CL') : value;
+      doc.text(valueText, valueCol, currentY + 5.5, { align: 'right' });
+      
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.1);
+      doc.rect(leftMargin, currentY, tableWidth, rowHeight);
+      
+      currentY += rowHeight;
+      doc.setTextColor(0);
+    };
+    
+    // Secciones
+    addRow('ATRASOS', '', true, [52, 73, 94]);
+    addRow('Horas', `${worker.atrasos_horas} hrs`);
+    addRow('Minutos', `${worker.atrasos_minutos} min`);
+    
+    addRow('PERMISOS', '', true, [52, 73, 94]);
+    addRow('Horas', `${worker.permisos_horas} hrs`);
+    addRow('Minutos', `${worker.permisos_minutos} min`);
+    addRow('Medio día', `${worker.permisos_medio_dia}`);
+    addRow('Día completo', `${worker.permisos_dia_completo}`);
+    
+    addRow('FALTAS', '', true, [52, 73, 94]);
+    addRow('Medio día', `${worker.faltas_medio_dia}`);
+    addRow('Día completo', `${worker.faltas_dia_completo}`);
+    
+    addRow('ANTICIPOS', '', true, [52, 73, 94]);
+    addRow('Monto', `$${worker.anticipo_monto.toLocaleString('es-CL')}`);
+    
+    // Información de la empresa
+    currentY += 15;
+    doc.setFont(undefined, 'bold');
     doc.setFontSize(14);
-    doc.text('Anticipos', 20, 156);
+    doc.text('PLUS CONTABLE LTDA', 105, currentY, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
     doc.setFontSize(11);
-    doc.text(`$${worker.anticipo_monto.toLocaleString('es-CL')}`, 20, 163);
+    doc.text('Joel Carvajal Rantul', 105, currentY + 7, { align: 'center' });
+    
+    doc.setFont(undefined, 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Contador General y Auditor', 105, currentY + 13, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0, 102, 204);
+    doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
     const fileName = `Informe_RRHH_${worker.rut}_${meses[worker.periodo_mes - 1]}_${worker.periodo_anio}.pdf`;
     doc.save(fileName);
