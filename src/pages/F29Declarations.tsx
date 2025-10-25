@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -531,6 +531,136 @@ export default function F29Declarations() {
     });
   };
 
+  const previewPDF = async (declaration: F29Declaration) => {
+    const doc = new jsPDF();
+    
+    // Logo (si está disponible)
+    try {
+      const logoImg = new Image();
+      logoImg.src = '/logo-pdf.png';
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve;
+      });
+      if (logoImg.complete) {
+        doc.addImage(logoImg, 'PNG', 15, 10, 30, 30);
+      }
+    } catch (e) {
+      console.log('Logo no disponible');
+    }
+    
+    // Título
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(52, 73, 94);
+    const mesTexto = meses[declaration.periodo_mes - 1].toUpperCase();
+    doc.text(`RESUMEN IMPUESTOS ${mesTexto} ${declaration.periodo_anio}`, 105, 25, { align: 'center' });
+    
+    // Empresa
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(`EMPRESA: ${declaration.clients?.razon_social || 'N/A'}`, 105, 35, { align: 'center' });
+    
+    // Tabla de impuestos
+    const startY = 50;
+    const tableWidth = 120;
+    const leftMargin = (210 - tableWidth) / 2;
+    const rightCol = leftMargin + tableWidth;
+    const labelCol = leftMargin + 5;
+    const valueCol = rightCol - 5;
+    
+    doc.setFillColor(52, 73, 94);
+    doc.rect(leftMargin, startY, tableWidth, 8, 'F');
+    
+    let currentY = startY;
+    const rowHeight = 8;
+    
+    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number]) => {
+      if (fillColor) {
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+        doc.rect(leftMargin, currentY, tableWidth, rowHeight, 'F');
+      }
+      
+      doc.setFont(undefined, isBold ? 'bold' : 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(fillColor ? 255 : 0);
+      doc.text(label, labelCol, currentY + 5.5);
+      
+      const valueText = typeof value === 'number' ? value.toLocaleString('es-CL') : value;
+      doc.text(valueText, valueCol, currentY + 5.5, { align: 'right' });
+      
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.1);
+      doc.rect(leftMargin, currentY, tableWidth, rowHeight);
+      
+      currentY += rowHeight;
+      doc.setTextColor(0);
+    };
+    
+    addRow('REMANENTE PER ANTERIOR', declaration.remanente_anterior, true, [52, 73, 94]);
+    addRow('IVA VENTAS', declaration.iva_ventas);
+    addRow('IVA COMPRAS', declaration.iva_compras);
+    
+    const tasaPPM = declaration.ppm > 0 && declaration.iva_ventas > 0 
+      ? ((declaration.ppm / declaration.iva_ventas) * 100).toFixed(1) 
+      : '0';
+    addRow('TASA PPM %', tasaPPM);
+    addRow('PPM', declaration.ppm);
+    addRow('HONORARIOS', declaration.honorarios);
+    addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
+    addRow('REMANENTE PROX PERIODO', declaration.remanente_proximo, true, [52, 73, 94]);
+    
+    currentY += 5;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(leftMargin, currentY, tableWidth, 10, 'F');
+    doc.setDrawColor(52, 73, 94);
+    doc.setLineWidth(0.5);
+    doc.rect(leftMargin, currentY, tableWidth, 10);
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    const totalConHonorarios = declaration.total_general;
+    doc.text(`TOTAL + HONORARIOS: ${totalConHonorarios.toLocaleString('es-CL')}`, 105, currentY + 7, { align: 'center' });
+    
+    currentY += 25;
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.text('PLUS CONTABLE LTDA', 105, currentY, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.text('Joel Carvajal Rantul', 105, currentY + 7, { align: 'center' });
+    
+    doc.setFont(undefined, 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Contador General y Auditor', 105, currentY + 13, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0, 102, 204);
+    doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
+    
+    if (declaration.observaciones) {
+      currentY += 30;
+      doc.setTextColor(0);
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(10);
+      doc.text('Observaciones:', 20, currentY);
+      
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      const splitObservaciones = doc.splitTextToSize(declaration.observaciones, 170);
+      doc.text(splitObservaciones, 20, currentY + 5);
+    }
+    
+    // Open preview in new tab
+    const pdfBlob = doc.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
   const totals = calculateTotals();
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -926,8 +1056,18 @@ export default function F29Declarations() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => previewPDF(declaration)}
+                        className="text-primary hover:text-primary"
+                        title="Previsualizar PDF"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => exportToPDF(declaration)}
                         className="text-primary hover:text-primary"
+                        title="Descargar PDF"
                       >
                         <Download className="h-4 w-4" />
                       </Button>

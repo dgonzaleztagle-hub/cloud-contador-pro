@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -414,6 +414,115 @@ export default function RRHH() {
       title: 'PDF exportado',
       description: 'El informe se exportó correctamente',
     });
+  };
+
+  const previewPDF = async (worker: Worker) => {
+    const doc = new jsPDF();
+    
+    // Logo
+    try {
+      const logoImg = new Image();
+      logoImg.src = '/logo-pdf.png';
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve;
+      });
+      if (logoImg.complete) {
+        doc.addImage(logoImg, 'PNG', 15, 10, 30, 30);
+      }
+    } catch (e) {
+      console.log('Logo no disponible');
+    }
+    
+    // Título
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(52, 73, 94);
+    const mesTexto = meses[worker.periodo_mes - 1].toUpperCase();
+    doc.text(`INFORME DESCUENTOS ${mesTexto} ${worker.periodo_anio}`, 105, 25, { align: 'center' });
+    
+    // Empresa y trabajador
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(`EMPRESA: ${worker.clients?.razon_social || 'N/A'}`, 105, 35, { align: 'center' });
+    doc.setFontSize(11);
+    doc.text(`TRABAJADOR: ${worker.nombre} - RUT: ${worker.rut}`, 105, 42, { align: 'center' });
+    
+    // Tabla
+    const startY = 55;
+    const tableWidth = 120;
+    const leftMargin = (210 - tableWidth) / 2;
+    const rightCol = leftMargin + tableWidth;
+    const labelCol = leftMargin + 5;
+    const valueCol = rightCol - 5;
+    
+    let currentY = startY;
+    const rowHeight = 8;
+    
+    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number]) => {
+      if (fillColor) {
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+        doc.rect(leftMargin, currentY, tableWidth, rowHeight, 'F');
+      }
+      
+      doc.setFont(undefined, isBold ? 'bold' : 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(fillColor ? 255 : 0);
+      doc.text(label, labelCol, currentY + 5.5);
+      
+      const valueText = typeof value === 'number' ? value.toLocaleString('es-CL') : value;
+      doc.text(valueText, valueCol, currentY + 5.5, { align: 'right' });
+      
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.1);
+      doc.rect(leftMargin, currentY, tableWidth, rowHeight);
+      
+      currentY += rowHeight;
+      doc.setTextColor(0);
+    };
+    
+    // Secciones
+    addRow('ATRASOS', '', true, [52, 73, 94]);
+    addRow('Horas', `${worker.atrasos_horas} hrs`);
+    addRow('Minutos', `${worker.atrasos_minutos} min`);
+    
+    addRow('PERMISOS', '', true, [52, 73, 94]);
+    addRow('Horas', `${worker.permisos_horas} hrs`);
+    addRow('Minutos', `${worker.permisos_minutos} min`);
+    addRow('Medio día', `${worker.permisos_medio_dia}`);
+    addRow('Día completo', `${worker.permisos_dia_completo}`);
+    
+    addRow('FALTAS', '', true, [52, 73, 94]);
+    addRow('Medio día', `${worker.faltas_medio_dia}`);
+    addRow('Día completo', `${worker.faltas_dia_completo}`);
+    
+    addRow('ANTICIPOS', '', true, [52, 73, 94]);
+    addRow('Monto', `$${worker.anticipo_monto.toLocaleString('es-CL')}`);
+    
+    // Información de la empresa
+    currentY += 15;
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.text('PLUS CONTABLE LTDA', 105, currentY, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.text('Joel Carvajal Rantul', 105, currentY + 7, { align: 'center' });
+    
+    doc.setFont(undefined, 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Contador General y Auditor', 105, currentY + 13, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0, 102, 204);
+    doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
+    
+    // Open preview in new tab
+    const pdfBlob = doc.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   const meses = [
@@ -870,9 +979,18 @@ export default function RRHH() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => previewPDF(worker)}
+                        className="text-primary hover:text-primary"
+                        title="Previsualizar PDF"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => exportToPDF(worker)}
                         className="text-primary hover:text-primary"
-                        title="Exportar Informe"
+                        title="Descargar PDF"
                       >
                         <Download className="h-4 w-4" />
                       </Button>

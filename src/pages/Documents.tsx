@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Upload, Trash2, FileText, Download } from 'lucide-react';
+import { Loader2, ArrowLeft, Upload, Trash2, FileText, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -222,6 +222,31 @@ export default function Documents() {
           description: error.message || 'No se pudo eliminar el archivo',
         });
       }
+    }
+  };
+
+  const handlePreview = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create a preview in new tab
+      const url = window.URL.createObjectURL(data);
+      window.open(url, '_blank');
+      
+      // Clean up after a delay
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'No se pudo previsualizar el archivo',
+      });
     }
   };
 
@@ -451,7 +476,16 @@ export default function Documents() {
                       <Button 
                         variant="outline" 
                         size="sm"
+                        onClick={() => handlePreview(file.file_path, file.file_name)}
+                        title="Previsualizar"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
                         onClick={() => handleDownload(file.file_path, file.file_name)}
+                        title="Descargar"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
