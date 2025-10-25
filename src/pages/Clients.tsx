@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Phone, Mail, ArrowLeft, Users, UserX, Eye, Search, X, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
 import { ClientDialog } from '@/components/ClientDialog';
-import { ClientEditDialog } from '@/components/ClientEditDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface Client {
@@ -53,18 +54,18 @@ export default function Clients() {
   const [filteredClients, setFilteredClients] = useState<ClientWithSaldo[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('active');
-  const [selectedClient, setSelectedClient] = useState<ClientWithSaldo | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [quickViewClient, setQuickViewClient] = useState<ClientWithSaldo | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   const handleClientClick = (client: ClientWithSaldo) => {
-    setSelectedClient(client);
-    setIsEditDialogOpen(true);
+    navigate(`/clients/${client.id}`);
   };
 
-  const handleCloseEditDialog = () => {
-    setIsEditDialogOpen(false);
-    setSelectedClient(null);
+  const handleQuickView = (client: ClientWithSaldo, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar que abra la página completa
+    setQuickViewClient(client);
+    setIsQuickViewOpen(true);
   };
 
   useEffect(() => {
@@ -417,6 +418,16 @@ export default function Clients() {
                 {/* Botones de acción - NO clickeables con el card */}
                 <CardContent className="pt-0">
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+                    {/* Botón de Vista Simplificada */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => handleQuickView(client, e)}
+                      className="hover:bg-primary/10"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    
                     <Button
                       size="sm"
                       variant="outline"
@@ -463,13 +474,38 @@ export default function Clients() {
         )}
       </main>
       
-      <ClientEditDialog
-        client={selectedClient}
-        isOpen={isEditDialogOpen}
-        onClose={handleCloseEditDialog}
-        onClientUpdated={loadClients}
-        userRole={userRole}
-      />
+      {/* Quick View Dialog */}
+      <Dialog open={isQuickViewOpen} onOpenChange={setIsQuickViewOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vista Simplificada - {quickViewClient?.razon_social}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">RUT</Label>
+              <p className="font-medium text-foreground">{quickViewClient?.rut || 'N/A'}</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Clave SII</Label>
+              <p className="font-medium text-foreground">{quickViewClient?.clave_sii || 'N/A'}</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Clave Única</Label>
+              <p className="font-medium text-foreground">{quickViewClient?.clave_unica || 'N/A'}</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Representante Legal</Label>
+              <p className="font-medium text-foreground">{quickViewClient?.representante_legal || 'N/A'}</p>
+            </div>
+            <Button
+              onClick={() => navigate(`/clients/${quickViewClient?.id}`)}
+              className="w-full bg-gradient-to-r from-primary to-accent"
+            >
+              Ver Detalles Completos
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <Footer />
     </div>
