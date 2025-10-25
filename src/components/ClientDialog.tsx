@@ -270,13 +270,21 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
                   <SelectTrigger className="bg-input border-border">
                     <SelectValue placeholder="Seleccionar giro existente o crear nuevo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border-border z-50">
-                    <SelectItem value="new">+ Crear nuevo giro</SelectItem>
+                  <SelectContent className="bg-popover border-border max-h-[300px] overflow-y-auto z-50">
+                    <SelectItem value="new" className="font-semibold text-primary">+ Crear nuevo giro</SelectItem>
+                    {giros.length > 0 && (
+                      <div className="my-1 border-t border-border" />
+                    )}
                     {giros.map((giro) => (
                       <SelectItem key={giro.id} value={giro.nombre}>
                         {giro.nombre}
                       </SelectItem>
                     ))}
+                    {giros.length === 0 && (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        No hay giros disponibles
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
                 {isNewGiro && (
