@@ -57,6 +57,8 @@ export default function F29Declarations() {
   const [showClearFormAlert, setShowClearFormAlert] = useState(false);
   const [pendingClientId, setPendingClientId] = useState<string | null>(null);
   const [hasFormData, setHasFormData] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   // Filter state
   const [filterClientId, setFilterClientId] = useState('all');
@@ -654,11 +656,19 @@ export default function F29Declarations() {
       doc.text(splitObservaciones, 20, currentY + 5);
     }
     
-    // Open preview in new tab
+    // Open preview in modal
     const pdfBlob = doc.output('blob');
     const url = URL.createObjectURL(pdfBlob);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    setPreviewUrl(url);
+    setIsPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setIsPreviewOpen(false);
   };
 
   const totals = calculateTotals();
@@ -1087,6 +1097,24 @@ export default function F29Declarations() {
             )}
           </CardContent>
         </Card>
+
+        {/* Preview Dialog */}
+        <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
+          <DialogContent className="max-w-4xl h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Previsualización del PDF</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 h-full">
+              {previewUrl && (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full border-0 rounded"
+                  title="Previsualización"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
 

@@ -62,6 +62,8 @@ export default function RRHH() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [filterClientId, setFilterClientId] = useState<string>('all');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [fromClientView, setFromClientView] = useState(false); // Indica si viene desde vista de cliente
 
   // Form state
@@ -518,11 +520,19 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
-    // Open preview in new tab
+    // Open preview in modal
     const pdfBlob = doc.output('blob');
     const url = URL.createObjectURL(pdfBlob);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    setPreviewUrl(url);
+    setIsPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setIsPreviewOpen(false);
   };
 
   const meses = [
@@ -1011,6 +1021,24 @@ export default function RRHH() {
             )}
           </CardContent>
         </Card>
+
+        {/* Preview Dialog */}
+        <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
+          <DialogContent className="max-w-4xl h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Previsualización del PDF</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 h-full">
+              {previewUrl && (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full border-0 rounded"
+                  title="Previsualización"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>

@@ -40,6 +40,8 @@ export default function Documents() {
   const [loadingData, setLoadingData] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -235,12 +237,9 @@ export default function Documents() {
         throw error;
       }
 
-      // Create a preview in new tab
       const url = window.URL.createObjectURL(data);
-      window.open(url, '_blank');
-      
-      // Clean up after a delay
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -248,6 +247,14 @@ export default function Documents() {
         description: error.message || 'No se pudo previsualizar el archivo',
       });
     }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setIsPreviewOpen(false);
   };
 
   const handleDownload = async (filePath: string, fileName: string) => {
@@ -505,6 +512,24 @@ export default function Documents() {
             )}
           </CardContent>
         </Card>
+
+        {/* Preview Dialog */}
+        <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
+          <DialogContent className="max-w-4xl h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Previsualización del Documento</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 h-full">
+              {previewUrl && (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full border-0 rounded"
+                  title="Previsualización"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>
