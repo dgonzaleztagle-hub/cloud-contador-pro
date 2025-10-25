@@ -59,7 +59,7 @@ export default function F29Declarations() {
   const [hasFormData, setHasFormData] = useState(false);
   
   // Filter state
-  const [filterClientId, setFilterClientId] = useState('');
+  const [filterClientId, setFilterClientId] = useState('all');
   const [filterMes, setFilterMes] = useState(0); // 0 = todos
   const [filterAnio, setFilterAnio] = useState(0); // 0 = todos
 
@@ -743,7 +743,7 @@ export default function F29Declarations() {
                     <SelectValue placeholder="Todos los clientes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los clientes</SelectItem>
+                    <SelectItem value="all">Todos los clientes</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.rut} - {client.razon_social}
@@ -794,7 +794,7 @@ export default function F29Declarations() {
               <div className="space-y-4">
                 {declarations
                   .filter((declaration) => {
-                    if (filterClientId && declaration.client_id !== filterClientId) return false;
+                    if (filterClientId !== 'all' && declaration.client_id !== filterClientId) return false;
                     if (filterMes !== 0 && declaration.periodo_mes !== filterMes) return false;
                     if (filterAnio !== 0 && declaration.periodo_anio !== filterAnio) return false;
                     return true;
