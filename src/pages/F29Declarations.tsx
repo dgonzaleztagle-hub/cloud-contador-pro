@@ -656,13 +656,17 @@ export default function F29Declarations() {
       doc.text(splitObservaciones, 20, currentY + 5);
     }
     
-    // Convertir PDF a imagen
-    const imgData = doc.output('dataurlstring');
-    setPreviewUrl(imgData);
+    // Convertir PDF a blob para preview
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    setPreviewUrl(pdfUrl);
     setIsPreviewOpen(true);
   };
 
   const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
     setIsPreviewOpen(false);
   };
@@ -1096,16 +1100,16 @@ export default function F29Declarations() {
 
         {/* Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogContent className="max-w-2xl max-h-[85vh]">
             <DialogHeader>
-              <DialogTitle>Previsualización del PDF - F29</DialogTitle>
+              <DialogTitle>Previsualización - F29</DialogTitle>
             </DialogHeader>
-            <div className="flex justify-center items-center overflow-auto max-h-[70vh] bg-gray-100 p-4 rounded">
+            <div className="flex justify-center items-center overflow-hidden bg-gray-50 rounded">
               {previewUrl && (
-                <img
+                <embed
                   src={previewUrl}
-                  alt="Preview F29"
-                  className="max-w-full h-auto rounded shadow-2xl"
+                  type="application/pdf"
+                  className="w-full h-[65vh] rounded"
                 />
               )}
             </div>
