@@ -480,23 +480,45 @@ export default function Clients() {
           <DialogHeader>
             <DialogTitle>Vista Simplificada - {quickViewClient?.razon_social}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">RUT</Label>
-              <p className="font-medium text-foreground">{quickViewClient?.rut || 'N/A'}</p>
+          <div className="space-y-6">
+            {/* Datos de la Empresa */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary uppercase">Datos de la Empresa</h3>
+              <div className="space-y-2 pl-2 border-l-2 border-primary/30">
+                <div>
+                  <Label className="text-xs text-muted-foreground">RUT</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.rut || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Clave SII</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.clave_sii || 'N/A'}</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Clave SII</Label>
-              <p className="font-medium text-foreground">{quickViewClient?.clave_sii || 'N/A'}</p>
+
+            {/* Datos del Representante Legal */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary uppercase">Representante Legal</h3>
+              <div className="space-y-2 pl-2 border-l-2 border-primary/30">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Nombre</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.representante_legal || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">RUT</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.rut_representante || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Clave SII</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.clave_sii_repr || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Clave Certificado</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.clave_certificado || 'N/A'}</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Clave Única</Label>
-              <p className="font-medium text-foreground">{quickViewClient?.clave_unica || 'N/A'}</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Representante Legal</Label>
-              <p className="font-medium text-foreground">{quickViewClient?.representante_legal || 'N/A'}</p>
-            </div>
+
             <Button
               onClick={() => navigate(`/clients/${quickViewClient?.id}`)}
               className="w-full bg-gradient-to-r from-primary to-accent"
