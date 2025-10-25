@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +53,9 @@ export default function F29Declarations() {
   const [loadingData, setLoadingData] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showClearFormAlert, setShowClearFormAlert] = useState(false);
+  const [pendingClientId, setPendingClientId] = useState<string | null>(null);
+  const [hasFormData, setHasFormData] = useState(false);
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -239,6 +243,59 @@ export default function F29Declarations() {
     setRemanenteAnterior('0');
     setObservaciones('');
     setEstadoHonorarios('pendiente');
+    setHasFormData(false);
+  };
+
+  const checkIfFormHasData = () => {
+    return (
+      ivaVentas !== '0' ||
+      ivaCompras !== '0' ||
+      ppm !== '0' ||
+      honorarios !== '0' ||
+      retencion2cat !== '0' ||
+      impuestoUnico !== '0' ||
+      remanenteAnterior !== '0' ||
+      observaciones !== ''
+    );
+  };
+
+  const handleClientChange = (newClientId: string) => {
+    const hasData = checkIfFormHasData();
+    
+    if (hasData && selectedClientId) {
+      // Si hay datos en el formulario y ya había un cliente seleccionado, preguntar
+      setPendingClientId(newClientId);
+      setShowClearFormAlert(true);
+    } else {
+      // Si no hay datos, cambiar directamente
+      setSelectedClientId(newClientId);
+      if (estadoHonorarios === 'pendiente') {
+        const client = clients.find(c => c.id === newClientId);
+        if (client?.valor) {
+          setHonorarios(client.valor);
+        }
+      }
+    }
+  };
+
+  const confirmClientChange = () => {
+    if (pendingClientId) {
+      resetForm();
+      setSelectedClientId(pendingClientId);
+      if (estadoHonorarios === 'pendiente') {
+        const client = clients.find(c => c.id === pendingClientId);
+        if (client?.valor) {
+          setHonorarios(client.valor);
+        }
+      }
+      setPendingClientId(null);
+    }
+    setShowClearFormAlert(false);
+  };
+
+  const cancelClientChange = () => {
+    setPendingClientId(null);
+    setShowClearFormAlert(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -397,15 +454,7 @@ export default function F29Declarations() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <Label>Cliente</Label>
-                        <Select value={selectedClientId} onValueChange={(value) => {
-                          setSelectedClientId(value);
-                          if (estadoHonorarios === 'pendiente') {
-                            const client = clients.find(c => c.id === value);
-                            if (client?.valor) {
-                              setHonorarios(client.valor);
-                            }
-                          }
-                        }}>
+                        <Select value={selectedClientId} onValueChange={handleClientChange}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue placeholder="Seleccionar cliente" />
                           </SelectTrigger>
@@ -688,6 +737,22 @@ export default function F29Declarations() {
         </Card>
       </main>
       <Footer />
+
+      {/* Alert Dialog para confirmar cambio de cliente */}
+      <AlertDialog open={showClearFormAlert} onOpenChange={setShowClearFormAlert}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Limpiar formulario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ya has ingresado datos en el formulario. ¿Deseas limpiar los datos y cambiar de cliente?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelClientChange}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClientChange}>Sí, limpiar datos</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
