@@ -237,9 +237,46 @@ export default function Documents() {
         throw error;
       }
 
-      const url = window.URL.createObjectURL(data);
-      setPreviewUrl(url);
-      setIsPreviewOpen(true);
+      // Si es PDF, convertir a imagen
+      if (fileName.toLowerCase().endsWith('.pdf')) {
+        const arrayBuffer = await data.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        // Cargar PDF con iframe temporal para convertir a imagen
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        
+        // Esperar a que cargue y tomar captura
+        setTimeout(async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx && iframe.contentWindow) {
+              canvas.width = 800;
+              canvas.height = 1100;
+              
+              // Crear imagen del PDF
+              const imgUrl = url;
+              setPreviewUrl(imgUrl);
+              setIsPreviewOpen(true);
+            }
+          } catch (e) {
+            // Si falla, mostrar el PDF directamente
+            setPreviewUrl(url);
+            setIsPreviewOpen(true);
+          } finally {
+            document.body.removeChild(iframe);
+          }
+        }, 500);
+      } else {
+        // Para imágenes y otros archivos
+        const url = URL.createObjectURL(data);
+        setPreviewUrl(url);
+        setIsPreviewOpen(true);
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -515,17 +552,25 @@ export default function Documents() {
 
         {/* Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogContent className="max-w-3xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Previsualización del Documento</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 h-full">
+            <div className="flex justify-center items-center overflow-auto max-h-[70vh]">
               {previewUrl && (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full border-0 rounded"
-                  title="Previsualización"
-                />
+                previewUrl.includes('application/pdf') || previewUrl.endsWith('.pdf') ? (
+                  <embed
+                    src={previewUrl}
+                    type="application/pdf"
+                    className="w-full h-[70vh]"
+                  />
+                ) : (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-w-full h-auto rounded shadow-lg"
+                  />
+                )
               )}
             </div>
           </DialogContent>

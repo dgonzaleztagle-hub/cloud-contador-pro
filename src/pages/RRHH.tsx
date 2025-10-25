@@ -520,18 +520,14 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
-    // Open preview in modal
-    const pdfBlob = doc.output('blob');
-    const url = URL.createObjectURL(pdfBlob);
-    setPreviewUrl(url);
+    // Convertir PDF a imagen
+    const imgData = doc.output('dataurlstring');
+    setPreviewUrl(imgData);
     setIsPreviewOpen(true);
   };
 
   const closePreview = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    setPreviewUrl(null);
     setIsPreviewOpen(false);
   };
 
@@ -1024,16 +1020,16 @@ export default function RRHH() {
 
         {/* Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogContent className="max-w-3xl max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle>Previsualización del PDF</DialogTitle>
+              <DialogTitle>Previsualización del PDF - RRHH</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 h-full">
+            <div className="flex justify-center items-center overflow-auto max-h-[70vh] bg-gray-100 p-4 rounded">
               {previewUrl && (
-                <iframe
+                <img
                   src={previewUrl}
-                  className="w-full h-full border-0 rounded"
-                  title="Previsualización"
+                  alt="Preview RRHH"
+                  className="max-w-full h-auto rounded shadow-2xl"
                 />
               )}
             </div>
