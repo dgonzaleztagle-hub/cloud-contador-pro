@@ -41,6 +41,7 @@ interface F29Declaration {
   observaciones: string | null;
   created_at: string;
   estado_honorarios: string;
+  estado_declaracion: string;
   clients?: { rut: string; razon_social: string };
 }
 
@@ -76,6 +77,7 @@ export default function F29Declarations() {
   const [remanenteAnterior, setRemanenteAnterior] = useState('0');
   const [observaciones, setObservaciones] = useState('');
   const [estadoHonorarios, setEstadoHonorarios] = useState('pendiente');
+  const [estadoDeclaracion, setEstadoDeclaracion] = useState('pendiente');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -217,6 +219,7 @@ export default function F29Declarations() {
       total_general: totals.totalGeneral,
       observaciones: observaciones || null,
       estado_honorarios: estadoHonorarios,
+      estado_declaracion: estadoDeclaracion,
     };
 
     let error;
@@ -267,6 +270,7 @@ export default function F29Declarations() {
     setRemanenteAnterior('0');
     setObservaciones('');
     setEstadoHonorarios('pendiente');
+    setEstadoDeclaracion('pendiente');
     setHasFormData(false);
   };
 
@@ -298,6 +302,7 @@ export default function F29Declarations() {
       setRemanenteAnterior(data.remanente_anterior.toString());
       setObservaciones(data.observaciones || '');
       setEstadoHonorarios(data.estado_honorarios);
+      setEstadoDeclaracion(data.estado_declaracion || 'pendiente');
       setHasFormData(true);
       
       toast({
@@ -315,6 +320,7 @@ export default function F29Declarations() {
       setRemanenteAnterior('0');
       setObservaciones('');
       setEstadoHonorarios('pendiente');
+      setEstadoDeclaracion('pendiente');
       setHasFormData(false);
       
       // Set honorarios from client value if pending
@@ -711,6 +717,21 @@ export default function F29Declarations() {
                       />
                     </div>
 
+                    <div>
+                      <Label>Estado de la Declaración</Label>
+                      <Select value={estadoDeclaracion} onValueChange={setEstadoDeclaracion}>
+                        <SelectTrigger className="bg-input border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pendiente">Pendiente</SelectItem>
+                          <SelectItem value="guardado">Guardado</SelectItem>
+                          <SelectItem value="declarado">Declarado</SelectItem>
+                          <SelectItem value="girado">Girado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <Button
                       type="submit"
                       disabled={isSaving}
@@ -810,12 +831,23 @@ export default function F29Declarations() {
                     className="flex items-start justify-between p-4 rounded-lg bg-secondary border border-border"
                   >
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <h3 className="font-semibold text-foreground">
                           {declaration.clients?.razon_social || 'Cliente'}
                         </h3>
                         <span className="text-sm text-muted-foreground">
                           {meses[declaration.periodo_mes - 1]} {declaration.periodo_anio}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          declaration.estado_declaracion === 'declarado' ? 'bg-green-500/20 text-green-300' :
+                          declaration.estado_declaracion === 'girado' ? 'bg-blue-500/20 text-blue-300' :
+                          declaration.estado_declaracion === 'guardado' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-red-500/20 text-red-300'
+                        }`}>
+                          {declaration.estado_declaracion === 'declarado' ? 'Declarado' :
+                           declaration.estado_declaracion === 'girado' ? 'Girado' :
+                           declaration.estado_declaracion === 'guardado' ? 'Guardado' :
+                           'Pendiente'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
