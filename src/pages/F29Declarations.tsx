@@ -66,6 +66,7 @@ export default function F29Declarations() {
   const [filterAnio, setFilterAnio] = useState(0); // 0 = todos
 
   // Form state
+  const [currentMonthCount, setCurrentMonthCount] = useState<number>(0);
   const [editingDeclarationId, setEditingDeclarationId] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [mes, setMes] = useState(new Date().getMonth() + 1);
@@ -339,7 +340,7 @@ export default function F29Declarations() {
     );
   };
 
-  const handleClientChange = (newClientId: string) => {
+  const handleClientChange = async (newClientId: string) => {
     const hasData = checkIfFormHasData();
     
     if (hasData && selectedClientId && !editingDeclarationId) {
@@ -348,6 +349,19 @@ export default function F29Declarations() {
     } else {
       setSelectedClientId(newClientId);
       checkExistingDeclaration(newClientId, mes, anio);
+      
+      // Contar declaraciones del mes actual para este cliente
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      
+      const { count } = await supabase
+        .from('f29_declarations')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', newClientId)
+        .eq('periodo_mes', currentMonth)
+        .eq('periodo_anio', currentYear);
+      
+      setCurrentMonthCount(count || 0);
     }
   };
 
@@ -721,7 +735,14 @@ export default function F29Declarations() {
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <Label>Cliente</Label>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label>Cliente</Label>
+                          {selectedClientId && currentMonthCount > 0 && (
+                            <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                              {currentMonthCount} declaración{currentMonthCount !== 1 ? 'es' : ''} este mes
+                            </span>
+                          )}
+                        </div>
                         <Select value={selectedClientId} onValueChange={handleClientChange}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue placeholder="Seleccionar cliente" />
