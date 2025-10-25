@@ -348,12 +348,12 @@ export default function Documents() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Mes (opcional)</Label>
-                        <Select value={mes?.toString() || ''} onValueChange={(v) => setMes(v ? parseInt(v) : null)}>
+                        <Select value={mes?.toString() || 'none'} onValueChange={(v) => setMes(v !== 'none' ? parseInt(v) : null)}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue placeholder="Sin período" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Sin período</SelectItem>
+                            <SelectItem value="none">Sin período</SelectItem>
                             {meses.map((m, i) => (
                               <SelectItem key={i} value={(i + 1).toString()}>
                                 {m}
