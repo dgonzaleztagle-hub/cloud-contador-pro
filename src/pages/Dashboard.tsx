@@ -104,7 +104,7 @@ export default function Dashboard() {
                 <img src={logo} alt="Plus Contable" className="h-full w-full object-contain" />
               </div>
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   Plus Contable
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -137,7 +137,7 @@ export default function Dashboard() {
         <div className="space-y-8">
           {/* Welcome Section */}
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-foreground">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
               Bienvenido
             </h2>
             <p className="text-muted-foreground">

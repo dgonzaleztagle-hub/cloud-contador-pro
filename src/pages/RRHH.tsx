@@ -641,7 +641,7 @@ export default function RRHH() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver
               </Button>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 {fromClientView && filterClientId !== 'all' 
                   ? `RRHH - ${clients.find(c => c.id === filterClientId)?.razon_social || 'Cliente'}`
                   : 'Recursos Humanos'
@@ -865,10 +865,10 @@ export default function RRHH() {
 
       <main className="flex-1 container mx-auto px-6 py-8">
         <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4 flex-1 min-w-[300px]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="w-full sm:w-auto sm:flex-1 sm:max-w-md">
               <Select value={filterClientId} onValueChange={setFilterClientId}>
-                <SelectTrigger className="w-[300px] bg-input border-border">
+                <SelectTrigger className="w-full bg-input border-border">
                   <SelectValue placeholder="Filtrar por cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -882,12 +882,12 @@ export default function RRHH() {
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
               <Select 
                 value={viewMes.toString()} 
                 onValueChange={(val) => setViewMes(parseInt(val))}
               >
-                <SelectTrigger className="w-[140px] bg-input border-border">
+                <SelectTrigger className="w-full sm:w-[140px] bg-input border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -903,7 +903,7 @@ export default function RRHH() {
                 value={viewAnio.toString()} 
                 onValueChange={(val) => setViewAnio(parseInt(val))}
               >
-                <SelectTrigger className="w-[120px] bg-input border-border">
+                <SelectTrigger className="w-full sm:w-[120px] bg-input border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

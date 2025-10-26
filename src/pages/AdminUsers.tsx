@@ -209,7 +209,7 @@ export default function AdminUsers() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver
               </Button>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Gestión de Usuarios
               </h1>
             </div>
