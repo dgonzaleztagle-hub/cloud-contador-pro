@@ -234,6 +234,7 @@ export type Database = {
           remanente_anterior: number
           remanente_proximo: number
           retencion_2cat: number
+          tasa_ppm: number | null
           total_general: number
           total_impuestos: number
         }
@@ -256,6 +257,7 @@ export type Database = {
           remanente_anterior?: number
           remanente_proximo?: number
           retencion_2cat?: number
+          tasa_ppm?: number | null
           total_general?: number
           total_impuestos?: number
         }
@@ -278,6 +280,7 @@ export type Database = {
           remanente_anterior?: number
           remanente_proximo?: number
           retencion_2cat?: number
+          tasa_ppm?: number | null
           total_general?: number
           total_impuestos?: number
         }

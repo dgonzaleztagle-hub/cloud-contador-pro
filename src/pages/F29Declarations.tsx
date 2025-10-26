@@ -31,6 +31,7 @@ interface F29Declaration {
   iva_compras: number;
   iva_neto: number;
   ppm: number;
+  tasa_ppm: number;
   honorarios: number;
   retencion_2cat: number;
   impuesto_unico: number;
@@ -75,6 +76,7 @@ export default function F29Declarations() {
   const [ivaVentas, setIvaVentas] = useState('0');
   const [ivaCompras, setIvaCompras] = useState('0');
   const [ppm, setPpm] = useState('0');
+  const [tasaPpm, setTasaPpm] = useState('0');
   const [honorarios, setHonorarios] = useState('0');
   const [retencion2cat, setRetencion2cat] = useState('0');
   const [impuestoUnico, setImpuestoUnico] = useState('0');
@@ -206,6 +208,7 @@ export default function F29Declarations() {
       iva_compras: parseFloat(ivaCompras) || 0,
       iva_neto: totals.ivaNeto,
       ppm: parseFloat(ppm) || 0,
+      tasa_ppm: parseFloat(tasaPpm) || 0,
       honorarios: parseFloat(honorarios) || 0,
       retencion_2cat: parseFloat(retencion2cat) || 0,
       impuesto_unico: parseFloat(impuestoUnico) || 0,
@@ -258,6 +261,7 @@ export default function F29Declarations() {
     setIvaVentas('0');
     setIvaCompras('0');
     setPpm('0');
+    setTasaPpm('0');
     setHonorarios('0');
     setRetencion2cat('0');
     setImpuestoUnico('0');
@@ -289,6 +293,7 @@ export default function F29Declarations() {
       setIvaVentas(data.iva_ventas.toString());
       setIvaCompras(data.iva_compras.toString());
       setPpm(data.ppm.toString());
+      setTasaPpm(data.tasa_ppm?.toString() || '0');
       setHonorarios(data.honorarios.toString());
       setRetencion2cat(data.retencion_2cat.toString());
       setImpuestoUnico(data.impuesto_unico.toString());
@@ -307,6 +312,7 @@ export default function F29Declarations() {
       setIvaVentas('0');
       setIvaCompras('0');
       setPpm('0');
+      setTasaPpm('0');
       setRetencion2cat('0');
       setImpuestoUnico('0');
       setRemanenteAnterior('0');
@@ -396,6 +402,7 @@ export default function F29Declarations() {
     setIvaVentas(declaration.iva_ventas.toString());
     setIvaCompras(declaration.iva_compras.toString());
     setPpm(declaration.ppm.toString());
+    setTasaPpm(declaration.tasa_ppm?.toString() || '0');
     setHonorarios(declaration.honorarios.toString());
     setRetencion2cat(declaration.retencion_2cat.toString());
     setImpuestoUnico(declaration.impuesto_unico.toString());
@@ -841,6 +848,16 @@ export default function F29Declarations() {
                     <div className="space-y-2">
                       <h3 className="font-semibold text-foreground">Otros Impuestos</h3>
                       <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Tasa PPM % (Informativo)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={tasaPpm}
+                            onChange={(e) => setTasaPpm(e.target.value)}
+                            className="bg-input border-border"
+                          />
+                        </div>
                         <div>
                           <Label>PPM</Label>
                           <Input
