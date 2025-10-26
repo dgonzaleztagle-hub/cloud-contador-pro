@@ -583,9 +583,12 @@ export default function Documents() {
                         </div>
                         <div className="space-y-1">
                           {file.descripcion && (
-                            <p className="text-sm text-foreground font-medium">
-                              {file.descripcion}
-                            </p>
+                            <div className="mb-2">
+                              <p className="text-xs text-muted-foreground font-medium">Descripción</p>
+                              <p className="text-sm text-foreground font-medium">
+                                {file.descripcion}
+                              </p>
+                            </div>
                           )}
                           <p className="text-sm text-muted-foreground">
                             <span className="font-medium text-foreground">Cliente:</span> {file.clients?.razon_social || 'Cliente'}
