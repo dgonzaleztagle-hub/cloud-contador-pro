@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
+import { DocumentPreviewDialog } from '@/components/DocumentPreviewDialog';
+import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -68,9 +70,10 @@ export default function RRHH() {
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [filterClientId, setFilterClientId] = useState<string>('all');
   const [filterWorkerId, setFilterWorkerId] = useState<string>('all');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [fromClientView, setFromClientView] = useState(false);
+  
+  // Document preview hook
+  const { previewUrl, previewContent, previewType, isPreviewOpen, isLoadingPreview, handlePreview, closePreview } = useDocumentPreview();
   
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
@@ -488,6 +491,7 @@ export default function RRHH() {
     const totalPermisosHoras = getEventTotal(worker.id, 'permiso_horas');
     const totalPermisosMedios = getEventTotal(worker.id, 'permiso_medio_dia');
     const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
+    const totalLicenciasMedicas = getEventTotal(worker.id, 'licencia_medica');
     const totalAnticipos = getEventTotal(worker.id, 'anticipo');
 
     addRow('ATRASOS', '', true, [52, 73, 94]);
@@ -501,6 +505,9 @@ export default function RRHH() {
     addRow('FALTAS', '', true, [52, 73, 94]);
     addRow('Medio día', `${totalFaltasMedias}`);
     addRow('Día completo', `${totalFaltasCompletas}`);
+    
+    addRow('LICENCIAS MÉDICAS', '', true, [52, 73, 94]);
+    addRow('Días', `${totalLicenciasMedicas}`);
     
     addRow('ANTICIPOS', '', true, [52, 73, 94]);
     addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
@@ -634,18 +641,10 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
+    // Generar PDF como blob y usar el hook para previsualizar
     const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    setPreviewUrl(pdfUrl);
-    setIsPreviewOpen(true);
-  };
-
-  const closePreview = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(null);
-    setIsPreviewOpen(false);
+    const fileName = `Informe_RRHH_${worker.rut}_${meses[worker.periodo_mes - 1]}_${worker.periodo_anio}.pdf`;
+    await handlePreview(pdfBlob, fileName);
   };
 
   const meses = [
@@ -1163,22 +1162,14 @@ export default function RRHH() {
         />
       )}
 
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] bg-card border-border">
-          <DialogHeader>
-            <DialogTitle>Vista Previa del Informe</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            {previewUrl && (
-              <iframe
-                src={previewUrl}
-                className="w-full h-full border-0"
-                title="Vista previa del PDF"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DocumentPreviewDialog
+        isOpen={isPreviewOpen}
+        onClose={closePreview}
+        previewUrl={previewUrl}
+        previewContent={previewContent}
+        previewType={previewType}
+        isLoading={isLoadingPreview}
+      />
 
       <Footer />
     </div>
