@@ -27,6 +27,7 @@ interface FileRecord {
   file_category: string;
   periodo_mes: number | null;
   periodo_anio: number | null;
+  descripcion: string | null;
   created_at: string;
   clients?: { rut: string; razon_social: string };
 }
@@ -47,6 +48,7 @@ export default function Documents() {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileCategory, setFileCategory] = useState('contabilidad');
+  const [descripcion, setDescripcion] = useState('');
   const [mes, setMes] = useState<number | null>(null);
   const [anio, setAnio] = useState<number | null>(new Date().getFullYear());
 
@@ -155,6 +157,7 @@ export default function Documents() {
         file_path: filePath,
         file_type: selectedFile.type || 'application/octet-stream',
         file_category: fileCategory,
+        descripcion: fileCategory === 'otros' ? descripcion : null,
         periodo_mes: mes,
         periodo_anio: anio,
         uploaded_by: user?.id,
@@ -189,6 +192,7 @@ export default function Documents() {
     setSelectedClientId('');
     setSelectedFile(null);
     setFileCategory('contabilidad');
+    setDescripcion('');
     setMes(null);
     setAnio(new Date().getFullYear());
   };
@@ -414,6 +418,19 @@ export default function Documents() {
                       </Select>
                     </div>
 
+                    {fileCategory === 'otros' && (
+                      <div>
+                        <Label>Descripción del Documento *</Label>
+                        <Input
+                          value={descripcion}
+                          onChange={(e) => setDescripcion(e.target.value)}
+                          placeholder="Ej: Contrato de arriendo, Certificado..."
+                          required
+                          className="bg-input border-border"
+                        />
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Mes (opcional)</Label>
@@ -506,6 +523,11 @@ export default function Documents() {
                         <p className="text-sm text-muted-foreground">
                           {file.clients?.razon_social || 'Cliente'} • {categorias[file.file_category as keyof typeof categorias] || file.file_category}
                         </p>
+                        {file.descripcion && (
+                          <p className="text-sm text-foreground mt-1">
+                            {file.descripcion}
+                          </p>
+                        )}
                         {file.periodo_mes && file.periodo_anio && (
                           <p className="text-xs text-muted-foreground">
                             Período: {meses[file.periodo_mes - 1]} {file.periodo_anio}
