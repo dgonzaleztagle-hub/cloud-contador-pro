@@ -598,13 +598,14 @@ export default function Clients() {
 
                 {/* Botones de acción - NO clickeables con el card */}
                 <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+                  <div className="flex gap-2 pt-4 border-t border-border">
                     {/* Botón de Vista Simplificada */}
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={(e) => handleQuickView(client, e)}
                       className="hover:bg-primary/10"
+                      title="Vista Simplificada"
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
@@ -615,6 +616,7 @@ export default function Clients() {
                       variant="outline"
                       onClick={(e) => handleDownloadFullPDF(client, e)}
                       className="hover:bg-primary/10"
+                      title="Descargar Ficha"
                     >
                       <Download className="h-3.5 w-3.5" />
                     </Button>
@@ -628,9 +630,9 @@ export default function Clients() {
                       }}
                       disabled={!client.fono}
                       className={!client.fono ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
+                      title="Llamar"
                     >
-                      <Phone className="h-3.5 w-3.5 mr-1" />
-                      Llamar
+                      <Phone className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       size="sm"
@@ -641,9 +643,9 @@ export default function Clients() {
                       }}
                       disabled={!client.email}
                       className={!client.email ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'}
+                      title="Email"
                     >
-                      <Mail className="h-3.5 w-3.5 mr-1" />
-                      Email
+                      <Mail className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       size="sm"
@@ -653,9 +655,9 @@ export default function Clients() {
                         handleRRHH(client.id);
                       }}
                       className="hover:bg-primary/10"
+                      title="RRHH"
                     >
-                      <Briefcase className="h-3.5 w-3.5 mr-1" />
-                      RRHH
+                      <Briefcase className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </CardContent>
