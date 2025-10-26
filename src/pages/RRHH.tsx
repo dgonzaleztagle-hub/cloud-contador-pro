@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye, Edit, AlertTriangle, Power, PowerOff } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye, Edit, AlertTriangle, Power, PowerOff, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
 import { DocumentPreviewDialog } from '@/components/DocumentPreviewDialog';
+import GenerateWorkerLinkDialog from '@/components/GenerateWorkerLinkDialog';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import jsPDF from 'jspdf';
 import { format, differenceInDays } from 'date-fns';
@@ -81,6 +82,7 @@ export default function RRHH() {
   
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<{ id: string; name: string } | null>(null);
   const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica'>('atraso');
   const [eventTotals, setEventTotals] = useState<Record<string, any>>({});
@@ -780,13 +782,14 @@ export default function RRHH() {
             </div>
 
             {canModify && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 bg-gradient-to-r from-primary to-accent">
-                    <Plus className="h-4 w-4" />
-                    Nueva Ficha de Trabajador
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2 bg-gradient-to-r from-primary to-accent">
+                      <Plus className="h-4 w-4" />
+                      Nueva Ficha de Trabajador
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingWorkerId ? 'Editar Trabajador' : 'Nueva Ficha de Trabajador'}</DialogTitle>
@@ -1033,6 +1036,12 @@ export default function RRHH() {
                   </form>
                 </DialogContent>
               </Dialog>
+              
+              <Button onClick={() => setLinkDialogOpen(true)} variant="outline" className="gap-2">
+                <LinkIcon className="h-4 w-4" />
+                Generar Enlace Registro
+              </Button>
+              </div>
             )}
           </div>
         </div>
@@ -1433,6 +1442,12 @@ export default function RRHH() {
         previewContent={previewContent}
         previewType={previewType}
         isLoading={isLoadingPreview}
+      />
+
+      <GenerateWorkerLinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        clients={clients}
       />
 
       <Footer />

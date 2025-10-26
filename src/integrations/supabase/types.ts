@@ -496,45 +496,99 @@ export type Database = {
       rrhh_workers: {
         Row: {
           activo: boolean
+          afp: string | null
+          apellido_materno: string | null
+          apellido_paterno: string | null
+          banco: string | null
+          cargo: string | null
+          ciudad: string | null
           client_id: string
           contrato_pdf_path: string | null
           created_at: string
+          datos_admin_completados: boolean | null
+          direccion: string | null
+          email: string | null
+          estado_civil: string | null
           fecha_inicio: string | null
+          fecha_nacimiento: string | null
           fecha_termino: string | null
+          formulario_completado: boolean | null
           id: string
           nombre: string
+          numero_cuenta: string | null
+          primer_nombre: string | null
           rut: string
+          salud: string | null
+          segundo_nombre: string | null
           sucursal_id: string | null
+          telefono: string | null
+          tipo_cuenta: string | null
           tipo_jornada: string
           tipo_plazo: string
           updated_at: string
         }
         Insert: {
           activo?: boolean
+          afp?: string | null
+          apellido_materno?: string | null
+          apellido_paterno?: string | null
+          banco?: string | null
+          cargo?: string | null
+          ciudad?: string | null
           client_id: string
           contrato_pdf_path?: string | null
           created_at?: string
+          datos_admin_completados?: boolean | null
+          direccion?: string | null
+          email?: string | null
+          estado_civil?: string | null
           fecha_inicio?: string | null
+          fecha_nacimiento?: string | null
           fecha_termino?: string | null
+          formulario_completado?: boolean | null
           id?: string
           nombre: string
+          numero_cuenta?: string | null
+          primer_nombre?: string | null
           rut: string
+          salud?: string | null
+          segundo_nombre?: string | null
           sucursal_id?: string | null
+          telefono?: string | null
+          tipo_cuenta?: string | null
           tipo_jornada?: string
           tipo_plazo?: string
           updated_at?: string
         }
         Update: {
           activo?: boolean
+          afp?: string | null
+          apellido_materno?: string | null
+          apellido_paterno?: string | null
+          banco?: string | null
+          cargo?: string | null
+          ciudad?: string | null
           client_id?: string
           contrato_pdf_path?: string | null
           created_at?: string
+          datos_admin_completados?: boolean | null
+          direccion?: string | null
+          email?: string | null
+          estado_civil?: string | null
           fecha_inicio?: string | null
+          fecha_nacimiento?: string | null
           fecha_termino?: string | null
+          formulario_completado?: boolean | null
           id?: string
           nombre?: string
+          numero_cuenta?: string | null
+          primer_nombre?: string | null
           rut?: string
+          salud?: string | null
+          segundo_nombre?: string | null
           sucursal_id?: string | null
+          telefono?: string | null
+          tipo_cuenta?: string | null
           tipo_jornada?: string
           tipo_plazo?: string
           updated_at?: string
@@ -630,6 +684,44 @@ export type Database = {
             columns: ["worker_id"]
             isOneToOne: false
             referencedRelation: "rrhh_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_registration_tokens: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          token: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          token: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_registration_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
