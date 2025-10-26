@@ -365,6 +365,68 @@ export type Database = {
         }
         Relationships: []
       }
+      honorarios: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          estado: string
+          fecha_pago: string | null
+          id: string
+          monto: number
+          monto_pagado: number
+          notas: string | null
+          periodo_anio: number
+          periodo_mes: number
+          saldo_actual: number | null
+          saldo_pendiente_anterior: number
+          total_con_saldo: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_pago?: string | null
+          id?: string
+          monto?: number
+          monto_pagado?: number
+          notas?: string | null
+          periodo_anio: number
+          periodo_mes: number
+          saldo_actual?: number | null
+          saldo_pendiente_anterior?: number
+          total_con_saldo?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_pago?: string | null
+          id?: string
+          monto?: number
+          monto_pagado?: number
+          notas?: string | null
+          periodo_anio?: number
+          periodo_mes?: number
+          saldo_actual?: number | null
+          saldo_pendiente_anterior?: number
+          total_con_saldo?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "honorarios_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -597,6 +659,18 @@ export type Database = {
           worker_id: string
           worker_name: string
           worker_rut: string
+        }[]
+      }
+      get_honorarios_summary: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: {
+          cantidad_pagado: number
+          cantidad_parcial: number
+          cantidad_pendiente: number
+          total_facturado: number
+          total_pagado: number
+          total_parcial: number
+          total_pendiente: number
         }[]
       }
       has_any_role: {

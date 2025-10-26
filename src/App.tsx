@@ -14,6 +14,7 @@ import AdminUsers from "./pages/AdminUsers";
 import F29Declarations from "./pages/F29Declarations";
 import RRHH from "./pages/RRHH";
 import Documents from "./pages/Documents";
+import Honorarios from "./pages/Honorarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/clients/:id" element={<ClientDetails />} />
             <Route path="/f29" element={<F29Declarations />} />
             <Route path="/rrhh" element={<RRHH />} />
+            <Route path="/honorarios" element={<Honorarios />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
