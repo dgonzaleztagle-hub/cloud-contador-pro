@@ -606,6 +606,7 @@ export default function RRHH() {
     const totalPermisosHoras = getEventTotal(worker.id, 'permiso_horas');
     const totalPermisosMedios = getEventTotal(worker.id, 'permiso_medio_dia');
     const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
+    const totalLicenciasMedicas = getEventTotal(worker.id, 'licencia_medica');
     const totalAnticipos = getEventTotal(worker.id, 'anticipo');
 
     addRow('ATRASOS', '', true, [52, 73, 94]);
@@ -619,6 +620,9 @@ export default function RRHH() {
     addRow('FALTAS', '', true, [52, 73, 94]);
     addRow('Medio día', `${totalFaltasMedias}`);
     addRow('Día completo', `${totalFaltasCompletas}`);
+    
+    addRow('LICENCIAS MÉDICAS', '', true, [52, 73, 94]);
+    addRow('Días', `${totalLicenciasMedicas}`);
     
     addRow('ANTICIPOS', '', true, [52, 73, 94]);
     addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
