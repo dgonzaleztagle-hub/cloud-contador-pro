@@ -11,6 +11,7 @@ import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye, Edit 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
+import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
 import jsPDF from 'jspdf';
 
 interface Client {
@@ -65,7 +66,17 @@ export default function RRHH() {
   const [filterClientId, setFilterClientId] = useState<string>('all');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [fromClientView, setFromClientView] = useState(false); // Indica si viene desde vista de cliente
+  const [fromClientView, setFromClientView] = useState(false);
+  
+  // Worker Events
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo'>('atraso');
+  const [workerEvents, setWorkerEvents] = useState<Record<string, any>>({});
+  
+  // Filtros de período
+  const [viewMes, setViewMes] = useState(new Date().getMonth() + 1);
+  const [viewAnio, setViewAnio] = useState(new Date().getFullYear());
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');

@@ -533,6 +533,66 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_events: {
+        Row: {
+          cantidad: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          event_date: string
+          event_type: string
+          id: string
+          periodo_anio: number
+          periodo_mes: number
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          cantidad?: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          event_date: string
+          event_type: string
+          id?: string
+          periodo_anio: number
+          periodo_mes: number
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          cantidad?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          periodo_anio?: number
+          periodo_mes?: number
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_events_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "rrhh_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
