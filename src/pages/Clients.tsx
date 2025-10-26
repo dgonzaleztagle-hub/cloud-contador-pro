@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Phone, Mail, ArrowLeft, Users, UserX, Eye, Search, X, Briefcase } from 'lucide-react';
+import { Loader2, Phone, Mail, ArrowLeft, Users, UserX, Eye, Search, X, Briefcase, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
 import { ClientDialog } from '@/components/ClientDialog';
@@ -229,6 +230,186 @@ export default function Clients() {
     navigate('/rrhh', { state: { clientId } });
   };
 
+  const handleDownloadFullPDF = (client: ClientWithSaldo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Título
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Ficha de Cliente', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    // Información básica
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Información Básica', 15, yPos);
+    yPos += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const addField = (label: string, value: string | null | undefined | number | boolean) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(`${label}: ${value || 'N/A'}`, 15, yPos);
+      yPos += 6;
+    };
+
+    addField('Razón Social', client.razon_social);
+    addField('RUT', client.rut);
+    addField('Estado', client.activo ? 'Activo' : 'Inactivo');
+    addField('Valor Mensualidad', client.valor);
+    addField('Saldo Honorarios Pendiente', client.saldo_total_honorarios.toString());
+    yPos += 5;
+
+    // Datos de contacto
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Datos de Contacto', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Dirección', client.direccion);
+    addField('Ciudad', client.ciudad);
+    addField('Región', client.region);
+    addField('Email', client.email);
+    addField('Teléfono', client.fono);
+    yPos += 5;
+
+    // Información tributaria
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Información Tributaria', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Código Actividad', client.cod_actividad);
+    addField('Giro', client.giro);
+    addField('Régimen Tributario', client.regimen_tributario);
+    addField('Contabilidad', client.contabilidad);
+    addField('Fecha Incorporación', client.fecha_incorporacion);
+    yPos += 5;
+
+    // Representante legal
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Representante Legal', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Representante Legal', client.representante_legal);
+    addField('RUT Representante', client.rut_representante);
+    addField('Clave SII Representante', client.clave_sii_repr);
+    addField('Clave Certificado', client.clave_certificado);
+    addField('Clave Única', client.clave_unica);
+    yPos += 5;
+
+    // Accesos
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Accesos', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Clave SII', client.clave_sii);
+    addField('Previred', client.previred);
+    addField('Portal Electrónico', client.portal_electronico);
+    yPos += 5;
+
+    // Observaciones
+    if (client.observacion_1 || client.observacion_2 || client.observacion_3) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Observaciones', 15, yPos);
+      yPos += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+
+      if (client.observacion_1) {
+        addField('Observación 1', client.observacion_1);
+      }
+      if (client.observacion_2) {
+        addField('Observación 2', client.observacion_2);
+      }
+      if (client.observacion_3) {
+        addField('Observación 3', client.observacion_3);
+      }
+    }
+
+    // Guardar PDF
+    doc.save(`Ficha_${client.razon_social.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+
+    toast({
+      title: 'PDF generado',
+      description: 'La ficha completa del cliente se ha descargado correctamente',
+    });
+  };
+
+  const handleDownloadSimplifiedPDF = () => {
+    if (!quickViewClient) return;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Título
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Vista Simplificada - Cliente', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const addField = (label: string, value: string | null | undefined) => {
+      doc.text(`${label}: ${value || 'N/A'}`, 15, yPos);
+      yPos += 6;
+    };
+
+    // Datos de la Empresa
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Datos de la Empresa', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Razón Social', quickViewClient.razon_social);
+    addField('RUT', quickViewClient.rut);
+    addField('Clave SII', quickViewClient.clave_sii);
+    yPos += 5;
+
+    // Representante Legal
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Representante Legal', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Nombre', quickViewClient.representante_legal);
+    addField('RUT', quickViewClient.rut_representante);
+    addField('Clave SII', quickViewClient.clave_sii_repr);
+    addField('Clave Certificado', quickViewClient.clave_certificado);
+    addField('Clave Única', quickViewClient.clave_unica);
+
+    // Guardar PDF
+    doc.save(`Vista_Simplificada_${quickViewClient.razon_social.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+
+    toast({
+      title: 'PDF generado',
+      description: 'La vista simplificada se ha descargado correctamente',
+    });
+  };
+
   if (loading || loadingClients) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -427,6 +608,16 @@ export default function Clients() {
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
+
+                    {/* Botón de Descarga Ficha Completa */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => handleDownloadFullPDF(client, e)}
+                      className="hover:bg-primary/10"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
                     
                     <Button
                       size="sm"
@@ -523,12 +714,22 @@ export default function Clients() {
               </div>
             </div>
 
-            <Button
-              onClick={() => navigate(`/clients/${quickViewClient?.id}`)}
-              className="w-full bg-gradient-to-r from-primary to-accent"
-            >
-              Ver Detalles Completos
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleDownloadSimplifiedPDF}
+                variant="outline"
+                className="flex-1"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Descargar PDF
+              </Button>
+              <Button
+                onClick={() => navigate(`/clients/${quickViewClient?.id}`)}
+                className="flex-1 bg-gradient-to-r from-primary to-accent"
+              >
+                Ver Detalles Completos
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
