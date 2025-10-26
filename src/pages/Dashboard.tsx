@@ -249,7 +249,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Admin Section - Solo para Master */}
+          {/* Sección de Administración - Solo para Master */}
           {userRole === 'master' && (
             <Card className="border-border bg-card border-primary/20">
               <CardHeader>

@@ -260,7 +260,7 @@ export default function Clients() {
                 Agenda de Clientes
               </h1>
             </div>
-            {(userRole === 'master' || userRole === 'admin') && (
+            {(userRole === 'master' || userRole === 'contador') && (
               <ClientDialog onClientCreated={loadClients} />
             )}
           </div>

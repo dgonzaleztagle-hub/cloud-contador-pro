@@ -615,8 +615,8 @@ export default function RRHH() {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  const canModify = userRole === 'master' || userRole === 'admin';
-  const canAddEvents = userRole === 'master' || userRole === 'admin' || userRole === 'viewer';
+  const canModify = userRole === 'master' || userRole === 'contador';
+  const canAddEvents = userRole === 'master' || userRole === 'contador' || userRole === 'cliente';
 
   if (loading || loadingData) {
     return (

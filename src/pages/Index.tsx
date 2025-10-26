@@ -106,7 +106,7 @@ const Index = () => {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary">•</span>
-                <span>Control de usuarios con roles: Master, Admin, Cliente y Viewer</span>
+                <span>Control de usuarios con roles: Master, Contador y Cliente</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary">•</span>

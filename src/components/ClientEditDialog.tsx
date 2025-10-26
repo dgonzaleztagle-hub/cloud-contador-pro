@@ -126,7 +126,7 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
   if (!client) return null;
 
-  const canEditPasswords = userRole === 'master' || userRole === 'admin';
+  const canEditPasswords = userRole === 'master' || userRole === 'contador';
 
   return (
     <>
@@ -414,7 +414,7 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
             {!canEditPasswords && (
               <p className="text-sm text-muted-foreground text-center">
-                Solo los usuarios master y admin pueden ver y editar las claves
+                Solo los usuarios master y contador pueden ver y editar las claves
               </p>
             )}
 

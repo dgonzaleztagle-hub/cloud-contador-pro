@@ -12,11 +12,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 
+type AppRole = 'master' | 'contador' | 'cliente';
+
 interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
-  role: string;
+  role: string; // AppRole pero dejamos string temporalmente hasta que se actualicen los tipos
   created_at: string;
 }
 
@@ -33,7 +35,7 @@ export default function AdminUsers() {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newFullName, setNewFullName] = useState('');
-  const [newRole, setNewRole] = useState<'master' | 'admin' | 'client' | 'viewer'>('viewer');
+  const [newRole, setNewRole] = useState<AppRole>('cliente');
 
   useEffect(() => {
     console.log('AdminUsers - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
@@ -99,7 +101,7 @@ export default function AdminUsers() {
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ 
-            role: newRole,
+            role: newRole as any, // Cast temporalmente hasta que se actualicen los tipos
             full_name: newFullName 
           })
           .eq('id', authData.user.id);
@@ -115,7 +117,7 @@ export default function AdminUsers() {
         setNewEmail('');
         setNewPassword('');
         setNewFullName('');
-        setNewRole('viewer');
+        setNewRole('cliente');
         setIsDialogOpen(false);
         loadUsers();
       }
@@ -162,10 +164,10 @@ export default function AdminUsers() {
     }
   };
 
-  const handleUpdateRole = async (userId: string, newRole: 'master' | 'admin' | 'client' | 'viewer') => {
+  const handleUpdateRole = async (userId: string, newRole: AppRole) => {
     const { error } = await supabase
       .from('profiles')
-      .update({ role: newRole })
+      .update({ role: newRole as any }) // Cast temporalmente hasta que se actualicen los tipos
       .eq('id', userId);
 
     if (error) {
@@ -268,9 +270,8 @@ export default function AdminUsers() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="master">Master</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="client">Client</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
+                        <SelectItem value="contador">Contador</SelectItem>
+                        <SelectItem value="cliente">Cliente</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -320,7 +321,7 @@ export default function AdminUsers() {
                   <div className="flex items-center gap-4">
                     <Select
                       value={userProfile.role}
-                      onValueChange={(value: 'master' | 'admin' | 'client' | 'viewer') => handleUpdateRole(userProfile.id, value)}
+                      onValueChange={(value) => handleUpdateRole(userProfile.id, value as AppRole)}
                       disabled={userProfile.id === user?.id}
                     >
                       <SelectTrigger className="w-32 bg-input border-border">
@@ -328,9 +329,8 @@ export default function AdminUsers() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="master">Master</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="client">Client</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
+                        <SelectItem value="contador">Contador</SelectItem>
+                        <SelectItem value="cliente">Cliente</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button

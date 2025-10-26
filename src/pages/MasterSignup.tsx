@@ -73,7 +73,7 @@ export default function MasterSignup() {
               Crear Cuenta Master
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Ruta especial para crear cuentas de administrador
+              Ruta especial para crear cuentas master
             </CardDescription>
           </div>
         </CardHeader>
@@ -84,7 +84,7 @@ export default function MasterSignup() {
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Nombre del administrador"
+                placeholder="Nombre completo"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -96,7 +96,7 @@ export default function MasterSignup() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@empresa.com"
+                placeholder="master@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

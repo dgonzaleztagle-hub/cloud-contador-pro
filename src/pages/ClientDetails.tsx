@@ -63,7 +63,7 @@ export default function ClientDetails() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState<Partial<Client>>({});
 
-  const canModify = userRole === 'master' || userRole === 'admin';
+  const canModify = userRole === 'master' || userRole === 'contador';
   const canEditPasswords = userRole === 'master';
 
   useEffect(() => {

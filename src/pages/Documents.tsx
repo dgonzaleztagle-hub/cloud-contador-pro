@@ -340,7 +340,7 @@ export default function Documents() {
     otros: 'Otros',
   };
 
-  const canModify = userRole === 'master' || userRole === 'admin';
+  const canModify = userRole === 'master' || userRole === 'contador';
 
   if (loading || loadingData) {
     return (

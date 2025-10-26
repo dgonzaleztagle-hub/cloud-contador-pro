@@ -692,7 +692,7 @@ export default function F29Declarations() {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  const canModify = userRole === 'master' || userRole === 'admin';
+  const canModify = userRole === 'master' || userRole === 'contador';
 
   if (loading || loadingData) {
     return (
