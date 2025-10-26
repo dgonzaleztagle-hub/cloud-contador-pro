@@ -67,6 +67,7 @@ export default function RRHH() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [filterClientId, setFilterClientId] = useState<string>('all');
+  const [filterWorkerId, setFilterWorkerId] = useState<string>('all');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [fromClientView, setFromClientView] = useState(false);
@@ -74,12 +75,15 @@ export default function RRHH() {
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<{ id: string; name: string } | null>(null);
-  const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo'>('atraso');
+  const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica'>('atraso');
   const [eventTotals, setEventTotals] = useState<Record<string, any>>({});
   
   // Filtros de período
   const [viewMes, setViewMes] = useState(new Date().getMonth() + 1);
   const [viewAnio, setViewAnio] = useState(new Date().getFullYear());
+  
+  // Lista de todos los trabajadores únicos para el filtro
+  const [allWorkers, setAllWorkers] = useState<{id: string; nombre: string; rut: string}[]>([]);
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -115,8 +119,9 @@ export default function RRHH() {
   useEffect(() => {
     if (user) {
       loadData();
+      loadAllWorkers();
     }
-  }, [user, viewMes, viewAnio, filterClientId]);
+  }, [user, viewMes, viewAnio, filterClientId, filterWorkerId]);
 
   useEffect(() => {
     const state = location.state as { clientId?: string };
@@ -148,12 +153,38 @@ export default function RRHH() {
             permiso_horas: 0,
             permiso_medio_dia: 0,
             permiso_completo: 0,
-            anticipo: 0
+            anticipo: 0,
+            licencia_medica: 0
           };
         }
         totals[event.worker_id][event.event_type] += Number(event.cantidad);
       });
       setEventTotals(totals);
+    }
+  };
+
+  const loadAllWorkers = async () => {
+    if (filterClientId === 'all') {
+      setAllWorkers([]);
+      return;
+    }
+
+    // Obtener todos los trabajadores únicos del cliente seleccionado
+    const { data, error } = await supabase
+      .from('rrhh_workers')
+      .select('id, nombre, rut')
+      .eq('client_id', filterClientId)
+      .order('nombre');
+
+    if (!error && data) {
+      // Eliminar duplicados por RUT (trabajadores que aparecen en varios meses)
+      const uniqueWorkers = data.reduce((acc: any[], worker) => {
+        if (!acc.find(w => w.rut === worker.rut)) {
+          acc.push(worker);
+        }
+        return acc;
+      }, []);
+      setAllWorkers(uniqueWorkers);
     }
   };
 
@@ -201,7 +232,14 @@ export default function RRHH() {
     if (workersError) {
       console.error('Error loading workers:', workersError);
     } else {
-      setWorkers(workersData || []);
+      let filteredWorkers = workersData || [];
+      
+      // Aplicar filtro adicional por trabajador si está seleccionado
+      if (filterWorkerId !== 'all') {
+        filteredWorkers = filteredWorkers.filter(w => w.id === filterWorkerId);
+      }
+      
+      setWorkers(filteredWorkers);
     }
 
     await loadWorkerEvents();
@@ -865,11 +903,16 @@ export default function RRHH() {
 
       <main className="flex-1 container mx-auto px-6 py-8">
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="w-full sm:w-auto sm:flex-1 sm:max-w-md">
-              <Select value={filterClientId} onValueChange={setFilterClientId}>
+          {/* Filtros principales */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+            <div>
+              <Label>Cliente</Label>
+              <Select value={filterClientId} onValueChange={(val) => {
+                setFilterClientId(val);
+                setFilterWorkerId('all'); // Reset worker filter when client changes
+              }}>
                 <SelectTrigger className="w-full bg-input border-border">
-                  <SelectValue placeholder="Filtrar por cliente" />
+                  <SelectValue placeholder="Seleccionar cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los clientes</SelectItem>
@@ -882,38 +925,65 @@ export default function RRHH() {
               </Select>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+            <div>
+              <Label>Trabajador</Label>
               <Select 
-                value={viewMes.toString()} 
-                onValueChange={(val) => setViewMes(parseInt(val))}
+                value={filterWorkerId} 
+                onValueChange={setFilterWorkerId}
+                disabled={filterClientId === 'all'}
               >
-                <SelectTrigger className="w-full sm:w-[140px] bg-input border-border">
-                  <SelectValue />
+                <SelectTrigger className="w-full bg-input border-border">
+                  <SelectValue placeholder={filterClientId === 'all' ? 'Seleccione un cliente primero' : 'Todos los trabajadores'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((mes) => (
-                    <SelectItem key={mes} value={mes.toString()}>
-                      {format(new Date(2024, mes - 1), 'MMMM', { locale: es })}
+                  <SelectItem value="all">Todos los trabajadores</SelectItem>
+                  {allWorkers.map((worker) => (
+                    <SelectItem key={worker.id} value={worker.id}>
+                      {worker.nombre} - {worker.rut}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
 
-              <Select 
-                value={viewAnio.toString()} 
-                onValueChange={(val) => setViewAnio(parseInt(val))}
-              >
-                <SelectTrigger className="w-full sm:w-[120px] bg-input border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Mes</Label>
+                <Select 
+                  value={viewMes.toString()} 
+                  onValueChange={(val) => setViewMes(parseInt(val))}
+                >
+                  <SelectTrigger className="w-full bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((mes) => (
+                      <SelectItem key={mes} value={mes.toString()}>
+                        {format(new Date(2024, mes - 1), 'MMMM', { locale: es })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Año</Label>
+                <Select 
+                  value={viewAnio.toString()} 
+                  onValueChange={(val) => setViewAnio(parseInt(val))}
+                >
+                  <SelectTrigger className="w-full bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -1033,8 +1103,15 @@ export default function RRHH() {
                           <span className="font-medium">{getEventTotal(worker.id, 'permiso_completo')}</span>
                         </button>
                         <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'licencia_medica')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Licencias Médicas:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'licencia_medica')} días</span>
+                        </button>
+                        <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'anticipo')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded col-span-2 transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
                         >
                           <span className="text-muted-foreground">Anticipos:</span>
                           <span className="font-medium">${getEventTotal(worker.id, 'anticipo').toLocaleString('es-CL')}</span>

@@ -25,7 +25,7 @@ interface WorkerEventsDialogProps {
   workerId: string;
   clientId: string;
   workerName: string;
-  eventType: 'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo';
+  eventType: 'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica';
   periodMes: number;
   periodAnio: number;
   isOpen: boolean;
@@ -40,7 +40,8 @@ const eventTitles = {
   permiso_horas: 'Permisos por Horas',
   permiso_medio_dia: 'Permisos Medio Día',
   permiso_completo: 'Permisos Día Completo',
-  anticipo: 'Anticipos'
+  anticipo: 'Anticipos',
+  licencia_medica: 'Licencias Médicas'
 };
 
 const eventLabels = {
@@ -50,7 +51,8 @@ const eventLabels = {
   permiso_horas: 'Minutos',
   permiso_medio_dia: 'Medio Días',
   permiso_completo: 'Días',
-  anticipo: 'Monto ($)'
+  anticipo: 'Monto ($)',
+  licencia_medica: 'Días'
 };
 
 export function WorkerEventsDialog({
