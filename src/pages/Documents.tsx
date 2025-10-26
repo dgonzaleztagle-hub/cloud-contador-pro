@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Loader2, ArrowLeft, Upload, Trash2, FileText, Download, Eye } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -161,7 +162,7 @@ export default function Documents() {
         file_path: filePath,
         file_type: selectedFile.type || 'application/octet-stream',
         file_category: fileCategory,
-        descripcion: fileCategory === 'otros' ? descripcion : null,
+        descripcion: descripcion || null,
         periodo_mes: mes,
         periodo_anio: anio,
         uploaded_by: user?.id,
@@ -422,18 +423,20 @@ export default function Documents() {
                       </Select>
                     </div>
 
-                    {fileCategory === 'otros' && (
-                      <div>
-                        <Label>Descripción del Documento *</Label>
-                        <Input
-                          value={descripcion}
-                          onChange={(e) => setDescripcion(e.target.value)}
-                          placeholder="Ej: Contrato de arriendo, Certificado..."
-                          required
-                          className="bg-input border-border"
-                        />
-                      </div>
-                    )}
+                    <div>
+                      <Label>Descripción del Documento *</Label>
+                      <Textarea
+                        value={descripcion}
+                        onChange={(e) => setDescripcion(e.target.value)}
+                        placeholder="Describe brevemente el documento (ej: Contrato de arriendo, Certificado de AFP, etc.)"
+                        required
+                        className="bg-input border-border min-h-[80px]"
+                        maxLength={200}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {descripcion.length}/200 caracteres
+                      </p>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -567,29 +570,29 @@ export default function Documents() {
                     key={file.id}
                     className="flex items-start justify-between p-4 rounded-lg bg-secondary border border-border"
                   >
-                    <div className="flex items-start gap-4 flex-1">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
                       <FileText className="h-10 w-10 text-primary flex-shrink-0 mt-1" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 flex-wrap mb-2">
-                          <h3 className="font-semibold text-foreground truncate">
-                            {file.file_name}
-                          </h3>
-                          <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary whitespace-nowrap">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary whitespace-nowrap flex-shrink-0">
                             {categorias[file.file_category as keyof typeof categorias] || file.file_category}
                           </span>
+                          <h3 className="font-semibold text-foreground text-sm truncate" title={file.file_name}>
+                            {file.file_name.length > 30 ? `${file.file_name.substring(0, 30)}...` : file.file_name}
+                          </h3>
                         </div>
                         <div className="space-y-1">
+                          {file.descripcion && (
+                            <p className="text-sm text-foreground font-medium">
+                              {file.descripcion}
+                            </p>
+                          )}
                           <p className="text-sm text-muted-foreground">
                             <span className="font-medium text-foreground">Cliente:</span> {file.clients?.razon_social || 'Cliente'}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             <span className="font-medium text-foreground">RUT:</span> {file.clients?.rut || 'N/A'}
                           </p>
-                          {file.descripcion && (
-                            <p className="text-sm text-foreground mt-1">
-                              <span className="font-medium">Descripción:</span> {file.descripcion}
-                            </p>
-                          )}
                           {file.periodo_mes && file.periodo_anio && (
                             <p className="text-xs text-muted-foreground">
                               <span className="font-medium">Período:</span> {meses[file.periodo_mes - 1]} {file.periodo_anio}
