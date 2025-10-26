@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [utm, setUtm] = useState('...');
   const [dollar, setDollar] = useState('...');
   const [clientsCount, setClientsCount] = useState({ total: 0, activos: 0, inactivos: 0 });
+  const [f29Count, setF29Count] = useState(0);
 
   useEffect(() => {
     console.log('Dashboard - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
@@ -80,6 +81,25 @@ export default function Dashboard() {
               setClientsCount({ total: count || 0, activos, inactivos });
               console.log('Clients loaded:', { total: count, activos, inactivos });
             }
+          });
+
+        // Fetch F29 declarations count for current month
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+        const currentYear = currentDate.getFullYear();
+        
+        supabase
+          .from('f29_declarations')
+          .select('id', { count: 'exact' })
+          .eq('periodo_mes', currentMonth)
+          .eq('periodo_anio', currentYear)
+          .then(({ count, error }) => {
+            if (error) {
+              console.error('Error fetching F29 declarations:', error);
+              return;
+            }
+            setF29Count(count || 0);
+            console.log('F29 declarations this month:', count);
           });
       });
     }
@@ -170,7 +190,7 @@ export default function Dashboard() {
                 <Coins className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">0</div>
+                <div className="text-2xl font-bold text-foreground">{f29Count}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Este mes
                 </p>
