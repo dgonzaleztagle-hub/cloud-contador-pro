@@ -507,11 +507,8 @@ export default function F29Declarations() {
     addRow('IVA VENTAS', declaration.iva_ventas);
     addRow('IVA COMPRAS', declaration.iva_compras);
     
-    // Calcular tasa PPM si aplica
-    const tasaPPM = declaration.ppm > 0 && declaration.iva_ventas > 0 
-      ? ((declaration.ppm / declaration.iva_ventas) * 100).toFixed(1) 
-      : '0';
-    addRow('TASA PPM %', tasaPPM);
+    const tasaPPM = declaration.tasa_ppm || 0;
+    addRow('TASA PPM %', tasaPPM.toString() + '%');
     addRow('PPM', declaration.ppm);
     addRow('HONORARIOS', declaration.honorarios);
     addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
@@ -643,10 +640,8 @@ export default function F29Declarations() {
     addRow('IVA VENTAS', declaration.iva_ventas);
     addRow('IVA COMPRAS', declaration.iva_compras);
     
-    const tasaPPM = declaration.ppm > 0 && declaration.iva_ventas > 0 
-      ? ((declaration.ppm / declaration.iva_ventas) * 100).toFixed(1) 
-      : '0';
-    addRow('TASA PPM %', tasaPPM);
+    const tasaPPM = declaration.tasa_ppm || 0;
+    addRow('TASA PPM %', tasaPPM.toString() + '%');
     addRow('PPM', declaration.ppm);
     addRow('HONORARIOS', declaration.honorarios);
     addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
@@ -1098,11 +1093,17 @@ export default function F29Declarations() {
                            'Pendiente'}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">IVA Neto:</span>
                           <span className="ml-2 font-semibold text-foreground">
                             ${declaration.iva_neto.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Tasa PPM:</span>
+                          <span className="ml-2 font-semibold text-foreground">
+                            {declaration.tasa_ppm || 0}%
                           </span>
                         </div>
                         <div>
