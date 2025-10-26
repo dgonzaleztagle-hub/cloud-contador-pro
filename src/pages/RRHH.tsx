@@ -424,6 +424,75 @@ export default function RRHH() {
     }
   };
 
+  const handleDownloadContract = async (worker: Worker) => {
+    if (!worker.contrato_pdf_path) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Este trabajador no tiene un contrato subido',
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(worker.contrato_pdf_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Contrato_${worker.nombre}_${worker.rut}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Contrato descargado',
+        description: 'El archivo se ha descargado correctamente',
+      });
+    } catch (error: any) {
+      console.error('Error descargando contrato:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'No se pudo descargar el contrato',
+      });
+    }
+  };
+
+  const handlePreviewContract = async (worker: Worker) => {
+    if (!worker.contrato_pdf_path) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Este trabajador no tiene un contrato subido',
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(worker.contrato_pdf_path);
+
+      if (error) throw error;
+
+      const fileName = `Contrato_${worker.nombre}_${worker.rut}.pdf`;
+      await handlePreview(data, fileName);
+    } catch (error: any) {
+      console.error('Error previsualizando contrato:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'No se pudo previsualizar el contrato',
+      });
+    }
+  };
+
   const exportToPDF = async (worker: Worker) => {
     const doc = new jsPDF();
     
@@ -839,12 +908,57 @@ export default function RRHH() {
 
                     <div>
                       <Label>Contrato PDF</Label>
+                      {editingWorkerId && workers.find(w => w.id === editingWorkerId)?.contrato_pdf_path && (
+                        <div className="mb-2 p-2 bg-secondary/30 rounded border border-border">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">📄 Contrato actual subido</span>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const worker = workers.find(w => w.id === editingWorkerId);
+                                  if (worker) handlePreviewContract(worker);
+                                }}
+                                className="h-6 px-2 text-xs"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Ver
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const worker = workers.find(w => w.id === editingWorkerId);
+                                  if (worker) handleDownloadContract(worker);
+                                }}
+                                className="h-6 px-2 text-xs"
+                              >
+                                <Download className="h-3 w-3 mr-1" />
+                                Descargar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <Input
                         type="file"
                         accept=".pdf"
                         onChange={(e) => setContratoPdf(e.target.files?.[0] || null)}
                         className="bg-input border-border"
                       />
+                      {contratoPdf && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ✓ Nuevo archivo seleccionado: {contratoPdf.name}
+                        </p>
+                      )}
+                      {editingWorkerId && !contratoPdf && workers.find(w => w.id === editingWorkerId)?.contrato_pdf_path && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Si no selecciona un nuevo archivo, se mantendrá el contrato actual
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -1058,6 +1172,37 @@ export default function RRHH() {
                            worker.tipo_jornada === 'parcial_30' ? 'Parcial 30hrs' : 'Parcial 20hrs'}
                         </span>
                       </div>
+                      
+                      {/* Sección de Contrato */}
+                      {worker.contrato_pdf_path && (
+                        <div className="pt-2 border-t border-border">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">📄 Contrato:</span>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handlePreviewContract(worker)}
+                                className="h-7 px-2 text-xs hover:bg-primary/10"
+                                title="Vista previa del contrato"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Ver
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadContract(worker)}
+                                className="h-7 px-2 text-xs hover:bg-primary/10"
+                                title="Descargar contrato"
+                              >
+                                <Download className="h-3 w-3 mr-1" />
+                                Descargar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3">
