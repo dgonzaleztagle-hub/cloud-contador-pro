@@ -49,18 +49,10 @@ export default function Documents() {
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'text' | null>(null);
 
-  // Configure pdf.js worker usando la versión local
+  // Configure pdf.js worker
   useEffect(() => {
-    const initPdfWorker = async () => {
-      try {
-        // Importar el worker desde el paquete npm
-        const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs?url');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
-      } catch (error) {
-        console.error('Error cargando PDF worker:', error);
-      }
-    };
-    initPdfWorker();
+    // Usar worker desde CDN confiable
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
   }, []);
 
   // Filter state
@@ -273,7 +265,7 @@ export default function Documents() {
       const fileExtension = fileName.toLowerCase().split('.').pop();
 
       // Manejar archivos de texto plano
-      if (fileExtension === 'txt' || fileExtension === 'log' || fileExtension === 'md') {
+      if (fileExtension === 'txt' || fileExtension === 'log' || fileExtension === 'md' || fileExtension === 'csv') {
         const text = await data.text();
         setPreviewContent(text);
         setPreviewType('text');
@@ -284,18 +276,25 @@ export default function Documents() {
       // Manejar PDFs
       if (fileExtension === 'pdf') {
         try {
+          console.log('Iniciando renderizado de PDF...');
           const arrayBuffer = await data.arrayBuffer();
+          console.log('ArrayBuffer obtenido:', arrayBuffer.byteLength, 'bytes');
           
           // Cargar el documento PDF
           const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          console.log('Loading task creado');
+          
           const pdf = await loadingTask.promise;
+          console.log('PDF cargado, páginas:', pdf.numPages);
           
           // Obtener la primera página
           const page = await pdf.getPage(1);
+          console.log('Primera página obtenida');
           
           // Configurar el canvas para renderizar
-          const scale = 2.5; // Alta calidad
+          const scale = 2.0;
           const viewport = page.getViewport({ scale });
+          console.log('Viewport:', viewport.width, 'x', viewport.height);
           
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
@@ -308,32 +307,40 @@ export default function Documents() {
           canvas.width = viewport.width;
           
           // Renderizar la página en el canvas
-          await page.render({
+          const renderTask = page.render({
             canvasContext: context,
             viewport: viewport,
-          } as any).promise;
+          } as any);
           
-          // Convertir canvas a blob y crear URL
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              setPreviewUrl(url);
-              setPreviewType('image');
-              setIsLoadingPreview(false);
-            } else {
-              throw new Error('No se pudo crear la imagen del PDF');
-            }
-          }, 'image/png', 1.0);
+          await renderTask.promise;
+          console.log('Página renderizada exitosamente');
           
-        } catch (pdfError) {
-          console.error('Error renderizando PDF:', pdfError);
-          throw new Error('No se pudo renderizar el PDF. Intenta descargarlo.');
+          // Convertir canvas a blob
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('No se pudo crear el blob'));
+              }
+            }, 'image/png', 1.0);
+          });
+          
+          const url = URL.createObjectURL(blob);
+          setPreviewUrl(url);
+          setPreviewType('image');
+          setIsLoadingPreview(false);
+          console.log('Vista previa de PDF lista');
+          
+        } catch (pdfError: any) {
+          console.error('Error detallado renderizando PDF:', pdfError);
+          throw new Error(`No se pudo renderizar el PDF: ${pdfError.message}`);
         }
         return;
       }
 
       // Manejar imágenes
-      if (fileExtension && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(fileExtension)) {
+      if (fileExtension && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(fileExtension)) {
         const url = URL.createObjectURL(data);
         setPreviewUrl(url);
         setPreviewType('image');
@@ -344,7 +351,7 @@ export default function Documents() {
       // Para otros tipos de archivo (DOCX, XLSX, etc.)
       toast({
         title: 'Previsualización no disponible',
-        description: `Los archivos .${fileExtension} solo pueden descargarse. Haz clic en el botón de descarga.`,
+        description: `Los archivos .${fileExtension} solo pueden descargarse.`,
       });
       setIsPreviewOpen(false);
       setIsLoadingPreview(false);
@@ -354,7 +361,7 @@ export default function Documents() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'No se pudo previsualizar el archivo',
+        description: error.message || 'No se pudo previsualizar el archivo. Intenta descargarlo.',
       });
       setIsPreviewOpen(false);
       setIsLoadingPreview(false);
