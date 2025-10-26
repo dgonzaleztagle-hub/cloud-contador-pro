@@ -49,10 +49,10 @@ export default function Documents() {
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'text' | null>(null);
 
-  // Configure pdf.js worker
+  // Configure pdf.js worker desde archivo local
   useEffect(() => {
-    // Usar worker desde CDN confiable
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Usar el worker local desde public folder
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
   }, []);
 
   // Filter state
