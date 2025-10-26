@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, Coins, BookOpen, Users, LogOut, Settings, ClipboardList, Notebook } from 'lucide-react';
+import { Loader2, TrendingUp, Coins, BookOpen, Users, LogOut, Settings, UsersRound, Notebook } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
@@ -182,7 +182,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   RRHH
                 </CardTitle>
-                <ClipboardList className="h-4 w-4 text-primary" />
+                <UsersRound className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">0</div>
@@ -234,7 +234,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/rrhh')}
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
               >
-                <ClipboardList className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                <UsersRound className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Recursos Humanos</h3>
                 <p className="text-sm text-muted-foreground">Gestión de RRHH</p>
               </button>
