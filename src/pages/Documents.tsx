@@ -46,7 +46,7 @@ export default function Documents() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Filter state
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filterClientId, setFilterClientId] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
 
   // Form state
@@ -515,13 +515,25 @@ export default function Documents() {
             <div className="mb-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
                 <div>
-                  <Label>Buscar Cliente</Label>
-                  <Input
-                    placeholder="RUT, nombre o razón social..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-input border-border"
-                  />
+                  <Label>Cliente</Label>
+                  <Select value={filterClientId} onValueChange={setFilterClientId}>
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue placeholder="Todos los clientes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los clientes</SelectItem>
+                      {Array.from(new Set(files.map(f => f.client_id)))
+                        .map(clientId => {
+                          const file = files.find(f => f.client_id === clientId);
+                          return file?.clients ? (
+                            <SelectItem key={clientId} value={clientId}>
+                              {file.clients.rut} - {file.clients.razon_social}
+                            </SelectItem>
+                          ) : null;
+                        })
+                        .filter(Boolean)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Categoría</Label>
@@ -554,14 +566,8 @@ export default function Documents() {
                     // Filtro por categoría
                     if (filterCategory !== 'all' && file.file_category !== filterCategory) return false;
                     
-                    // Filtro por búsqueda (RUT, nombre o razón social)
-                    if (searchTerm) {
-                      const search = searchTerm.toLowerCase();
-                      const clientMatch = 
-                        file.clients?.razon_social?.toLowerCase().includes(search) ||
-                        file.clients?.rut?.toLowerCase().includes(search);
-                      if (!clientMatch) return false;
-                    }
+                    // Filtro por cliente
+                    if (filterClientId !== 'all' && file.client_id !== filterClientId) return false;
                     
                     return true;
                   })
