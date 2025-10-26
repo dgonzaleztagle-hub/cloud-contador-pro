@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye, Edit } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, ArrowLeft, Plus, Trash2, Users, FileText, Download, Eye, Edit, AlertTriangle, Power, PowerOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -15,7 +16,7 @@ import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
 import { DocumentPreviewDialog } from '@/components/DocumentPreviewDialog';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import jsPDF from 'jspdf';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Interfaces
@@ -35,25 +36,27 @@ interface Worker {
   client_id: string;
   rut: string;
   nombre: string;
-  periodo_mes: number;
-  periodo_anio: number;
   tipo_plazo: string;
   fecha_termino: string | null;
+  fecha_inicio: string | null;
   tipo_jornada: string;
   sucursal_id: string | null;
   contrato_pdf_path: string | null;
-  atrasos_horas: number;
-  atrasos_minutos: number;
-  permisos_horas: number;
-  permisos_minutos: number;
-  permisos_medio_dia: number;
-  permisos_dia_completo: number;
-  faltas_dia_completo: number;
-  faltas_medio_dia: number;
-  anticipo_monto: number;
+  activo: boolean;
   created_at: string;
+  updated_at: string;
   clients?: { rut: string; razon_social: string };
   sucursales?: { nombre: string };
+}
+
+interface ContractAlert {
+  worker_id: string;
+  worker_name: string;
+  worker_rut: string;
+  client_name: string;
+  fecha_termino: string;
+  days_remaining?: number;
+  days_expired?: number;
 }
 
 export default function RRHH() {
@@ -71,6 +74,7 @@ export default function RRHH() {
   const [filterClientId, setFilterClientId] = useState<string>('all');
   const [filterWorkerId, setFilterWorkerId] = useState<string>('all');
   const [fromClientView, setFromClientView] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   
   // Document preview hook
   const { previewUrl, previewContent, previewType, isPreviewOpen, isLoadingPreview, handlePreview, closePreview } = useDocumentPreview();
@@ -88,12 +92,15 @@ export default function RRHH() {
   // Lista de todos los trabajadores únicos para el filtro
   const [allWorkers, setAllWorkers] = useState<{id: string; nombre: string; rut: string}[]>([]);
 
+  // Contract alerts
+  const [expiringContracts, setExpiringContracts] = useState<ContractAlert[]>([]);
+  const [expiredContracts, setExpiredContracts] = useState<ContractAlert[]>([]);
+
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
   const [workerRut, setWorkerRut] = useState('');
   const [workerNombre, setWorkerNombre] = useState('');
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [anio, setAnio] = useState(new Date().getFullYear());
+  const [fechaInicio, setFechaInicio] = useState('');
   const [tipoplazo, setTipoPlazo] = useState('indefinido');
   const [fechaTermino, setFechaTermino] = useState('');
   const [tipoJornada, setTipoJornada] = useState('completa');
@@ -101,17 +108,7 @@ export default function RRHH() {
   const [nuevaSucursal, setNuevaSucursal] = useState('');
   const [mostrarNuevaSucursal, setMostrarNuevaSucursal] = useState(false);
   const [contratoPdf, setContratoPdf] = useState<File | null>(null);
-
-  // Descuentos (legacy - mantenidos para compatibilidad)
-  const [atrasosHoras, setAtrasosHoras] = useState('0');
-  const [atrasosMinutos, setAtrasosMinutos] = useState('0');
-  const [permisosHoras, setPermisosHoras] = useState('0');
-  const [permisosMinutos, setPermisosMinutos] = useState('0');
-  const [permisosMedioDia, setPermisosMedioDia] = useState('0');
-  const [permisosDiaCompleto, setPermisosDiaCompleto] = useState('0');
-  const [faltasDiaCompleto, setFaltasDiaCompleto] = useState('0');
-  const [faltasMedioDia, setFaltasMedioDia] = useState('0');
-  const [anticipoMonto, setAnticipoMonto] = useState('0');
+  const [workerActivo, setWorkerActivo] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -121,132 +118,41 @@ export default function RRHH() {
 
   useEffect(() => {
     if (user) {
+      const params = new URLSearchParams(location.search);
+      const clientIdFromUrl = params.get('clientId');
+      
+      if (clientIdFromUrl) {
+        setFilterClientId(clientIdFromUrl);
+        setFromClientView(true);
+      }
+      
       loadData();
-      loadAllWorkers();
+      loadContractAlerts();
     }
-  }, [user, viewMes, viewAnio, filterClientId, filterWorkerId]);
+  }, [user, filterClientId, filterWorkerId, viewMes, viewAnio, showInactive]);
 
-  useEffect(() => {
-    const state = location.state as { clientId?: string };
-    if (state?.clientId) {
-      setFilterClientId(state.clientId);
-      setFromClientView(true);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location]);
+  const canModify = userRole === 'master' || userRole === 'admin';
 
-  const loadWorkerEvents = async () => {
-    if (filterClientId === 'all') return;
-
-    const { data, error } = await supabase
-      .from('worker_events')
-      .select('*')
-      .eq('client_id', filterClientId)
-      .eq('periodo_mes', viewMes)
-      .eq('periodo_anio', viewAnio);
-
-    if (!error && data) {
-      const totals: Record<string, any> = {};
-      data.forEach((event: any) => {
-        if (!totals[event.worker_id]) {
-          totals[event.worker_id] = {
-            atraso: 0,
-            falta_completa: 0,
-            falta_media: 0,
-            permiso_horas: 0,
-            permiso_medio_dia: 0,
-            permiso_completo: 0,
-            anticipo: 0,
-            licencia_medica: 0
-          };
-        }
-        totals[event.worker_id][event.event_type] += Number(event.cantidad);
-      });
-      setEventTotals(totals);
-    }
-  };
-
-  const loadAllWorkers = async () => {
-    if (filterClientId === 'all') {
+  const loadAllWorkers = async (clientId: string) => {
+    if (clientId === 'all') {
       setAllWorkers([]);
       return;
     }
 
-    // Obtener todos los trabajadores únicos del cliente seleccionado
     const { data, error } = await supabase
       .from('rrhh_workers')
       .select('id, nombre, rut')
-      .eq('client_id', filterClientId)
+      .eq('client_id', clientId)
       .order('nombre');
 
     if (!error && data) {
-      // Eliminar duplicados por RUT (trabajadores que aparecen en varios meses)
-      const uniqueWorkers = data.reduce((acc: any[], worker) => {
-        if (!acc.find(w => w.rut === worker.rut)) {
-          acc.push(worker);
-        }
-        return acc;
-      }, []);
-      setAllWorkers(uniqueWorkers);
+      setAllWorkers(data);
     }
   };
 
-  const loadData = async () => {
-    setLoadingData(true);
-
-    // Load clients
-    const { data: clientsData, error: clientsError } = await supabase
-      .from('clients')
-      .select('id, rut, razon_social')
-      .eq('activo', true)
-      .order('razon_social');
-
-    if (clientsError) {
-      console.error('Error loading clients:', clientsError);
-    } else {
-      setClients(clientsData || []);
-    }
-
-    // Load sucursales
-    const { data: sucursalesData, error: sucursalesError } = await supabase
-      .from('sucursales')
-      .select('*')
-      .order('nombre');
-
-    if (sucursalesError) {
-      console.error('Error loading sucursales:', sucursalesError);
-    } else {
-      setSucursales(sucursalesData || []);
-    }
-
-    // Load workers for the selected period
-    let workersQuery = supabase
-      .from('rrhh_workers')
-      .select('*, clients(rut, razon_social), sucursales(nombre)')
-      .eq('periodo_mes', viewMes)
-      .eq('periodo_anio', viewAnio);
-
-    if (filterClientId !== 'all') {
-      workersQuery = workersQuery.eq('client_id', filterClientId);
-    }
-
-    const { data: workersData, error: workersError } = await workersQuery.order('created_at', { ascending: false });
-
-    if (workersError) {
-      console.error('Error loading workers:', workersError);
-    } else {
-      let filteredWorkers = workersData || [];
-      
-      // Aplicar filtro adicional por trabajador si está seleccionado
-      if (filterWorkerId !== 'all') {
-        filteredWorkers = filteredWorkers.filter(w => w.id === filterWorkerId);
-      }
-      
-      setWorkers(filteredWorkers);
-    }
-
-    await loadWorkerEvents();
-    setLoadingData(false);
+  const getEventTotal = (workerId: string, eventType: string): number => {
+    const key = `${workerId}_${eventType}`;
+    return eventTotals[key] || 0;
   };
 
   const openEventDialog = (workerId: string, workerName: string, eventType: any) => {
@@ -255,17 +161,136 @@ export default function RRHH() {
     setIsEventDialogOpen(true);
   };
 
-  const getEventTotal = (workerId: string, eventType: string) => {
-    return eventTotals[workerId]?.[eventType] || 0;
+  const loadData = async () => {
+    try {
+      setLoadingData(true);
+
+      // Cargar clientes
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, rut, razon_social')
+        .eq('activo', true)
+        .order('razon_social');
+
+      if (clientsError) throw clientsError;
+      setClients(clientsData || []);
+
+      // Cargar sucursales
+      const { data: sucursalesData, error: sucursalesError } = await supabase
+        .from('sucursales')
+        .select('id, nombre')
+        .order('nombre');
+
+      if (sucursalesError) throw sucursalesError;
+      setSucursales(sucursalesData || []);
+
+      // Cargar todos los trabajadores para el filtro
+      if (filterClientId !== 'all') {
+        await loadAllWorkers(filterClientId);
+      }
+
+      // Cargar trabajadores (fichas)
+      let query = supabase
+        .from('rrhh_workers')
+        .select(`
+          *,
+          clients(rut, razon_social),
+          sucursales(nombre)
+        `)
+        .order('nombre');
+
+      // Filtrar por estado activo/inactivo
+      if (!showInactive) {
+        query = query.eq('activo', true);
+      }
+
+      // Aplicar filtro de cliente
+      if (filterClientId !== 'all') {
+        query = query.eq('client_id', filterClientId);
+      }
+
+      // Aplicar filtro de trabajador específico
+      if (filterWorkerId !== 'all') {
+        query = query.eq('id', filterWorkerId);
+      }
+
+      const { data: workersData, error: workersError } = await query;
+
+      if (workersError) throw workersError;
+      setWorkers(workersData || []);
+
+      // Cargar eventos del período seleccionado para todos los trabajadores
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('worker_events')
+        .select('*')
+        .eq('periodo_mes', viewMes)
+        .eq('periodo_anio', viewAnio);
+
+      if (eventsError) throw eventsError;
+
+      // Calcular totales por trabajador y tipo de evento
+      const totals: Record<string, any> = {};
+      (eventsData || []).forEach(event => {
+        const key = `${event.worker_id}_${event.event_type}`;
+        if (!totals[key]) {
+          totals[key] = 0;
+        }
+        totals[key] += parseFloat(event.cantidad);
+      });
+
+      setEventTotals(totals);
+    } catch (error: any) {
+      console.error('Error loading data:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'No se pudo cargar los datos',
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const loadContractAlerts = async () => {
+    try {
+      // Cargar contratos por vencer (próximos 30 días)
+      const { data: expiringData, error: expiringError } = await supabase
+        .rpc('get_expiring_contracts', { days_threshold: 30 });
+
+      if (!expiringError) {
+        setExpiringContracts(expiringData || []);
+      }
+
+      // Cargar contratos vencidos
+      const { data: expiredData, error: expiredError } = await supabase
+        .rpc('get_expired_contracts');
+
+      if (!expiredError) {
+        setExpiredContracts(expiredData || []);
+      }
+    } catch (error) {
+      console.error('Error loading contract alerts:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedClientId || !workerRut || !workerNombre) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Por favor completa todos los campos requeridos',
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     let finalSucursalId = sucursalId;
 
-    if (mostrarNuevaSucursal && nuevaSucursal.trim()) {
+    // Si hay nueva sucursal, crearla primero
+    if (mostrarNuevaSucursal && nuevaSucursal) {
       const { data: newSucursal, error: sucursalError } = await supabase
         .from('sucursales')
         .insert({ nombre: nuevaSucursal })
@@ -276,7 +301,7 @@ export default function RRHH() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'No se pudo crear la sucursal',
+          description: 'No se pudo crear la nueva sucursal',
         });
         setIsSaving(false);
         return;
@@ -310,22 +335,13 @@ export default function RRHH() {
       client_id: selectedClientId,
       rut: workerRut,
       nombre: workerNombre,
-      periodo_mes: mes,
-      periodo_anio: anio,
+      fecha_inicio: fechaInicio || null,
       tipo_plazo: tipoplazo,
       fecha_termino: tipoplazo === 'fijo' ? fechaTermino : null,
       tipo_jornada: tipoJornada,
       sucursal_id: finalSucursalId || null,
       contrato_pdf_path: contratoPdfPath,
-      atrasos_horas: parseInt(atrasosHoras) || 0,
-      atrasos_minutos: parseInt(atrasosMinutos) || 0,
-      permisos_horas: parseInt(permisosHoras) || 0,
-      permisos_minutos: parseInt(permisosMinutos) || 0,
-      permisos_medio_dia: parseInt(permisosMedioDia) || 0,
-      permisos_dia_completo: parseInt(permisosDiaCompleto) || 0,
-      faltas_dia_completo: parseInt(faltasDiaCompleto) || 0,
-      faltas_medio_dia: parseInt(faltasMedioDia) || 0,
-      anticipo_monto: parseFloat(anticipoMonto) || 0,
+      activo: workerActivo,
     };
 
     let error;
@@ -349,11 +365,12 @@ export default function RRHH() {
     } else {
       toast({
         title: editingWorkerId ? 'Trabajador actualizado' : 'Trabajador guardado',
-        description: editingWorkerId ? 'Los datos del trabajador se actualizaron exitosamente' : 'El registro del trabajador se guardó exitosamente',
+        description: editingWorkerId ? 'Los datos del trabajador se actualizaron exitosamente' : 'La ficha del trabajador se guardó exitosamente',
       });
       resetForm();
       setIsDialogOpen(false);
       loadData();
+      loadContractAlerts();
     }
     setIsSaving(false);
   };
@@ -363,21 +380,12 @@ export default function RRHH() {
     setSelectedClientId(worker.client_id);
     setWorkerRut(worker.rut);
     setWorkerNombre(worker.nombre);
-    setMes(worker.periodo_mes);
-    setAnio(worker.periodo_anio);
+    setFechaInicio(worker.fecha_inicio || '');
     setTipoPlazo(worker.tipo_plazo);
     setFechaTermino(worker.fecha_termino || '');
     setTipoJornada(worker.tipo_jornada);
     setSucursalId(worker.sucursal_id || '');
-    setAtrasosHoras(worker.atrasos_horas.toString());
-    setAtrasosMinutos(worker.atrasos_minutos.toString());
-    setPermisosHoras(worker.permisos_horas.toString());
-    setPermisosMinutos(worker.permisos_minutos.toString());
-    setPermisosMedioDia(worker.permisos_medio_dia.toString());
-    setPermisosDiaCompleto(worker.permisos_dia_completo.toString());
-    setFaltasDiaCompleto(worker.faltas_dia_completo.toString());
-    setFaltasMedioDia(worker.faltas_medio_dia.toString());
-    setAnticipoMonto(worker.anticipo_monto.toString());
+    setWorkerActivo(worker.activo);
     setIsDialogOpen(true);
   };
 
@@ -386,6 +394,7 @@ export default function RRHH() {
     setSelectedClientId('');
     setWorkerRut('');
     setWorkerNombre('');
+    setFechaInicio('');
     setTipoPlazo('indefinido');
     setFechaTermino('');
     setTipoJornada('completa');
@@ -393,34 +402,50 @@ export default function RRHH() {
     setNuevaSucursal('');
     setMostrarNuevaSucursal(false);
     setContratoPdf(null);
-    setAtrasosHoras('0');
-    setAtrasosMinutos('0');
-    setPermisosHoras('0');
-    setPermisosMinutos('0');
-    setPermisosMedioDia('0');
-    setPermisosDiaCompleto('0');
-    setFaltasDiaCompleto('0');
-    setFaltasMedioDia('0');
-    setAnticipoMonto('0');
+    setWorkerActivo(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este registro?')) {
+    if (confirm('¿Estás seguro de eliminar este trabajador? Se eliminarán también todos sus eventos registrados.')) {
       const { error } = await supabase.from('rrhh_workers').delete().eq('id', id);
 
       if (error) {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'No se pudo eliminar el registro',
+          description: 'No se pudo eliminar el trabajador',
         });
       } else {
         toast({
-          title: 'Registro eliminado',
-          description: 'El registro se eliminó exitosamente',
+          title: 'Trabajador eliminado',
+          description: 'El trabajador se eliminó exitosamente',
         });
         loadData();
+        loadContractAlerts();
       }
+    }
+  };
+
+  const toggleWorkerStatus = async (worker: Worker) => {
+    const newStatus = !worker.activo;
+    const { error } = await supabase
+      .from('rrhh_workers')
+      .update({ activo: newStatus })
+      .eq('id', worker.id);
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo cambiar el estado del trabajador',
+      });
+    } else {
+      toast({
+        title: newStatus ? 'Trabajador activado' : 'Trabajador desactivado',
+        description: `${worker.nombre} ahora está ${newStatus ? 'activo' : 'inactivo'}`,
+      });
+      loadData();
+      loadContractAlerts();
     }
   };
 
@@ -513,8 +538,8 @@ export default function RRHH() {
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(52, 73, 94);
-    const mesTexto = meses[worker.periodo_mes - 1].toUpperCase();
-    doc.text(`INFORME DESCUENTOS ${mesTexto} ${worker.periodo_anio}`, 105, 25, { align: 'center' });
+    const mesTexto = meses[viewMes - 1].toUpperCase();
+    doc.text(`INFORME DESCUENTOS ${mesTexto} ${viewAnio}`, 105, 25, { align: 'center' });
     
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
@@ -599,7 +624,7 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
-    const fileName = `Informe_RRHH_${worker.rut}_${meses[worker.periodo_mes - 1]}_${worker.periodo_anio}.pdf`;
+    const fileName = `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.pdf`;
     doc.save(fileName);
     
     toast({
@@ -628,8 +653,8 @@ export default function RRHH() {
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(52, 73, 94);
-    const mesTexto = meses[worker.periodo_mes - 1].toUpperCase();
-    doc.text(`INFORME DESCUENTOS ${mesTexto} ${worker.periodo_anio}`, 105, 25, { align: 'center' });
+    const mesTexto = meses[viewMes - 1].toUpperCase();
+    doc.text(`INFORME DESCUENTOS ${mesTexto} ${viewAnio}`, 105, 25, { align: 'center' });
     
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
@@ -716,7 +741,7 @@ export default function RRHH() {
     
     // Generar PDF como blob y usar el hook para previsualizar
     const pdfBlob = doc.output('blob');
-    const fileName = `Informe_RRHH_${worker.rut}_${meses[worker.periodo_mes - 1]}_${worker.periodo_anio}.pdf`;
+    const fileName = `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.pdf`;
     await handlePreview(pdfBlob, fileName);
   };
 
@@ -724,9 +749,6 @@ export default function RRHH() {
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
-
-  const canModify = userRole === 'master' || userRole === 'contador';
-  const canAddEvents = userRole === 'master' || userRole === 'contador' || userRole === 'cliente';
 
   if (loading || loadingData) {
     return (
@@ -738,37 +760,38 @@ export default function RRHH() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="bg-card border-b border-border sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-                className="text-muted-foreground hover:text-primary"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver
-              </Button>
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {fromClientView && filterClientId !== 'all' 
-                  ? `RRHH - ${clients.find(c => c.id === filterClientId)?.razon_social || 'Cliente'}`
-                  : 'Recursos Humanos'
-                }
-              </h1>
+              {fromClientView && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(-1)}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Volver
+                </Button>
+              )}
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Recursos Humanos</h1>
+                <p className="text-sm text-muted-foreground">Gestión de trabajadores y eventos mensuales</p>
+              </div>
             </div>
+
             {canModify && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-primary to-accent">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nuevo Trabajador
+                  <Button className="gap-2 bg-gradient-to-r from-primary to-accent">
+                    <Plus className="h-4 w-4" />
+                    Nueva Ficha de Trabajador
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>{editingWorkerId ? 'Editar Trabajador' : 'Nuevo Registro de Trabajador'}</DialogTitle>
+                    <DialogTitle>{editingWorkerId ? 'Editar Trabajador' : 'Nueva Ficha de Trabajador'}</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -808,6 +831,16 @@ export default function RRHH() {
                           className="bg-input border-border"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <Label>Fecha de Inicio</Label>
+                      <Input
+                        type="date"
+                        value={fechaInicio}
+                        onChange={(e) => setFechaInicio(e.target.value)}
+                        className="bg-input border-border"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -961,31 +994,20 @@ export default function RRHH() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Mes</Label>
-                        <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v))}>
-                          <SelectTrigger className="bg-input border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card border-border z-50">
-                            {meses.map((m, i) => (
-                              <SelectItem key={i} value={(i + 1).toString()}>
-                                {m}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Año</Label>
-                        <Input
-                          type="number"
-                          value={anio}
-                          onChange={(e) => setAnio(parseInt(e.target.value))}
-                          className="bg-input border-border"
-                        />
-                      </div>
+                    <div>
+                      <Label>Estado del Trabajador</Label>
+                      <Select value={workerActivo ? 'activo' : 'inactivo'} onValueChange={(v) => setWorkerActivo(v === 'activo')}>
+                        <SelectTrigger className="bg-input border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border z-50">
+                          <SelectItem value="activo">✓ Activo</SelectItem>
+                          <SelectItem value="inactivo">⊗ Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Los trabajadores inactivos no generan alertas de contratos vencidos
+                      </p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
@@ -1006,7 +1028,7 @@ export default function RRHH() {
                             Guardando...
                           </>
                         ) : (
-                          <>{editingWorkerId ? 'Actualizar Registro' : 'Guardar Registro'}</>
+                          <>{editingWorkerId ? 'Actualizar Ficha' : 'Guardar Ficha'}</>
                         )}
                       </Button>
                     </div>
@@ -1020,13 +1042,52 @@ export default function RRHH() {
 
       <main className="flex-1 container mx-auto px-6 py-8">
         <div className="space-y-6">
+          {/* Alertas de contratos */}
+          {expiredContracts.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Contratos vencidos ({expiredContracts.length}):</strong>
+                <ul className="mt-2 space-y-1">
+                  {expiredContracts.slice(0, 3).map((contract) => (
+                    <li key={contract.worker_id} className="text-sm">
+                      {contract.worker_name} ({contract.client_name}) - Vencido hace {contract.days_expired} días
+                    </li>
+                  ))}
+                  {expiredContracts.length > 3 && (
+                    <li className="text-sm italic">Y {expiredContracts.length - 3} más...</li>
+                  )}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {expiringContracts.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Contratos por vencer ({expiringContracts.length}):</strong>
+                <ul className="mt-2 space-y-1">
+                  {expiringContracts.slice(0, 3).map((contract) => (
+                    <li key={contract.worker_id} className="text-sm">
+                      {contract.worker_name} ({contract.client_name}) - Vence en {contract.days_remaining} días
+                    </li>
+                  ))}
+                  {expiringContracts.length > 3 && (
+                    <li className="text-sm italic">Y {expiringContracts.length - 3} más...</li>
+                  )}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Filtros principales */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
             <div>
               <Label>Cliente</Label>
               <Select value={filterClientId} onValueChange={(val) => {
                 setFilterClientId(val);
-                setFilterWorkerId('all'); // Reset worker filter when client changes
+                setFilterWorkerId('all');
               }}>
                 <SelectTrigger className="w-full bg-input border-border">
                   <SelectValue placeholder="Seleccionar cliente" />
@@ -1102,6 +1163,16 @@ export default function RRHH() {
                 </Select>
               </div>
             </div>
+
+            <div className="flex items-end">
+              <Button
+                variant={showInactive ? "default" : "outline"}
+                onClick={() => setShowInactive(!showInactive)}
+                className="w-full"
+              >
+                {showInactive ? 'Mostrando Todos' : 'Solo Activos'}
+              </Button>
+            </div>
           </div>
 
           {workers.length === 0 ? (
@@ -1109,22 +1180,38 @@ export default function RRHH() {
               <CardContent className="py-12 text-center">
                 <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  No hay registros de trabajadores para el período seleccionado
+                  No hay fichas de trabajadores {showInactive ? '' : 'activos'}
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {workers.map((worker) => (
-                <Card key={worker.id} className="bg-card border-border hover:border-primary/50 transition-all">
+                <Card key={worker.id} className={`bg-card border-border hover:border-primary/50 transition-all ${!worker.activo ? 'opacity-60' : ''}`}>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-start justify-between">
                       <div className="space-y-1">
-                        <div className="font-bold">{worker.nombre}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold">{worker.nombre}</div>
+                          {!worker.activo && (
+                            <span className="text-muted-foreground" title="Inactivo">
+                              <PowerOff className="h-4 w-4" />
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground font-normal">{worker.rut}</div>
                       </div>
                       {canModify && (
                         <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleWorkerStatus(worker)}
+                            className="h-8 w-8 p-0"
+                            title={worker.activo ? 'Desactivar' : 'Activar'}
+                          >
+                            {worker.activo ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1152,8 +1239,8 @@ export default function RRHH() {
                         <span className="font-medium text-right">{worker.clients?.razon_social}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Período:</span>
-                        <span className="font-medium">{meses[worker.periodo_mes - 1]} {worker.periodo_anio}</span>
+                        <span className="text-muted-foreground">Período de visualización:</span>
+                        <span className="font-medium">{meses[viewMes - 1]} {viewAnio}</span>
                       </div>
                       {worker.sucursales && (
                         <div className="flex justify-between">
@@ -1206,7 +1293,7 @@ export default function RRHH() {
                     </div>
 
                     <div className="space-y-3">
-                      {canModify && (
+                      {canModify && worker.activo && (
                         <div className="flex gap-2">
                           <Select 
                             onValueChange={(eventType: any) => openEventDialog(worker.id, worker.nombre, eventType)}
@@ -1228,7 +1315,7 @@ export default function RRHH() {
                         </div>
                       )}
                       
-                      <h4 className="text-sm font-semibold text-foreground pt-2">Resumen Mensual</h4>
+                      <h4 className="text-sm font-semibold text-foreground pt-2">Resumen Mensual ({meses[viewMes - 1]} {viewAnio})</h4>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'atraso')}
@@ -1302,18 +1389,18 @@ export default function RRHH() {
                         variant="outline"
                         size="sm"
                         onClick={() => previewPDF(worker)}
-                        className="flex-1"
+                        className="flex-1 gap-2"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
+                        <Eye className="h-4 w-4" />
                         Vista Previa
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => exportToPDF(worker)}
-                        className="flex-1"
+                        className="flex-1 gap-2"
                       >
-                        <Download className="h-4 w-4 mr-1" />
+                        <Download className="h-4 w-4" />
                         Exportar PDF
                       </Button>
                     </div>
@@ -1325,11 +1412,11 @@ export default function RRHH() {
         </div>
       </main>
 
-      {selectedWorker && filterClientId !== 'all' && (
+      {selectedWorker && (
         <WorkerEventsDialog
           workerId={selectedWorker.id}
-          clientId={filterClientId}
           workerName={selectedWorker.name}
+          clientId={filterClientId !== 'all' ? filterClientId : workers.find(w => w.id === selectedWorker.id)?.client_id || ''}
           eventType={selectedEventType}
           periodMes={viewMes}
           periodAnio={viewAnio}

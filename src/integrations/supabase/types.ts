@@ -433,23 +433,14 @@ export type Database = {
       }
       rrhh_workers: {
         Row: {
-          anticipo_monto: number | null
-          atrasos_horas: number | null
-          atrasos_minutos: number | null
+          activo: boolean
           client_id: string
           contrato_pdf_path: string | null
           created_at: string
-          faltas_dia_completo: number | null
-          faltas_medio_dia: number | null
+          fecha_inicio: string | null
           fecha_termino: string | null
           id: string
           nombre: string
-          periodo_anio: number
-          periodo_mes: number
-          permisos_dia_completo: number | null
-          permisos_horas: number | null
-          permisos_medio_dia: number | null
-          permisos_minutos: number | null
           rut: string
           sucursal_id: string | null
           tipo_jornada: string
@@ -457,23 +448,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          anticipo_monto?: number | null
-          atrasos_horas?: number | null
-          atrasos_minutos?: number | null
+          activo?: boolean
           client_id: string
           contrato_pdf_path?: string | null
           created_at?: string
-          faltas_dia_completo?: number | null
-          faltas_medio_dia?: number | null
+          fecha_inicio?: string | null
           fecha_termino?: string | null
           id?: string
           nombre: string
-          periodo_anio: number
-          periodo_mes: number
-          permisos_dia_completo?: number | null
-          permisos_horas?: number | null
-          permisos_medio_dia?: number | null
-          permisos_minutos?: number | null
           rut: string
           sucursal_id?: string | null
           tipo_jornada?: string
@@ -481,23 +463,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          anticipo_monto?: number | null
-          atrasos_horas?: number | null
-          atrasos_minutos?: number | null
+          activo?: boolean
           client_id?: string
           contrato_pdf_path?: string | null
           created_at?: string
-          faltas_dia_completo?: number | null
-          faltas_medio_dia?: number | null
+          fecha_inicio?: string | null
           fecha_termino?: string | null
           id?: string
           nombre?: string
-          periodo_anio?: number
-          periodo_mes?: number
-          permisos_dia_completo?: number | null
-          permisos_horas?: number | null
-          permisos_medio_dia?: number | null
-          permisos_minutos?: number | null
           rut?: string
           sucursal_id?: string | null
           tipo_jornada?: string
@@ -604,6 +577,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_expired_contracts: {
+        Args: never
+        Returns: {
+          client_name: string
+          days_expired: number
+          fecha_termino: string
+          worker_id: string
+          worker_name: string
+          worker_rut: string
+        }[]
+      }
+      get_expiring_contracts: {
+        Args: { days_threshold?: number }
+        Returns: {
+          client_name: string
+          days_remaining: number
+          fecha_termino: string
+          worker_id: string
+          worker_name: string
+          worker_rut: string
+        }[]
+      }
       has_any_role: {
         Args: { _roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
