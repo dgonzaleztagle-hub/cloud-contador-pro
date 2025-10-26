@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface Client {
   id: string;
@@ -44,6 +45,12 @@ export default function Documents() {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  // Configure pdf.js worker
+  useEffect(() => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }, []);
 
   // Filter state
   const [filterClientId, setFilterClientId] = useState('all');
@@ -237,6 +244,9 @@ export default function Documents() {
   };
 
   const handlePreview = async (filePath: string, fileName: string) => {
+    setIsLoadingPreview(true);
+    setIsPreviewOpen(true);
+    
     try {
       const { data, error } = await supabase.storage
         .from('documents')
@@ -246,52 +256,75 @@ export default function Documents() {
         throw error;
       }
 
-      // Si es PDF, convertir a imagen
+      // Si es PDF, renderizar la primera página como imagen
       if (fileName.toLowerCase().endsWith('.pdf')) {
         const arrayBuffer = await data.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
         
-        // Cargar PDF con iframe temporal para convertir a imagen
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
+        // Cargar el documento PDF
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
         
-        // Esperar a que cargue y tomar captura
-        setTimeout(async () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (ctx && iframe.contentWindow) {
-              canvas.width = 800;
-              canvas.height = 1100;
-              
-              // Crear imagen del PDF
-              const imgUrl = url;
-              setPreviewUrl(imgUrl);
-              setIsPreviewOpen(true);
-            }
-          } catch (e) {
-            // Si falla, mostrar el PDF directamente
+        // Obtener la primera página
+        const page = await pdf.getPage(1);
+        
+        // Configurar el canvas para renderizar
+        const scale = 2; // Mayor escala para mejor calidad
+        const viewport = page.getViewport({ scale });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        if (!context) {
+          throw new Error('No se pudo crear el contexto del canvas');
+        }
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        // Renderizar la página en el canvas
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+        
+        await page.render(renderContext as any).promise;
+        
+        // Convertir canvas a blob y crear URL
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
             setPreviewUrl(url);
-            setIsPreviewOpen(true);
-          } finally {
-            document.body.removeChild(iframe);
+            setIsLoadingPreview(false);
+          } else {
+            throw new Error('No se pudo crear la imagen del PDF');
           }
-        }, 500);
-      } else {
-        // Para imágenes y otros archivos
+        }, 'image/png', 1.0);
+        
+      } else if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        // Para imágenes, mostrar directamente
         const url = URL.createObjectURL(data);
         setPreviewUrl(url);
-        setIsPreviewOpen(true);
+        setIsLoadingPreview(false);
+      } else {
+        // Para otros tipos de archivo
+        toast({
+          variant: 'destructive',
+          title: 'Tipo de archivo no soportado',
+          description: 'Solo se pueden previsualizar PDFs e imágenes. Por favor, descarga el archivo.',
+        });
+        setIsPreviewOpen(false);
+        setIsLoadingPreview(false);
       }
+      
     } catch (error: any) {
+      console.error('Error en previsualización:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
         description: error.message || 'No se pudo previsualizar el archivo',
       });
+      setIsPreviewOpen(false);
+      setIsLoadingPreview(false);
     }
   };
 
@@ -649,25 +682,24 @@ export default function Documents() {
 
         {/* Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogContent className="max-w-4xl max-h-[90vh] bg-card border-border">
             <DialogHeader>
               <DialogTitle>Previsualización del Documento</DialogTitle>
             </DialogHeader>
-            <div className="flex justify-center items-center overflow-auto max-h-[70vh]">
-              {previewUrl && (
-                previewUrl.includes('application/pdf') || previewUrl.endsWith('.pdf') ? (
-                  <embed
-                    src={previewUrl}
-                    type="application/pdf"
-                    className="w-full h-[70vh]"
-                  />
-                ) : (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-w-full h-auto rounded shadow-lg"
-                  />
-                )
+            <div className="flex justify-center items-center overflow-auto max-h-[75vh] bg-muted/30 rounded-lg p-4">
+              {isLoadingPreview ? (
+                <div className="flex flex-col items-center gap-4 py-12">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Generando previsualización...</p>
+                </div>
+              ) : previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-w-full h-auto rounded shadow-lg"
+                />
+              ) : (
+                <p className="text-muted-foreground">No se pudo cargar la previsualización</p>
               )}
             </div>
           </DialogContent>
