@@ -57,7 +57,7 @@ export const useDocumentPreview = (): UseDocumentPreviewReturn => {
         return;
       }
 
-      // Manejar PDFs
+      // Manejar PDFs - renderizar todas las páginas
       if (fileExtension === 'pdf') {
         try {
           console.log('Iniciando renderizado de PDF...');
@@ -66,41 +66,76 @@ export const useDocumentPreview = (): UseDocumentPreviewReturn => {
           // Cargar el documento PDF
           const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
           const pdf = await loadingTask.promise;
+          const numPages = pdf.numPages;
           
-          // Obtener la primera página
-          const page = await pdf.getPage(1);
+          console.log(`PDF tiene ${numPages} página(s)`);
           
-          // Configurar el canvas para renderizar
-          const scale = 2.0;
-          const viewport = page.getViewport({ scale });
+          // Array para almacenar los canvas de cada página
+          const pageCanvases: HTMLCanvasElement[] = [];
           
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
+          // Escala optimizada para visualización (menor para que quepa mejor)
+          const scale = 1.5;
           
-          if (!context) {
-            throw new Error('No se pudo crear el contexto del canvas');
+          // Renderizar cada página
+          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (!context) {
+              throw new Error('No se pudo crear el contexto del canvas');
+            }
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            // Renderizar la página en el canvas
+            await page.render({
+              canvasContext: context,
+              viewport: viewport,
+            } as any).promise;
+            
+            pageCanvases.push(canvas);
           }
           
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
+          // Crear un canvas combinado con todas las páginas apiladas verticalmente
+          const combinedCanvas = document.createElement('canvas');
+          const combinedContext = combinedCanvas.getContext('2d');
           
-          // Renderizar la página en el canvas
-          const renderTask = page.render({
-            canvasContext: context,
-            viewport: viewport,
-          } as any);
+          if (!combinedContext) {
+            throw new Error('No se pudo crear el contexto del canvas combinado');
+          }
           
-          await renderTask.promise;
+          // Calcular dimensiones del canvas combinado
+          const maxWidth = Math.max(...pageCanvases.map(c => c.width));
+          const totalHeight = pageCanvases.reduce((sum, c) => sum + c.height, 0);
+          const spacing = 20; // Espacio entre páginas
           
-          // Convertir canvas a blob
+          combinedCanvas.width = maxWidth;
+          combinedCanvas.height = totalHeight + (spacing * (numPages - 1));
+          
+          // Fondo blanco
+          combinedContext.fillStyle = '#ffffff';
+          combinedContext.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+          
+          // Dibujar cada página en el canvas combinado
+          let currentY = 0;
+          for (const pageCanvas of pageCanvases) {
+            combinedContext.drawImage(pageCanvas, 0, currentY);
+            currentY += pageCanvas.height + spacing;
+          }
+          
+          // Convertir canvas combinado a blob
           const imageBlob = await new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob((blob) => {
+            combinedCanvas.toBlob((blob) => {
               if (blob) {
                 resolve(blob);
               } else {
                 reject(new Error('No se pudo crear el blob'));
               }
-            }, 'image/png', 1.0);
+            }, 'image/png', 0.95);
           });
           
           const url = URL.createObjectURL(imageBlob);
