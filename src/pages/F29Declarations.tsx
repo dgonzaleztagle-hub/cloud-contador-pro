@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye, BarChart3 } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye, BarChart3, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -386,6 +386,24 @@ export default function F29Declarations() {
   const cancelClientChange = () => {
     setPendingClientId(null);
     setShowClearFormAlert(false);
+  };
+
+  const handleEdit = (declaration: F29Declaration) => {
+    setEditingDeclarationId(declaration.id);
+    setSelectedClientId(declaration.client_id);
+    setMes(declaration.periodo_mes);
+    setAnio(declaration.periodo_anio);
+    setIvaVentas(declaration.iva_ventas.toString());
+    setIvaCompras(declaration.iva_compras.toString());
+    setPpm(declaration.ppm.toString());
+    setHonorarios(declaration.honorarios.toString());
+    setRetencion2cat(declaration.retencion_2cat.toString());
+    setImpuestoUnico(declaration.impuesto_unico.toString());
+    setRemanenteAnterior(declaration.remanente_anterior.toString());
+    setObservaciones(declaration.observaciones || '');
+    setEstadoHonorarios(declaration.estado_honorarios);
+    setEstadoDeclaracion(declaration.estado_declaracion);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -1096,6 +1114,17 @@ export default function F29Declarations() {
                       )}
                     </div>
                     <div className="flex gap-2">
+                      {canModify && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(declaration)}
+                          className="text-primary hover:text-primary"
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
