@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -155,6 +156,126 @@ export default function ClientDetails() {
     setShowDeleteDialog(false);
   };
 
+  const handleDownloadPDF = () => {
+    if (!client) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Título
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Ficha de Cliente', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    // Información básica
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Información Básica', 15, yPos);
+    yPos += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const addField = (label: string, value: string | null | undefined | number | boolean) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(`${label}: ${value || 'N/A'}`, 15, yPos);
+      yPos += 6;
+    };
+
+    addField('Razón Social', client.razon_social);
+    addField('RUT', client.rut);
+    addField('Estado', client.activo ? 'Activo' : 'Inactivo');
+    addField('Valor Mensualidad', client.valor);
+    addField('Saldo Honorarios Pendiente', client.saldo_honorarios_pendiente.toString());
+    yPos += 5;
+
+    // Datos de contacto
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Datos de Contacto', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Dirección', client.direccion);
+    addField('Ciudad', client.ciudad);
+    addField('Región', client.region);
+    addField('Email', client.email);
+    addField('Teléfono', client.fono);
+    yPos += 5;
+
+    // Información tributaria
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Información Tributaria', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Código Actividad', client.cod_actividad);
+    addField('Giro', client.giro);
+    addField('Régimen Tributario', client.regimen_tributario);
+    addField('Contabilidad', client.contabilidad);
+    addField('Fecha Incorporación', client.fecha_incorporacion);
+    yPos += 5;
+
+    // Representante legal
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Representante Legal', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Representante Legal', client.representante_legal);
+    addField('RUT Representante', client.rut_representante);
+    yPos += 5;
+
+    // Accesos
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Accesos', 15, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    addField('Previred', client.previred);
+    addField('Portal Electrónico', client.portal_electronico);
+    yPos += 5;
+
+    // Observaciones
+    if (client.observacion_1 || client.observacion_2 || client.observacion_3) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Observaciones', 15, yPos);
+      yPos += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+
+      if (client.observacion_1) {
+        addField('Observación 1', client.observacion_1);
+      }
+      if (client.observacion_2) {
+        addField('Observación 2', client.observacion_2);
+      }
+      if (client.observacion_3) {
+        addField('Observación 3', client.observacion_3);
+      }
+    }
+
+    // Guardar PDF
+    doc.save(`Ficha_${client.razon_social.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+
+    toast({
+      title: 'PDF generado',
+      description: 'La ficha del cliente se ha descargado correctamente',
+    });
+  };
+
   if (loading || loadingClient) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -186,16 +307,26 @@ export default function ClientDetails() {
                 {client.razon_social}
               </h1>
             </div>
-            {canModify && (
+            <div className="flex items-center gap-2">
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
-                onClick={() => setShowDeleteDialog(true)}
+                onClick={handleDownloadPDF}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar Cliente
+                <Download className="h-4 w-4 mr-2" />
+                Descargar PDF
               </Button>
-            )}
+              {canModify && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar Cliente
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
