@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Phone, Mail, ArrowLeft, Users, UserX, Eye, Search, X, Briefcase, Download } from 'lucide-react';
+import { Loader2, Phone, Mail, ArrowLeft, Building2, UserX, Eye, Search, X, Briefcase, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { Footer } from '@/components/Footer';
@@ -482,7 +482,7 @@ export default function Clients() {
             onClick={() => setFilter('active')}
             className={filter === 'active' ? 'bg-gradient-to-r from-primary to-accent' : ''}
           >
-            <Users className="h-4 w-4 mr-2" />
+            <Building2 className="h-4 w-4 mr-2" />
             Activos ({activeCount})
           </Button>
           <Button
