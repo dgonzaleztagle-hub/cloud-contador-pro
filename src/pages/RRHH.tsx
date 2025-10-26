@@ -764,17 +764,15 @@ export default function RRHH() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {fromClientView && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(-1)}
-                  className="gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Volver
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fromClientView ? navigate(-1) : navigate('/dashboard')}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Recursos Humanos</h1>
                 <p className="text-sm text-muted-foreground">Gestión de trabajadores y eventos mensuales</p>
