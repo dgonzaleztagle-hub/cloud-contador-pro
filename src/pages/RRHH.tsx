@@ -235,7 +235,7 @@ export default function RRHH() {
         if (!totals[key]) {
           totals[key] = 0;
         }
-        totals[key] += parseFloat(event.cantidad);
+        totals[key] += Number(event.cantidad);
       });
 
       setEventTotals(totals);
