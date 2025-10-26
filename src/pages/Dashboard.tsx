@@ -167,7 +167,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Declaraciones F29
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-primary" />
+                <Coins className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">0</div>
