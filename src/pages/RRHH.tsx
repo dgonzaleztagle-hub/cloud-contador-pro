@@ -1060,63 +1060,93 @@ export default function RRHH() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-foreground">Resumen Mensual</h4>
+                    <div className="space-y-3">
+                      {canModify && (
+                        <div className="flex gap-2">
+                          <Select 
+                            onValueChange={(eventType: any) => openEventDialog(worker.id, worker.nombre, eventType)}
+                          >
+                            <SelectTrigger className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                              <SelectValue placeholder="+ Agregar Evento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="atraso">⏱️ Atraso</SelectItem>
+                              <SelectItem value="permiso_horas">🕐 Permiso por Horas</SelectItem>
+                              <SelectItem value="permiso_medio_dia">🌅 Permiso Medio Día</SelectItem>
+                              <SelectItem value="permiso_completo">📅 Permiso Día Completo</SelectItem>
+                              <SelectItem value="falta_media">⚠️ Falta Medio Día</SelectItem>
+                              <SelectItem value="falta_completa">❌ Falta Día Completo</SelectItem>
+                              <SelectItem value="licencia_medica">🏥 Licencia Médica</SelectItem>
+                              <SelectItem value="anticipo">💰 Anticipo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      
+                      <h4 className="text-sm font-semibold text-foreground pt-2">Resumen Mensual</h4>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'atraso')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Atrasos:</span>
+                          <span className="text-muted-foreground">⏱️ Atrasos:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'atraso')} min</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'falta_completa')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Faltas Completas:</span>
+                          <span className="text-muted-foreground">❌ Faltas Completas:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'falta_completa')}</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'falta_media')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Faltas Medias:</span>
+                          <span className="text-muted-foreground">⚠️ Faltas Medias:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'falta_media')}</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'permiso_horas')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Permisos Horas:</span>
+                          <span className="text-muted-foreground">🕐 Permisos Horas:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'permiso_horas')} min</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'permiso_medio_dia')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Permisos Medios:</span>
+                          <span className="text-muted-foreground">🌅 Permisos Medios:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'permiso_medio_dia')}</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'permiso_completo')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Permisos Completos:</span>
+                          <span className="text-muted-foreground">📅 Permisos Completos:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'permiso_completo')}</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'licencia_medica')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Licencias Médicas:</span>
+                          <span className="text-muted-foreground">🏥 Licencias Médicas:</span>
                           <span className="font-medium">{getEventTotal(worker.id, 'licencia_medica')} días</span>
                         </button>
                         <button
                           onClick={() => openEventDialog(worker.id, worker.nombre, 'anticipo')}
-                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
                         >
-                          <span className="text-muted-foreground">Anticipos:</span>
+                          <span className="text-muted-foreground">💰 Anticipos:</span>
                           <span className="font-medium">${getEventTotal(worker.id, 'anticipo').toLocaleString('es-CL')}</span>
                         </button>
                       </div>
