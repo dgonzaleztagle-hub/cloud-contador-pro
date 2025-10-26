@@ -44,6 +44,10 @@ export default function Documents() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  // Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -504,6 +508,37 @@ export default function Documents() {
             <CardTitle>Documentos Almacenados ({files.length})</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Filtros de búsqueda */}
+            <div className="mb-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+                <div>
+                  <Label>Buscar Cliente</Label>
+                  <Input
+                    placeholder="RUT, nombre o razón social..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-input border-border"
+                  />
+                </div>
+                <div>
+                  <Label>Categoría</Label>
+                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      {Object.entries(categorias).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
             {files.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -511,34 +546,62 @@ export default function Documents() {
               </div>
             ) : (
               <div className="space-y-4">
-                {files.map((file) => (
+                {files
+                  .filter((file) => {
+                    // Filtro por categoría
+                    if (filterCategory !== 'all' && file.file_category !== filterCategory) return false;
+                    
+                    // Filtro por búsqueda (RUT, nombre o razón social)
+                    if (searchTerm) {
+                      const search = searchTerm.toLowerCase();
+                      const clientMatch = 
+                        file.clients?.razon_social?.toLowerCase().includes(search) ||
+                        file.clients?.rut?.toLowerCase().includes(search);
+                      if (!clientMatch) return false;
+                    }
+                    
+                    return true;
+                  })
+                  .map((file) => (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-secondary border border-border"
+                    className="flex items-start justify-between p-4 rounded-lg bg-secondary border border-border"
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <FileText className="h-10 w-10 text-primary" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">{file.file_name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {file.clients?.razon_social || 'Cliente'} • {categorias[file.file_category as keyof typeof categorias] || file.file_category}
-                        </p>
-                        {file.descripcion && (
-                          <p className="text-sm text-foreground mt-1">
-                            {file.descripcion}
+                    <div className="flex items-start gap-4 flex-1">
+                      <FileText className="h-10 w-10 text-primary flex-shrink-0 mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap mb-2">
+                          <h3 className="font-semibold text-foreground truncate">
+                            {file.file_name}
+                          </h3>
+                          <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary whitespace-nowrap">
+                            {categorias[file.file_category as keyof typeof categorias] || file.file_category}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">Cliente:</span> {file.clients?.razon_social || 'Cliente'}
                           </p>
-                        )}
-                        {file.periodo_mes && file.periodo_anio && (
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">RUT:</span> {file.clients?.rut || 'N/A'}
+                          </p>
+                          {file.descripcion && (
+                            <p className="text-sm text-foreground mt-1">
+                              <span className="font-medium">Descripción:</span> {file.descripcion}
+                            </p>
+                          )}
+                          {file.periodo_mes && file.periodo_anio && (
+                            <p className="text-xs text-muted-foreground">
+                              <span className="font-medium">Período:</span> {meses[file.periodo_mes - 1]} {file.periodo_anio}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
-                            Período: {meses[file.periodo_mes - 1]} {file.periodo_anio}
+                            <span className="font-medium">Subido:</span> {new Date(file.created_at).toLocaleDateString('es-CL')}
                           </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          Subido: {new Date(file.created_at).toLocaleDateString('es-CL')}
-                        </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button 
                         variant="outline" 
                         size="sm"
