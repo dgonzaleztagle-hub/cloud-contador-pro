@@ -61,6 +61,8 @@ export default function F29Declarations() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResumenOpen, setIsResumenOpen] = useState(false);
+  const [resumenFilterMes, setResumenFilterMes] = useState(0); // 0 = todos
+  const [resumenFilterAnio, setResumenFilterAnio] = useState(new Date().getFullYear());
   
   // Filter state
   const [filterClientId, setFilterClientId] = useState('all');
@@ -1220,6 +1222,40 @@ export default function F29Declarations() {
             <DialogTitle className="text-xl">Resumen Consolidado de Estados - F29</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
+            {/* Filtros del resumen */}
+            <div className="grid grid-cols-2 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+              <div>
+                <Label>Mes</Label>
+                <Select value={resumenFilterMes.toString()} onValueChange={(v) => setResumenFilterMes(parseInt(v))}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Todos los meses</SelectItem>
+                    {meses.map((m, i) => (
+                      <SelectItem key={i} value={(i + 1).toString()}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Año</Label>
+                <Select value={resumenFilterAnio.toString()} onValueChange={(v) => setResumenFilterAnio(parseInt(v))}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[2024, 2025, 2026, 2027, 2028].map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {/* Tabla de resumen por cliente */}
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -1236,7 +1272,15 @@ export default function F29Declarations() {
                 </thead>
                 <tbody>
                   {clients.map((client) => {
-                    const clientDeclarations = declarations.filter(d => d.client_id === client.id);
+                    // Filtrar declaraciones por mes y año
+                    let clientDeclarations = declarations.filter(d => d.client_id === client.id);
+                    if (resumenFilterMes !== 0) {
+                      clientDeclarations = clientDeclarations.filter(d => d.periodo_mes === resumenFilterMes);
+                    }
+                    if (resumenFilterAnio !== 0) {
+                      clientDeclarations = clientDeclarations.filter(d => d.periodo_anio === resumenFilterAnio);
+                    }
+                    
                     const totalDecl = clientDeclarations.length;
                     const pendientes = clientDeclarations.filter(d => d.estado_declaracion === 'pendiente').length;
                     const guardadas = clientDeclarations.filter(d => d.estado_declaracion === 'guardado').length;
@@ -1299,25 +1343,45 @@ export default function F29Declarations() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
               <div className="text-center">
                 <div className="text-2xl font-bold text-foreground">
-                  {declarations.length}
+                  {(() => {
+                    let filtered = declarations;
+                    if (resumenFilterMes !== 0) filtered = filtered.filter(d => d.periodo_mes === resumenFilterMes);
+                    if (resumenFilterAnio !== 0) filtered = filtered.filter(d => d.periodo_anio === resumenFilterAnio);
+                    return filtered.length;
+                  })()}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Total Declaraciones</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {declarations.filter(d => d.estado_declaracion === 'pendiente').length}
+                  {(() => {
+                    let filtered = declarations;
+                    if (resumenFilterMes !== 0) filtered = filtered.filter(d => d.periodo_mes === resumenFilterMes);
+                    if (resumenFilterAnio !== 0) filtered = filtered.filter(d => d.periodo_anio === resumenFilterAnio);
+                    return filtered.filter(d => d.estado_declaracion === 'pendiente').length;
+                  })()}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Pendientes</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {declarations.filter(d => d.estado_declaracion === 'declarado').length}
+                  {(() => {
+                    let filtered = declarations;
+                    if (resumenFilterMes !== 0) filtered = filtered.filter(d => d.periodo_mes === resumenFilterMes);
+                    if (resumenFilterAnio !== 0) filtered = filtered.filter(d => d.periodo_anio === resumenFilterAnio);
+                    return filtered.filter(d => d.estado_declaracion === 'declarado').length;
+                  })()}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Declaradas</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {declarations.filter(d => d.estado_honorarios === 'pendiente').length}
+                  {(() => {
+                    let filtered = declarations;
+                    if (resumenFilterMes !== 0) filtered = filtered.filter(d => d.periodo_mes === resumenFilterMes);
+                    if (resumenFilterAnio !== 0) filtered = filtered.filter(d => d.periodo_anio === resumenFilterAnio);
+                    return filtered.filter(d => d.estado_honorarios === 'pendiente').length;
+                  })()}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Hon. Pendientes</div>
               </div>
