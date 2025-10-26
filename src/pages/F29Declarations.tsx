@@ -508,11 +508,14 @@ export default function F29Declarations() {
     addRow('REMANENTE PER ANTERIOR', declaration.remanente_anterior, true, [52, 73, 94]);
     addRow('IVA VENTAS', declaration.iva_ventas);
     addRow('IVA COMPRAS', declaration.iva_compras);
+    addRow('IVA NETO', declaration.iva_neto);
     
     const tasaPPM = declaration.tasa_ppm || 0;
     addRow('TASA PPM %', tasaPPM.toString() + '%');
     addRow('PPM', declaration.ppm);
     addRow('HONORARIOS', declaration.honorarios);
+    addRow('RETENCIÓN 2DA CATEGORÍA', declaration.retencion_2cat);
+    addRow('IMPUESTO ÚNICO', declaration.impuesto_unico);
     addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
     addRow('REMANENTE PROX PERIODO', declaration.remanente_proximo, true, [52, 73, 94]);
     
@@ -641,11 +644,14 @@ export default function F29Declarations() {
     addRow('REMANENTE PER ANTERIOR', declaration.remanente_anterior, true, [52, 73, 94]);
     addRow('IVA VENTAS', declaration.iva_ventas);
     addRow('IVA COMPRAS', declaration.iva_compras);
+    addRow('IVA NETO', declaration.iva_neto);
     
     const tasaPPM = declaration.tasa_ppm || 0;
     addRow('TASA PPM %', tasaPPM.toString() + '%');
     addRow('PPM', declaration.ppm);
     addRow('HONORARIOS', declaration.honorarios);
+    addRow('RETENCIÓN 2DA CATEGORÍA', declaration.retencion_2cat);
+    addRow('IMPUESTO ÚNICO', declaration.impuesto_unico);
     addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
     addRow('REMANENTE PROX PERIODO', declaration.remanente_proximo, true, [52, 73, 94]);
     
