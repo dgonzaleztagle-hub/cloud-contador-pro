@@ -13,7 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
 import jsPDF from 'jspdf';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
+// Interfaces
 interface Client {
   id: string;
   rut: string;
@@ -70,9 +73,9 @@ export default function RRHH() {
   
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
-  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [selectedWorker, setSelectedWorker] = useState<{ id: string; name: string } | null>(null);
   const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo'>('atraso');
-  const [workerEvents, setWorkerEvents] = useState<Record<string, any>>({});
+  const [eventTotals, setEventTotals] = useState<Record<string, any>>({});
   
   // Filtros de período
   const [viewMes, setViewMes] = useState(new Date().getMonth() + 1);
@@ -91,8 +94,8 @@ export default function RRHH() {
   const [nuevaSucursal, setNuevaSucursal] = useState('');
   const [mostrarNuevaSucursal, setMostrarNuevaSucursal] = useState(false);
   const [contratoPdf, setContratoPdf] = useState<File | null>(null);
-  
-  // Descuentos
+
+  // Descuentos (legacy - mantenidos para compatibilidad)
   const [atrasosHoras, setAtrasosHoras] = useState('0');
   const [atrasosMinutos, setAtrasosMinutos] = useState('0');
   const [permisosHoras, setPermisosHoras] = useState('0');
@@ -113,18 +116,46 @@ export default function RRHH() {
     if (user) {
       loadData();
     }
-  }, [user]);
+  }, [user, viewMes, viewAnio, filterClientId]);
 
   useEffect(() => {
-    // Si viene desde Clients con un clientId, establecer el filtro
     const state = location.state as { clientId?: string };
     if (state?.clientId) {
       setFilterClientId(state.clientId);
       setFromClientView(true);
-      // Limpiar el state después de usarlo
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  const loadWorkerEvents = async () => {
+    if (filterClientId === 'all') return;
+
+    const { data, error } = await supabase
+      .from('worker_events')
+      .select('*')
+      .eq('client_id', filterClientId)
+      .eq('periodo_mes', viewMes)
+      .eq('periodo_anio', viewAnio);
+
+    if (!error && data) {
+      const totals: Record<string, any> = {};
+      data.forEach((event: any) => {
+        if (!totals[event.worker_id]) {
+          totals[event.worker_id] = {
+            atraso: 0,
+            falta_completa: 0,
+            falta_media: 0,
+            permiso_horas: 0,
+            permiso_medio_dia: 0,
+            permiso_completo: 0,
+            anticipo: 0
+          };
+        }
+        totals[event.worker_id][event.event_type] += Number(event.cantidad);
+      });
+      setEventTotals(totals);
+    }
+  };
 
   const loadData = async () => {
     setLoadingData(true);
@@ -154,12 +185,18 @@ export default function RRHH() {
       setSucursales(sucursalesData || []);
     }
 
-    // Load workers
-    const { data: workersData, error: workersError } = await supabase
+    // Load workers for the selected period
+    let workersQuery = supabase
       .from('rrhh_workers')
       .select('*, clients(rut, razon_social), sucursales(nombre)')
-      .order('periodo_anio', { ascending: false })
-      .order('periodo_mes', { ascending: false });
+      .eq('periodo_mes', viewMes)
+      .eq('periodo_anio', viewAnio);
+
+    if (filterClientId !== 'all') {
+      workersQuery = workersQuery.eq('client_id', filterClientId);
+    }
+
+    const { data: workersData, error: workersError } = await workersQuery.order('created_at', { ascending: false });
 
     if (workersError) {
       console.error('Error loading workers:', workersError);
@@ -167,7 +204,18 @@ export default function RRHH() {
       setWorkers(workersData || []);
     }
 
+    await loadWorkerEvents();
     setLoadingData(false);
+  };
+
+  const openEventDialog = (workerId: string, workerName: string, eventType: any) => {
+    setSelectedWorker({ id: workerId, name: workerName });
+    setSelectedEventType(eventType);
+    setIsEventDialogOpen(true);
+  };
+
+  const getEventTotal = (workerId: string, eventType: string) => {
+    return eventTotals[workerId]?.[eventType] || 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,7 +224,6 @@ export default function RRHH() {
 
     let finalSucursalId = sucursalId;
 
-    // Si está creando nueva sucursal
     if (mostrarNuevaSucursal && nuevaSucursal.trim()) {
       const { data: newSucursal, error: sucursalError } = await supabase
         .from('sucursales')
@@ -195,10 +242,9 @@ export default function RRHH() {
       }
 
       finalSucursalId = newSucursal.id;
-      await loadData(); // Recargar sucursales
+      await loadData();
     }
 
-    // Subir contrato PDF si existe
     let contratoPdfPath = editingWorkerId ? workers.find(w => w.id === editingWorkerId)?.contrato_pdf_path : null;
     if (contratoPdf) {
       const fileName = `${selectedClientId}/${workerRut}_${Date.now()}.pdf`;
@@ -243,14 +289,12 @@ export default function RRHH() {
 
     let error;
     if (editingWorkerId) {
-      // Actualizar trabajador existente
       const result = await supabase
         .from('rrhh_workers')
         .update(workerData)
         .eq('id', editingWorkerId);
       error = result.error;
     } else {
-      // Crear nuevo trabajador
       const result = await supabase.from('rrhh_workers').insert(workerData);
       error = result.error;
     }
@@ -342,7 +386,6 @@ export default function RRHH() {
   const exportToPDF = async (worker: Worker) => {
     const doc = new jsPDF();
     
-    // Logo
     try {
       const logoImg = new Image();
       logoImg.src = '/logo-pdf.png';
@@ -357,21 +400,18 @@ export default function RRHH() {
       console.log('Logo no disponible');
     }
     
-    // Título
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(52, 73, 94);
     const mesTexto = meses[worker.periodo_mes - 1].toUpperCase();
     doc.text(`INFORME DESCUENTOS ${mesTexto} ${worker.periodo_anio}`, 105, 25, { align: 'center' });
     
-    // Empresa y trabajador
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
     doc.text(`EMPRESA: ${worker.clients?.razon_social || 'N/A'}`, 105, 35, { align: 'center' });
     doc.setFontSize(11);
     doc.text(`TRABAJADOR: ${worker.nombre} - RUT: ${worker.rut}`, 105, 42, { align: 'center' });
     
-    // Tabla
     const startY = 55;
     const tableWidth = 120;
     const leftMargin = (210 - tableWidth) / 2;
@@ -404,25 +444,29 @@ export default function RRHH() {
       doc.setTextColor(0);
     };
     
-    // Secciones
+    const totalAtrasos = getEventTotal(worker.id, 'atraso');
+    const totalFaltasCompletas = getEventTotal(worker.id, 'falta_completa');
+    const totalFaltasMedias = getEventTotal(worker.id, 'falta_media');
+    const totalPermisosHoras = getEventTotal(worker.id, 'permiso_horas');
+    const totalPermisosMedios = getEventTotal(worker.id, 'permiso_medio_dia');
+    const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
+    const totalAnticipos = getEventTotal(worker.id, 'anticipo');
+
     addRow('ATRASOS', '', true, [52, 73, 94]);
-    addRow('Horas', `${worker.atrasos_horas} hrs`);
-    addRow('Minutos', `${worker.atrasos_minutos} min`);
+    addRow('Minutos', `${totalAtrasos} min`);
     
     addRow('PERMISOS', '', true, [52, 73, 94]);
-    addRow('Horas', `${worker.permisos_horas} hrs`);
-    addRow('Minutos', `${worker.permisos_minutos} min`);
-    addRow('Medio día', `${worker.permisos_medio_dia}`);
-    addRow('Día completo', `${worker.permisos_dia_completo}`);
+    addRow('Minutos', `${totalPermisosHoras} min`);
+    addRow('Medio día', `${totalPermisosMedios}`);
+    addRow('Día completo', `${totalPermisosCompletos}`);
     
     addRow('FALTAS', '', true, [52, 73, 94]);
-    addRow('Medio día', `${worker.faltas_medio_dia}`);
-    addRow('Día completo', `${worker.faltas_dia_completo}`);
+    addRow('Medio día', `${totalFaltasMedias}`);
+    addRow('Día completo', `${totalFaltasCompletas}`);
     
     addRow('ANTICIPOS', '', true, [52, 73, 94]);
-    addRow('Monto', `$${worker.anticipo_monto.toLocaleString('es-CL')}`);
+    addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
     
-    // Información de la empresa
     currentY += 15;
     doc.setFont(undefined, 'bold');
     doc.setFontSize(14);
@@ -453,7 +497,6 @@ export default function RRHH() {
   const previewPDF = async (worker: Worker) => {
     const doc = new jsPDF();
     
-    // Logo
     try {
       const logoImg = new Image();
       logoImg.src = '/logo-pdf.png';
@@ -468,21 +511,18 @@ export default function RRHH() {
       console.log('Logo no disponible');
     }
     
-    // Título
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(52, 73, 94);
     const mesTexto = meses[worker.periodo_mes - 1].toUpperCase();
     doc.text(`INFORME DESCUENTOS ${mesTexto} ${worker.periodo_anio}`, 105, 25, { align: 'center' });
     
-    // Empresa y trabajador
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
     doc.text(`EMPRESA: ${worker.clients?.razon_social || 'N/A'}`, 105, 35, { align: 'center' });
     doc.setFontSize(11);
     doc.text(`TRABAJADOR: ${worker.nombre} - RUT: ${worker.rut}`, 105, 42, { align: 'center' });
     
-    // Tabla
     const startY = 55;
     const tableWidth = 120;
     const leftMargin = (210 - tableWidth) / 2;
@@ -515,25 +555,29 @@ export default function RRHH() {
       doc.setTextColor(0);
     };
     
-    // Secciones
+    const totalAtrasos = getEventTotal(worker.id, 'atraso');
+    const totalFaltasCompletas = getEventTotal(worker.id, 'falta_completa');
+    const totalFaltasMedias = getEventTotal(worker.id, 'falta_media');
+    const totalPermisosHoras = getEventTotal(worker.id, 'permiso_horas');
+    const totalPermisosMedios = getEventTotal(worker.id, 'permiso_medio_dia');
+    const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
+    const totalAnticipos = getEventTotal(worker.id, 'anticipo');
+
     addRow('ATRASOS', '', true, [52, 73, 94]);
-    addRow('Horas', `${worker.atrasos_horas} hrs`);
-    addRow('Minutos', `${worker.atrasos_minutos} min`);
+    addRow('Minutos', `${totalAtrasos} min`);
     
     addRow('PERMISOS', '', true, [52, 73, 94]);
-    addRow('Horas', `${worker.permisos_horas} hrs`);
-    addRow('Minutos', `${worker.permisos_minutos} min`);
-    addRow('Medio día', `${worker.permisos_medio_dia}`);
-    addRow('Día completo', `${worker.permisos_dia_completo}`);
+    addRow('Minutos', `${totalPermisosHoras} min`);
+    addRow('Medio día', `${totalPermisosMedios}`);
+    addRow('Día completo', `${totalPermisosCompletos}`);
     
     addRow('FALTAS', '', true, [52, 73, 94]);
-    addRow('Medio día', `${worker.faltas_medio_dia}`);
-    addRow('Día completo', `${worker.faltas_dia_completo}`);
+    addRow('Medio día', `${totalFaltasMedias}`);
+    addRow('Día completo', `${totalFaltasCompletas}`);
     
     addRow('ANTICIPOS', '', true, [52, 73, 94]);
-    addRow('Monto', `$${worker.anticipo_monto.toLocaleString('es-CL')}`);
+    addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
     
-    // Información de la empresa
     currentY += 15;
     doc.setFont(undefined, 'bold');
     doc.setFontSize(14);
@@ -552,7 +596,6 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
-    // Generar PDF y mostrarlo como preview
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     setPreviewUrl(pdfUrl);
@@ -573,10 +616,7 @@ export default function RRHH() {
   ];
 
   const canModify = userRole === 'master' || userRole === 'admin';
-
-  const filteredWorkers = filterClientId === 'all' 
-    ? workers 
-    : workers.filter(w => w.client_id === filterClientId);
+  const canAddEvents = userRole === 'master' || userRole === 'admin' || userRole === 'viewer';
 
   if (loading || loadingData) {
     return (
@@ -793,137 +833,28 @@ export default function RRHH() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-foreground">Informes de Descuentos</h3>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Atrasos</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Horas</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={atrasosHoras}
-                                onChange={(e) => setAtrasosHoras(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Minutos</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="59"
-                                value={atrasosMinutos}
-                                onChange={(e) => setAtrasosMinutos(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label className="text-sm font-medium">Permisos</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Horas</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={permisosHoras}
-                                onChange={(e) => setPermisosHoras(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Minutos</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="59"
-                                value={permisosMinutos}
-                                onChange={(e) => setPermisosMinutos(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Medios Días</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={permisosMedioDia}
-                                onChange={(e) => setPermisosMedioDia(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Días Completos</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={permisosDiaCompleto}
-                                onChange={(e) => setPermisosDiaCompleto(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label className="text-sm font-medium">Faltas</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Días Completos</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={faltasDiaCompleto}
-                                onChange={(e) => setFaltasDiaCompleto(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Medios Días</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={faltasMedioDia}
-                                onChange={(e) => setFaltasMedioDia(e.target.value)}
-                                className="bg-input border-border"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label className="text-sm font-medium">Anticipos ($)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={anticipoMonto}
-                            onChange={(e) => setAnticipoMonto(e.target.value)}
-                            className="bg-input border-border"
-                          />
-                        </div>
-                      </div>
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          resetForm();
+                          setIsDialogOpen(false);
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={isSaving} className="bg-gradient-to-r from-primary to-accent">
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          <>{editingWorkerId ? 'Actualizar Registro' : 'Guardar Registro'}</>
+                        )}
+                      </Button>
                     </div>
-
-                    <Button
-                      type="submit"
-                      disabled={isSaving}
-                      className="w-full bg-gradient-to-r from-primary to-accent"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {editingWorkerId ? 'Actualizando...' : 'Guardando...'}
-                        </>
-                      ) : (
-                        editingWorkerId ? 'Actualizar Registro' : 'Guardar Registro'
-                      )}
-                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -932,157 +863,246 @@ export default function RRHH() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 flex-1">
-        {/* Solo mostrar filtro si NO viene desde vista de cliente */}
-        {!fromClientView && (
-          <div className="mb-4">
-            <Label>Filtrar por Cliente</Label>
-            <Select value={filterClientId} onValueChange={setFilterClientId}>
-              <SelectTrigger className="bg-input border-border max-w-md">
-                <SelectValue placeholder="Todos los clientes" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border z-50">
-                <SelectItem value="all">Todos los clientes</SelectItem>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.rut} - {client.razon_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+      <main className="flex-1 container mx-auto px-6 py-8">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4 flex-1 min-w-[300px]">
+              <Select value={filterClientId} onValueChange={setFilterClientId}>
+                <SelectTrigger className="w-[300px] bg-input border-border">
+                  <SelectValue placeholder="Filtrar por cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los clientes</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.razon_social}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Trabajadores Registrados ({filteredWorkers.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {filteredWorkers.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay trabajadores registrados</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredWorkers.map((worker) => (
-                  <div
-                    key={worker.id}
-                    className="flex items-start justify-between p-4 rounded-lg bg-secondary border border-border"
-                  >
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-semibold text-foreground">{worker.nombre}</h3>
-                        <span className="text-sm text-muted-foreground">{worker.rut}</span>
+            <div className="flex items-center gap-2">
+              <Select 
+                value={viewMes.toString()} 
+                onValueChange={(val) => setViewMes(parseInt(val))}
+              >
+                <SelectTrigger className="w-[140px] bg-input border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((mes) => (
+                    <SelectItem key={mes} value={mes.toString()}>
+                      {format(new Date(2024, mes - 1), 'MMMM', { locale: es })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={viewAnio.toString()} 
+                onValueChange={(val) => setViewAnio(parseInt(val))}
+              >
+                <SelectTrigger className="w-[120px] bg-input border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {workers.length === 0 ? (
+            <Card className="bg-card border-border">
+              <CardContent className="py-12 text-center">
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  No hay registros de trabajadores para el período seleccionado
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {workers.map((worker) => (
+                <Card key={worker.id} className="bg-card border-border hover:border-primary/50 transition-all">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="font-bold">{worker.nombre}</div>
+                        <div className="text-sm text-muted-foreground font-normal">{worker.rut}</div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {worker.clients?.razon_social || 'Cliente'} • {meses[worker.periodo_mes - 1]} {worker.periodo_anio}
-                      </p>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                        <div>
-                          <span className="text-muted-foreground">Contrato:</span>
-                          <span className="ml-1 font-medium text-foreground">
-                            {worker.tipo_plazo === 'fijo' ? 'Plazo Fijo' : 'Indefinido'}
-                          </span>
+                      {canModify && (
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(worker)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(worker.id)}
+                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Jornada:</span>
-                          <span className="ml-1 font-medium text-foreground">
-                            {worker.tipo_jornada === 'completa' ? 'Completa' : worker.tipo_jornada === 'parcial_30' ? '30 hrs' : '20 hrs'}
-                          </span>
-                        </div>
-                        {worker.sucursales && (
-                          <div>
-                            <span className="text-muted-foreground">Sucursal:</span>
-                            <span className="ml-1 font-medium text-foreground">{worker.sucursales.nombre}</span>
-                          </div>
-                        )}
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Empresa:</span>
+                        <span className="font-medium text-right">{worker.clients?.razon_social}</span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mt-2 pt-2 border-t border-border">
-                        <div>
-                          <span className="text-muted-foreground">Atrasos:</span>
-                          <span className="ml-1 font-medium">{worker.atrasos_horas}h {worker.atrasos_minutos}m</span>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Período:</span>
+                        <span className="font-medium">{meses[worker.periodo_mes - 1]} {worker.periodo_anio}</span>
+                      </div>
+                      {worker.sucursales && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Sucursal:</span>
+                          <span className="font-medium text-right">{worker.sucursales.nombre}</span>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Permisos:</span>
-                          <span className="ml-1 font-medium">{worker.permisos_horas}h {worker.permisos_minutos}m + {worker.permisos_dia_completo}d + {worker.permisos_medio_dia}½d</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Faltas:</span>
-                          <span className="ml-1 font-medium">{worker.faltas_dia_completo}d + {worker.faltas_medio_dia}½d</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Anticipo:</span>
-                          <span className="ml-1 font-medium">${worker.anticipo_monto.toLocaleString('es-CL')}</span>
-                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tipo:</span>
+                        <span className="font-medium">{worker.tipo_plazo === 'indefinido' ? 'Indefinido' : 'Plazo Fijo'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Jornada:</span>
+                        <span className="font-medium">
+                          {worker.tipo_jornada === 'completa' ? 'Completa' : 
+                           worker.tipo_jornada === 'parcial_30' ? 'Parcial 30hrs' : 'Parcial 20hrs'}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {canModify && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(worker)}
-                          className="text-primary hover:text-primary"
-                          title="Editar Trabajador"
+
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-foreground">Resumen Mensual</h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'atraso')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
+                          <span className="text-muted-foreground">Atrasos:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'atraso')} min</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'falta_completa')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Faltas Completas:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'falta_completa')}</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'falta_media')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Faltas Medias:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'falta_media')}</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'permiso_horas')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Permisos Horas:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'permiso_horas')} min</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'permiso_medio_dia')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Permisos Medios:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'permiso_medio_dia')}</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'permiso_completo')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Permisos Completos:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'permiso_completo')}</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'anticipo')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded col-span-2 transition-colors cursor-pointer text-left"
+                        >
+                          <span className="text-muted-foreground">Anticipos:</span>
+                          <span className="font-medium">${getEventTotal(worker.id, 'anticipo').toLocaleString('es-CL')}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => previewPDF(worker)}
-                        className="text-primary hover:text-primary"
-                        title="Previsualizar PDF"
+                        className="flex-1"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4 mr-1" />
+                        Vista Previa
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => exportToPDF(worker)}
-                        className="text-primary hover:text-primary"
-                        title="Descargar PDF"
+                        className="flex-1"
                       >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4 mr-1" />
+                        Exportar PDF
                       </Button>
-                      {canModify && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(worker.id)}
-                          title="Eliminar Trabajador"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Preview Dialog */}
-        <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
-          <DialogContent className="max-w-2xl h-[85vh]">
-            <DialogHeader>
-              <DialogTitle>Vista Previa - RRHH</DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-hidden rounded border bg-gray-50">
-              {previewUrl && (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-[calc(85vh-80px)]"
-                  title="Vista Previa RRHH"
-                />
-              )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </DialogContent>
-        </Dialog>
+          )}
+        </div>
       </main>
+
+      {selectedWorker && filterClientId !== 'all' && (
+        <WorkerEventsDialog
+          workerId={selectedWorker.id}
+          clientId={filterClientId}
+          workerName={selectedWorker.name}
+          eventType={selectedEventType}
+          periodMes={viewMes}
+          periodAnio={viewAnio}
+          isOpen={isEventDialogOpen}
+          onClose={() => setIsEventDialogOpen(false)}
+          onEventAdded={() => {
+            loadData();
+          }}
+        />
+      )}
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Vista Previa del Informe</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-full border-0"
+                title="Vista previa del PDF"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
