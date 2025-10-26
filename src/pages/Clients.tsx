@@ -516,6 +516,10 @@ export default function Clients() {
                   <Label className="text-xs text-muted-foreground">Clave Certificado</Label>
                   <p className="font-medium text-foreground">{quickViewClient?.clave_certificado || 'N/A'}</p>
                 </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Clave Única</Label>
+                  <p className="font-medium text-foreground">{quickViewClient?.clave_unica || 'N/A'}</p>
+                </div>
               </div>
             </div>
 
