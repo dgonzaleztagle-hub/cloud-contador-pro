@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import jsPDF from 'jspdf';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface Client {
   id: string;
@@ -711,11 +712,46 @@ export default function F29Declarations() {
       doc.text(splitObservaciones, 20, currentY + 5);
     }
     
-    // Generar PDF y mostrarlo como preview
+    // Generar PDF y convertirlo a imagen para preview
     const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    setPreviewUrl(pdfUrl);
-    setIsPreviewOpen(true);
+    
+    // Configurar worker de PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+    
+    // Convertir PDF a imagen
+    const arrayBuffer = await pdfBlob.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!context) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear el contexto del canvas",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    } as any).promise;
+    
+    // Convertir canvas a blob JPG
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const imageUrl = URL.createObjectURL(blob);
+        setPreviewUrl(imageUrl);
+        setIsPreviewOpen(true);
+      }
+    }, 'image/jpeg', 0.95);
   };
 
   const closePreview = () => {
