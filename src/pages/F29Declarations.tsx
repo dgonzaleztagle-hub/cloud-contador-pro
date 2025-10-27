@@ -190,6 +190,17 @@ export default function F29Declarations() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de autenticación',
+        description: 'Por favor inicia sesión nuevamente',
+      });
+      navigate('/auth');
+      return;
+    }
+
     if (!selectedClientId) {
       toast({
         variant: 'destructive',
@@ -233,15 +244,16 @@ export default function F29Declarations() {
     } else {
       const result = await supabase
         .from('f29_declarations')
-        .insert({ ...declarationData, created_by: user?.id });
+        .insert({ ...declarationData, created_by: user.id });
       error = result.error;
     }
 
     if (error) {
+      console.error('Error guardando F29:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: editingDeclarationId ? 'No se pudo actualizar la declaración' : 'No se pudo guardar la declaración',
+        description: error.message || (editingDeclarationId ? 'No se pudo actualizar la declaración' : 'No se pudo guardar la declaración'),
       });
     } else {
       toast({
