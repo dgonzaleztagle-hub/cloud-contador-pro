@@ -314,18 +314,32 @@ export default function F29Declarations() {
       if (error) throw error;
 
       if (data.success) {
-        setIvaVentas(data.ivaVentas?.toString() || '0');
-        setIvaCompras(data.ivaCompras?.toString() || '0');
+        // Si hay valores reales (no son 0), actualizamos los campos
+        if (data.ivaVentas && data.ivaVentas > 0) {
+          setIvaVentas(data.ivaVentas.toString());
+        }
+        if (data.ivaCompras && data.ivaCompras > 0) {
+          setIvaCompras(data.ivaCompras.toString());
+        }
         
-        toast({
-          title: 'Sincronización exitosa',
-          description: 'Los valores de IVA se actualizaron desde el SII',
-        });
+        // Si hay un mensaje de error, mostrarlo como advertencia
+        if (data.error) {
+          toast({
+            variant: 'default',
+            title: 'Autenticación exitosa',
+            description: data.error,
+          });
+        } else {
+          toast({
+            title: 'Sincronización exitosa',
+            description: `IVA Ventas: $${data.ivaVentas?.toLocaleString() || '0'} | IVA Compras: $${data.ivaCompras?.toLocaleString() || '0'}`,
+          });
+        }
       } else {
         toast({
           variant: 'destructive',
           title: 'No se pudo sincronizar',
-          description: data.error || 'El SII no respondió correctamente. Como se advirtió, esta funcionalidad es experimental y probablemente requiere un servicio de API de terceros.',
+          description: data.error || 'El SII no respondió correctamente.',
         });
       }
     } catch (error) {
