@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye, BarChart3, Edit } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, FileText, Download, Eye, BarChart3, Edit, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -87,6 +87,7 @@ export default function F29Declarations() {
   const [observaciones, setObservaciones] = useState('');
   const [estadoHonorarios, setEstadoHonorarios] = useState('pendiente');
   const [estadoDeclaracion, setEstadoDeclaracion] = useState('pendiente');
+  const [isSyncingSII, setIsSyncingSII] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -285,6 +286,58 @@ export default function F29Declarations() {
     setEstadoHonorarios('pendiente');
     setEstadoDeclaracion('pendiente');
     setHasFormData(false);
+  };
+
+  const syncWithSII = async () => {
+    if (!selectedClientId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Debe seleccionar un cliente primero',
+      });
+      return;
+    }
+
+    setIsSyncingSII(true);
+    
+    try {
+      console.log('Sincronizando con SII...');
+      
+      const { data, error } = await supabase.functions.invoke('sii-sync', {
+        body: {
+          clientId: selectedClientId,
+          periodoMes: mes,
+          periodoAnio: anio,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setIvaVentas(data.ivaVentas?.toString() || '0');
+        setIvaCompras(data.ivaCompras?.toString() || '0');
+        
+        toast({
+          title: 'Sincronización exitosa',
+          description: 'Los valores de IVA se actualizaron desde el SII',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'No se pudo sincronizar',
+          description: data.error || 'El SII no respondió correctamente. Como se advirtió, esta funcionalidad es experimental y probablemente requiere un servicio de API de terceros.',
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing with SII:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error de conexión',
+        description: 'No se pudo conectar con el SII. Esta es una limitación esperada - el SII requiere CAPTCHA y navegación compleja.',
+      });
+    } finally {
+      setIsSyncingSII(false);
+    }
   };
 
   const checkExistingDeclaration = async (clientId: string, month: number, year: number) => {
@@ -870,7 +923,29 @@ export default function F29Declarations() {
                     </div>
 
                     <div className="space-y-2">
-                      <h3 className="font-semibold text-foreground">IVA</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground">IVA</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={syncWithSII}
+                          disabled={!selectedClientId || isSyncingSII}
+                          className="gap-2"
+                        >
+                          {isSyncingSII ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Sincronizando...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="h-4 w-4" />
+                              Actualizar desde SII
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label>IVA Ventas</Label>

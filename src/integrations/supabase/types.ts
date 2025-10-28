@@ -237,6 +237,7 @@ export type Database = {
           tasa_ppm: number | null
           total_general: number
           total_impuestos: number
+          ultima_sincronizacion_sii: string | null
         }
         Insert: {
           client_id: string
@@ -260,6 +261,7 @@ export type Database = {
           tasa_ppm?: number | null
           total_general?: number
           total_impuestos?: number
+          ultima_sincronizacion_sii?: string | null
         }
         Update: {
           client_id?: string
@@ -283,6 +285,7 @@ export type Database = {
           tasa_ppm?: number | null
           total_general?: number
           total_impuestos?: number
+          ultima_sincronizacion_sii?: string | null
         }
         Relationships: [
           {
