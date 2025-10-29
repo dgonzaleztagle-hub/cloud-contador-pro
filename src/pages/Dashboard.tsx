@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [dollar, setDollar] = useState('...');
   const [clientsCount, setClientsCount] = useState({ total: 0, activos: 0, inactivos: 0 });
   const [f29Count, setF29Count] = useState(0);
+  const [workersCount, setWorkersCount] = useState(0);
 
   useEffect(() => {
     console.log('Dashboard - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
@@ -101,6 +102,19 @@ export default function Dashboard() {
             }
             setF29Count(count || 0);
             console.log('F29 declarations this month:', count);
+          });
+
+        // Fetch workers count
+        supabase
+          .from('rrhh_workers')
+          .select('id', { count: 'exact' })
+          .then(({ count, error }) => {
+            if (error) {
+              console.error('Error fetching workers:', error);
+              return;
+            }
+            setWorkersCount(count || 0);
+            console.log('Workers count:', count);
           });
       });
     }
@@ -207,7 +221,7 @@ export default function Dashboard() {
                 <UsersRound className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">0</div>
+                <div className="text-2xl font-bold text-foreground">{workersCount}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Trabajadores registrados
                 </p>
