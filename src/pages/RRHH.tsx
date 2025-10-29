@@ -115,7 +115,7 @@ export default function RRHH() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<{ id: string; name: string } | null>(null);
   const [selectedWorkerDetail, setSelectedWorkerDetail] = useState<Worker | null>(null);
-  const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica'>('atraso');
+  const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica' | 'horas_extras'>('atraso');
   const [eventTotals, setEventTotals] = useState<Record<string, any>>({});
   
   // Filtros de período
@@ -842,6 +842,7 @@ export default function RRHH() {
     const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
     const totalLicenciasMedicas = getEventTotal(worker.id, 'licencia_medica');
     const totalAnticipos = getEventTotal(worker.id, 'anticipo');
+    const totalHorasExtras = getEventTotal(worker.id, 'horas_extras');
 
     addRow('ATRASOS', '', true, [52, 73, 94]);
     addRow('Minutos', `${totalAtrasos} min`);
@@ -860,6 +861,9 @@ export default function RRHH() {
     
     addRow('ANTICIPOS', '', true, [52, 73, 94]);
     addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
+    
+    addRow('HORAS EXTRAS', '', true, [52, 73, 94]);
+    addRow('Horas', `${totalHorasExtras} hrs`);
     
     currentY += 15;
     doc.setFont(undefined, 'bold');
@@ -1533,6 +1537,7 @@ export default function RRHH() {
                               <SelectItem value="falta_completa">❌ Falta Día Completo</SelectItem>
                               <SelectItem value="licencia_medica">🏥 Licencia Médica</SelectItem>
                               <SelectItem value="anticipo">💰 Anticipo</SelectItem>
+                              <SelectItem value="horas_extras">⏰ Horas Extras</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1603,6 +1608,14 @@ export default function RRHH() {
                         >
                           <span className="text-muted-foreground">💰 Anticipos:</span>
                           <span className="font-medium">${getEventTotal(worker.id, 'anticipo').toLocaleString('es-CL')}</span>
+                        </button>
+                        <button
+                          onClick={() => openEventDialog(worker.id, worker.nombre, 'horas_extras')}
+                          className="flex justify-between p-2 bg-secondary/30 hover:bg-secondary/50 rounded transition-colors cursor-pointer text-left border border-border hover:border-primary/50"
+                          title="Click para ver detalles y agregar más"
+                        >
+                          <span className="text-muted-foreground">⏰ Horas Extras:</span>
+                          <span className="font-medium">{getEventTotal(worker.id, 'horas_extras')} hrs</span>
                         </button>
                       </div>
                     </div>

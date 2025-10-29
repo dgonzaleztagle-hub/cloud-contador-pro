@@ -27,7 +27,7 @@ interface WorkerEventsDialogProps {
   workerId: string;
   clientId: string;
   workerName: string;
-  eventType: 'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica';
+  eventType: 'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica' | 'horas_extras';
   periodMes: number;
   periodAnio: number;
   isOpen: boolean;
@@ -43,7 +43,8 @@ const eventTitles = {
   permiso_medio_dia: 'Permisos Medio Día',
   permiso_completo: 'Permisos Día Completo',
   anticipo: 'Anticipos',
-  licencia_medica: 'Licencias Médicas'
+  licencia_medica: 'Licencias Médicas',
+  horas_extras: 'Horas Extras'
 };
 
 const eventLabels = {
@@ -54,7 +55,8 @@ const eventLabels = {
   permiso_medio_dia: 'Medio Días',
   permiso_completo: 'Días',
   anticipo: 'Monto ($)',
-  licencia_medica: 'Días'
+  licencia_medica: 'Días',
+  horas_extras: 'Horas'
 };
 
 export function WorkerEventsDialog({
@@ -434,6 +436,8 @@ export function WorkerEventsDialog({
                   ? `$${totalCantidad.toLocaleString('es-CL')}`
                   : eventType === 'atraso' || eventType === 'permiso_horas'
                   ? `${totalCantidad} min`
+                  : eventType === 'horas_extras'
+                  ? `${totalCantidad} hrs`
                   : `${totalCantidad}`
                 }
               </div>
@@ -465,6 +469,8 @@ export function WorkerEventsDialog({
                         <span className="text-sm text-primary font-semibold">
                           {eventType === 'anticipo' 
                             ? `$${Number(event.cantidad).toLocaleString('es-CL')}`
+                            : eventType === 'horas_extras'
+                            ? `${event.cantidad} hrs`
                             : `${event.cantidad} ${eventLabels[eventType].toLowerCase()}`
                           }
                         </span>
