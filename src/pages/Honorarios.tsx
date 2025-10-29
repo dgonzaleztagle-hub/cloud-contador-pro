@@ -206,16 +206,55 @@ export default function Honorarios() {
         title: 'Error',
         description: error.message || 'No se pudo guardar el honorario',
       });
-    } else {
-      toast({
-        title: editingId ? 'Honorario actualizado' : 'Honorario registrado',
-        description: 'Los datos se guardaron exitosamente',
-      });
-      resetForm();
-      setIsDialogOpen(false);
-      loadData();
+      setIsSaving(false);
+      return;
     }
+
+    // Sincronizar con F29 si existe
+    await syncF29Estado(selectedClientId, filterMes, filterAnio, estado);
+
+    toast({
+      title: editingId ? 'Honorario actualizado' : 'Honorario registrado',
+      description: 'Los datos se guardaron exitosamente y se sincronizaron con F29',
+    });
+    resetForm();
+    setIsDialogOpen(false);
+    loadData();
     setIsSaving(false);
+  };
+
+  const syncF29Estado = async (clientId: string, mes: number, anio: number, estadoHonorarios: string) => {
+    try {
+      // Buscar si existe una declaración F29 para este cliente y período
+      const { data: f29, error: checkError } = await supabase
+        .from('f29_declarations')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('periodo_mes', mes)
+        .eq('periodo_anio', anio)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error verificando F29:', checkError);
+        return;
+      }
+
+      if (f29) {
+        // Actualizar el estado de honorarios en F29
+        const { error: updateError } = await supabase
+          .from('f29_declarations')
+          .update({
+            estado_honorarios: estadoHonorarios,
+          })
+          .eq('id', f29.id);
+
+        if (updateError) {
+          console.error('Error actualizando estado en F29:', updateError);
+        }
+      }
+    } catch (error) {
+      console.error('Error en syncF29Estado:', error);
+    }
   };
 
   const handleEdit = (honorario: Honorario) => {

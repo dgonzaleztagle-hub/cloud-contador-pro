@@ -257,16 +257,76 @@ export default function F29Declarations() {
         title: 'Error',
         description: error.message || (editingDeclarationId ? 'No se pudo actualizar la declaración' : 'No se pudo guardar la declaración'),
       });
-    } else {
-      toast({
-        title: editingDeclarationId ? 'Declaración actualizada' : 'Declaración guardada',
-        description: editingDeclarationId ? 'La declaración F29 se actualizó exitosamente' : 'La declaración F29 se guardó exitosamente',
-      });
-      resetForm();
-      setIsDialogOpen(false);
-      loadData();
+      setIsSaving(false);
+      return;
     }
+
+    // Sincronizar con el módulo de honorarios
+    await syncHonorarios(selectedClientId, mes, anio, parseFloat(honorarios) || 0, estadoHonorarios);
+
+    toast({
+      title: editingDeclarationId ? 'Declaración actualizada' : 'Declaración guardada',
+      description: editingDeclarationId ? 'La declaración F29 y honorarios se actualizaron exitosamente' : 'La declaración F29 y honorarios se guardaron exitosamente',
+    });
+    resetForm();
+    setIsDialogOpen(false);
+    loadData();
     setIsSaving(false);
+  };
+
+  const syncHonorarios = async (clientId: string, mes: number, anio: number, montoHonorarios: number, estado: string) => {
+    try {
+      // Verificar si ya existe un registro de honorarios para este cliente y período
+      const { data: existingHonorario, error: checkError } = await supabase
+        .from('honorarios')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('periodo_mes', mes)
+        .eq('periodo_anio', anio)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error verificando honorarios:', checkError);
+        return;
+      }
+
+      const honorarioData = {
+        client_id: clientId,
+        periodo_mes: mes,
+        periodo_anio: anio,
+        monto: montoHonorarios,
+        estado: estado === 'pagado' ? 'pagado' : 'pendiente',
+        monto_pagado: estado === 'pagado' ? montoHonorarios : 0,
+        fecha_pago: estado === 'pagado' ? new Date().toISOString().split('T')[0] : null,
+      };
+
+      if (existingHonorario) {
+        // Actualizar solo si el estado cambió desde F29
+        const { error: updateError } = await supabase
+          .from('honorarios')
+          .update({
+            estado: honorarioData.estado,
+            monto_pagado: honorarioData.monto_pagado,
+            fecha_pago: honorarioData.fecha_pago,
+          })
+          .eq('id', existingHonorario.id);
+
+        if (updateError) {
+          console.error('Error actualizando honorarios:', updateError);
+        }
+      } else if (montoHonorarios > 0) {
+        // Crear nuevo registro solo si hay monto
+        const { error: insertError } = await supabase
+          .from('honorarios')
+          .insert(honorarioData);
+
+        if (insertError) {
+          console.error('Error creando honorarios:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('Error en syncHonorarios:', error);
+    }
   };
 
   const resetForm = () => {
