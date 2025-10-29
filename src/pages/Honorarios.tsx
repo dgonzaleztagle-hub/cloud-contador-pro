@@ -77,7 +77,7 @@ export default function Honorarios() {
   // Filtros
   const [filterMes, setFilterMes] = useState(new Date().getMonth() + 1);
   const [filterAnio, setFilterAnio] = useState(new Date().getFullYear());
-  const [filterEstado, setFilterEstado] = useState<string>('pendiente');
+  const [filterEstado, setFilterEstado] = useState<string>('all');
   
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -146,6 +146,17 @@ export default function Honorarios() {
 
       if (!summaryError && summaryData) {
         setSummary(summaryData);
+      } else {
+        // Si no hay datos, establecer resumen en cero
+        setSummary({
+          total_facturado: 0,
+          total_pendiente: 0,
+          total_pagado: 0,
+          total_parcial: 0,
+          cantidad_pendiente: 0,
+          cantidad_pagado: 0,
+          cantidad_parcial: 0
+        });
       }
 
     } catch (error: any) {
