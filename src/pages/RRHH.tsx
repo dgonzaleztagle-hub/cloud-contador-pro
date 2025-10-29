@@ -17,7 +17,7 @@ import { DocumentPreviewDialog } from '@/components/DocumentPreviewDialog';
 import GenerateWorkerLinkDialog from '@/components/GenerateWorkerLinkDialog';
 import WorkerAdminDialog from '@/components/WorkerAdminDialog';
 import { WorkerDetailDialog } from '@/components/WorkerDetailDialog';
-import { useDocumentPreview } from '@/hooks/useDocumentPreview';
+import { useDocumentPreview, isPreviewSupported } from '@/hooks/useDocumentPreview';
 import jsPDF from 'jspdf';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -1049,6 +1049,10 @@ export default function RRHH() {
                                   if (worker) handlePreviewContract(worker);
                                 }}
                                 className="h-6 px-2 text-xs"
+                                disabled={(() => {
+                                  const worker = workers.find(w => w.id === editingWorkerId);
+                                  return !worker?.contrato_pdf_path || !isPreviewSupported(worker.contrato_pdf_path);
+                                })()}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
                                 Ver

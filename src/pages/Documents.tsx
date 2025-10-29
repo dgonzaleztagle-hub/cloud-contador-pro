@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import * as pdfjsLib from 'pdfjs-dist';
+import { isPreviewSupported } from '@/hooks/useDocumentPreview';
 
 interface Client {
   id: string;
@@ -809,6 +810,7 @@ export default function Documents() {
                         size="sm"
                         onClick={() => handlePreview(file.file_path, file.file_name)}
                         title="Previsualizar"
+                        disabled={!isPreviewSupported(file.file_name)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>

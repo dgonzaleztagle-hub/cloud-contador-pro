@@ -9,6 +9,29 @@ if (typeof window !== 'undefined') {
 
 export type PreviewType = 'image' | 'text' | null;
 
+// Extensiones de archivo soportadas para preview
+const SUPPORTED_EXTENSIONS = {
+  text: ['txt', 'log', 'md', 'csv'],
+  pdf: ['pdf'],
+  image: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'],
+};
+
+/**
+ * Verifica si un archivo es compatible con la vista previa
+ * @param fileName Nombre del archivo con extensión
+ * @returns true si el archivo puede previsualizarse
+ */
+export const isPreviewSupported = (fileName: string): boolean => {
+  const extension = fileName.toLowerCase().split('.').pop();
+  if (!extension) return false;
+  
+  return (
+    SUPPORTED_EXTENSIONS.text.includes(extension) ||
+    SUPPORTED_EXTENSIONS.pdf.includes(extension) ||
+    SUPPORTED_EXTENSIONS.image.includes(extension)
+  );
+};
+
 interface UseDocumentPreviewReturn {
   previewUrl: string | null;
   previewContent: string | null;
@@ -17,6 +40,7 @@ interface UseDocumentPreviewReturn {
   isLoadingPreview: boolean;
   handlePreview: (blob: Blob, fileName: string) => Promise<void>;
   closePreview: () => void;
+  isPreviewSupported: (fileName: string) => boolean;
 }
 
 /**
@@ -197,5 +221,6 @@ export const useDocumentPreview = (): UseDocumentPreviewReturn => {
     isLoadingPreview,
     handlePreview,
     closePreview,
+    isPreviewSupported,
   };
 };
