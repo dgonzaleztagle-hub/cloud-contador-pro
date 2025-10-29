@@ -400,6 +400,63 @@ export default function F22Declarations() {
     return new Date(anio, tipo.fecha_limite_mes - 1, tipo.fecha_limite_dia);
   };
 
+  const getDiasHastaVencimiento = (tipo: F22Tipo, anio: number) => {
+    const fechaLimite = getFechaLimite(tipo, anio);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    fechaLimite.setHours(0, 0, 0, 0);
+    const diffTime = fechaLimite.getTime() - hoy.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const getAlertaBadge = (declaracion: F22Declaracion) => {
+    if (declaracion.estado !== 'pendiente' || !declaracion.f22_tipos) return null;
+    
+    const diasRestantes = getDiasHastaVencimiento(declaracion.f22_tipos, declaracion.anio_tributario);
+    
+    if (diasRestantes < 0) {
+      return (
+        <Badge variant="destructive" className="ml-2">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Vencida ({Math.abs(diasRestantes)} días)
+        </Badge>
+      );
+    } else if (diasRestantes <= 7) {
+      return (
+        <Badge variant="destructive" className="ml-2 bg-orange-100 text-orange-800">
+          <Clock className="h-3 w-3 mr-1" />
+          Vence en {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
+        </Badge>
+      );
+    } else if (diasRestantes <= 15) {
+      return (
+        <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800">
+          <Clock className="h-3 w-3 mr-1" />
+          {diasRestantes} días
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  const getResumenAlertas = () => {
+    const vencidas = declaraciones.filter(d => 
+      d.estado === 'pendiente' && 
+      d.f22_tipos && 
+      getDiasHastaVencimiento(d.f22_tipos, d.anio_tributario) < 0
+    );
+    
+    const proximas = declaraciones.filter(d => 
+      d.estado === 'pendiente' && 
+      d.f22_tipos && 
+      getDiasHastaVencimiento(d.f22_tipos, d.anio_tributario) >= 0 &&
+      getDiasHastaVencimiento(d.f22_tipos, d.anio_tributario) <= 7
+    );
+
+    return { vencidas, proximas };
+  };
+
   const getClientesDJ = (tipoId: string) => {
     return declaraciones
       .filter(d => d.f22_tipo_id === tipoId && (!d.oculta || showOcultas))
@@ -568,6 +625,54 @@ export default function F22Declarations() {
           </CardContent>
         </Card>
 
+        {/* Alertas de Vencimiento */}
+        {(() => {
+          const { vencidas, proximas } = getResumenAlertas();
+          if (vencidas.length === 0 && proximas.length === 0) return null;
+          
+          return (
+            <Card className="mb-6 border-orange-200 bg-orange-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                  Alertas de Vencimiento
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {vencidas.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <Badge variant="destructive" className="mt-0.5">
+                      {vencidas.length}
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="font-semibold text-red-800">Declaraciones vencidas</p>
+                      <p className="text-sm text-muted-foreground">
+                        {vencidas.slice(0, 3).map(d => d.clients?.razon_social || 'N/A').join(', ')}
+                        {vencidas.length > 3 && ` y ${vencidas.length - 3} más`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {proximas.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <Badge variant="secondary" className="mt-0.5 bg-orange-100 text-orange-800">
+                      {proximas.length}
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="font-semibold text-orange-800">Próximas a vencer (7 días o menos)</p>
+                      <p className="text-sm text-muted-foreground">
+                        {proximas.slice(0, 3).map(d => d.clients?.razon_social || 'N/A').join(', ')}
+                        {proximas.length > 3 && ` y ${proximas.length - 3} más`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Vista por Cliente */}
         {viewMode === 'por-cliente' && (
           <Card>
@@ -628,12 +733,15 @@ export default function F22Declarations() {
                         <TableCell>
                           {decl.f22_tipos && (
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {format(
-                                getFechaLimite(decl.f22_tipos, decl.anio_tributario),
-                                "d 'de' MMMM, yyyy",
-                                { locale: es }
-                              )}
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                {format(
+                                  getFechaLimite(decl.f22_tipos, decl.anio_tributario),
+                                  "d 'de' MMMM, yyyy",
+                                  { locale: es }
+                                )}
+                              </div>
+                              {getAlertaBadge(decl)}
                             </div>
                           )}
                         </TableCell>
@@ -709,6 +817,27 @@ export default function F22Declarations() {
                               "d 'de' MMMM, yyyy",
                               { locale: es }
                             )}
+                            {(() => {
+                              const pendientes = clientesDJ.filter(d => d.estado === 'pendiente');
+                              if (pendientes.length === 0) return null;
+                              const diasRestantes = getDiasHastaVencimiento(tipo, filterAnio);
+                              if (diasRestantes < 0) {
+                                return (
+                                  <Badge variant="destructive" className="ml-2">
+                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                    {pendientes.length} vencidas
+                                  </Badge>
+                                );
+                              } else if (diasRestantes <= 7) {
+                                return (
+                                  <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {pendientes.length} pendientes - {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
+                                  </Badge>
+                                );
+                              }
+                              return null;
+                            })()}
                           </p>
                         </div>
                         <Badge variant="secondary">
@@ -754,7 +883,12 @@ export default function F22Declarations() {
                                   {decl.clients?.regimen_tributario || 'N/A'}
                                 </Badge>
                               </TableCell>
-                              <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {getEstadoBadge(decl.estado)}
+                                  {getAlertaBadge(decl)}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 {decl.fecha_presentacion
                                   ? format(new Date(decl.fecha_presentacion), 'dd/MM/yyyy')
