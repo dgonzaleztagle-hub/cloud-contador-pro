@@ -981,6 +981,8 @@ export type Database = {
           descripcion: string | null
           event_date: string
           event_type: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
           id: string
           periodo_anio: number
           periodo_mes: number
@@ -995,6 +997,8 @@ export type Database = {
           descripcion?: string | null
           event_date: string
           event_type: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           id?: string
           periodo_anio: number
           periodo_mes: number
@@ -1009,6 +1013,8 @@ export type Database = {
           descripcion?: string | null
           event_date?: string
           event_type?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           id?: string
           periodo_anio?: number
           periodo_mes?: number
