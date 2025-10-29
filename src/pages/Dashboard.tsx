@@ -267,6 +267,14 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground">Gestión de RRHH</p>
               </button>
               <button 
+                onClick={() => navigate('/cotizaciones-previsionales')}
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+              >
+                <TrendingUp className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                <h3 className="font-semibold text-foreground mb-1">Cotizaciones Previsionales</h3>
+                <p className="text-sm text-muted-foreground">Control mensual</p>
+              </button>
+              <button 
                 onClick={() => navigate('/documents')}
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
               >

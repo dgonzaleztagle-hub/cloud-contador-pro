@@ -15,6 +15,7 @@ import { Footer } from '@/components/Footer';
 import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
 import { DocumentPreviewDialog } from '@/components/DocumentPreviewDialog';
 import GenerateWorkerLinkDialog from '@/components/GenerateWorkerLinkDialog';
+import WorkerAdminDialog from '@/components/WorkerAdminDialog';
 import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import jsPDF from 'jspdf';
 import { format, differenceInDays } from 'date-fns';
@@ -83,6 +84,7 @@ export default function RRHH() {
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<{ id: string; name: string } | null>(null);
   const [selectedEventType, setSelectedEventType] = useState<'atraso' | 'falta_completa' | 'falta_media' | 'permiso_horas' | 'permiso_medio_dia' | 'permiso_completo' | 'anticipo' | 'licencia_medica'>('atraso');
   const [eventTotals, setEventTotals] = useState<Record<string, any>>({});
@@ -1208,8 +1210,20 @@ export default function RRHH() {
                         </div>
                         <div className="text-sm text-muted-foreground font-normal">{worker.rut}</div>
                       </div>
-                      {canModify && (
+                       {canModify && (
                         <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedWorker({ id: worker.id, name: worker.nombre });
+                              setAdminDialogOpen(true);
+                            }}
+                            className="h-8 w-8 p-0"
+                            title="Completar datos administrativos"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1449,6 +1463,16 @@ export default function RRHH() {
         onOpenChange={setLinkDialogOpen}
         clients={clients}
       />
+
+      {selectedWorker && (
+        <WorkerAdminDialog
+          open={adminDialogOpen}
+          onOpenChange={setAdminDialogOpen}
+          workerId={selectedWorker.id}
+          workerName={selectedWorker.name}
+          onSaved={() => loadData()}
+        />
+      )}
 
       <Footer />
     </div>

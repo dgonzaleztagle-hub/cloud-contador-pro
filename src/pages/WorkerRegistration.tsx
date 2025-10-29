@@ -32,6 +32,7 @@ export default function WorkerRegistration() {
     apellido_paterno: '',
     apellido_materno: '',
     rut: '',
+    nacionalidad: '',
     estado_civil: '',
     fecha_nacimiento: undefined as Date | undefined,
     direccion: '',
@@ -104,6 +105,7 @@ export default function WorkerRegistration() {
           segundo_nombre: formData.segundo_nombre,
           apellido_paterno: formData.apellido_paterno,
           apellido_materno: formData.apellido_materno,
+          nacionalidad: formData.nacionalidad,
           estado_civil: formData.estado_civil,
           fecha_nacimiento: formData.fecha_nacimiento?.toISOString().split('T')[0],
           direccion: formData.direccion,
@@ -257,21 +259,32 @@ export default function WorkerRegistration() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="estado_civil">Estado Civil *</Label>
-                    <Select
+                    <Label htmlFor="nacionalidad">Nacionalidad *</Label>
+                    <Input
+                      id="nacionalidad"
                       required
-                      value={formData.estado_civil}
-                      onValueChange={(value) => setFormData({ ...formData, estado_civil: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Soltero">Soltero</SelectItem>
-                        <SelectItem value="Casado">Casado</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      placeholder="Chilena"
+                      value={formData.nacionalidad}
+                      onChange={(e) => setFormData({ ...formData, nacionalidad: e.target.value })}
+                    />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="estado_civil">Estado Civil *</Label>
+                  <Select
+                    required
+                    value={formData.estado_civil}
+                    onValueChange={(value) => setFormData({ ...formData, estado_civil: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Soltero">Soltero</SelectItem>
+                      <SelectItem value="Casado">Casado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

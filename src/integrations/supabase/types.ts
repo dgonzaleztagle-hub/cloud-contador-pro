@@ -274,6 +274,110 @@ export type Database = {
         }
         Relationships: []
       }
+      cotizaciones_previsionales: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          estado: string
+          fecha_declaracion: string | null
+          fecha_pago: string | null
+          id: string
+          monto_pagado: number | null
+          monto_total: number | null
+          observaciones: string | null
+          periodo_anio: number
+          periodo_mes: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_declaracion?: string | null
+          fecha_pago?: string | null
+          id?: string
+          monto_pagado?: number | null
+          monto_total?: number | null
+          observaciones?: string | null
+          periodo_anio: number
+          periodo_mes: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_declaracion?: string | null
+          fecha_pago?: string | null
+          id?: string
+          monto_pagado?: number | null
+          monto_total?: number | null
+          observaciones?: string | null
+          periodo_anio?: number
+          periodo_mes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_previsionales_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotizaciones_trabajadores: {
+        Row: {
+          cotizacion_id: string
+          created_at: string
+          fecha_pago: string | null
+          id: string
+          monto: number
+          pagado: boolean | null
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          cotizacion_id: string
+          created_at?: string
+          fecha_pago?: string | null
+          id?: string
+          monto?: number
+          pagado?: boolean | null
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          cotizacion_id?: string
+          created_at?: string
+          fecha_pago?: string | null
+          id?: string
+          monto?: number
+          pagado?: boolean | null
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_trabajadores_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones_previsionales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_trabajadores_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "rrhh_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       f29_declarations: {
         Row: {
           client_id: string
@@ -589,8 +693,10 @@ export type Database = {
           banco: string | null
           cargo: string | null
           ciudad: string | null
+          clausulas_especiales: string | null
           client_id: string
           contrato_pdf_path: string | null
+          contrato_word_path: string | null
           created_at: string
           datos_admin_completados: boolean | null
           direccion: string | null
@@ -600,18 +706,23 @@ export type Database = {
           fecha_nacimiento: string | null
           fecha_termino: string | null
           formulario_completado: boolean | null
+          funciones: string | null
+          horario_laboral: string | null
           id: string
+          nacionalidad: string | null
           nombre: string
           numero_cuenta: string | null
           primer_nombre: string | null
           rut: string
           salud: string | null
           segundo_nombre: string | null
+          sucursal_admin: string | null
           sucursal_id: string | null
           telefono: string | null
           tipo_cuenta: string | null
           tipo_jornada: string
           tipo_plazo: string
+          turnos_rotativos: boolean | null
           updated_at: string
         }
         Insert: {
@@ -622,8 +733,10 @@ export type Database = {
           banco?: string | null
           cargo?: string | null
           ciudad?: string | null
+          clausulas_especiales?: string | null
           client_id: string
           contrato_pdf_path?: string | null
+          contrato_word_path?: string | null
           created_at?: string
           datos_admin_completados?: boolean | null
           direccion?: string | null
@@ -633,18 +746,23 @@ export type Database = {
           fecha_nacimiento?: string | null
           fecha_termino?: string | null
           formulario_completado?: boolean | null
+          funciones?: string | null
+          horario_laboral?: string | null
           id?: string
+          nacionalidad?: string | null
           nombre: string
           numero_cuenta?: string | null
           primer_nombre?: string | null
           rut: string
           salud?: string | null
           segundo_nombre?: string | null
+          sucursal_admin?: string | null
           sucursal_id?: string | null
           telefono?: string | null
           tipo_cuenta?: string | null
           tipo_jornada?: string
           tipo_plazo?: string
+          turnos_rotativos?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -655,8 +773,10 @@ export type Database = {
           banco?: string | null
           cargo?: string | null
           ciudad?: string | null
+          clausulas_especiales?: string | null
           client_id?: string
           contrato_pdf_path?: string | null
+          contrato_word_path?: string | null
           created_at?: string
           datos_admin_completados?: boolean | null
           direccion?: string | null
@@ -666,18 +786,23 @@ export type Database = {
           fecha_nacimiento?: string | null
           fecha_termino?: string | null
           formulario_completado?: boolean | null
+          funciones?: string | null
+          horario_laboral?: string | null
           id?: string
+          nacionalidad?: string | null
           nombre?: string
           numero_cuenta?: string | null
           primer_nombre?: string | null
           rut?: string
           salud?: string | null
           segundo_nombre?: string | null
+          sucursal_admin?: string | null
           sucursal_id?: string | null
           telefono?: string | null
           tipo_cuenta?: string | null
           tipo_jornada?: string
           tipo_plazo?: string
+          turnos_rotativos?: boolean | null
           updated_at?: string
         }
         Relationships: [

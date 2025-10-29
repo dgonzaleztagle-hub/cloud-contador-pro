@@ -26,7 +26,7 @@ export default function GenerateWorkerLinkDialog({
 }: GenerateWorkerLinkDialogProps) {
   const { toast } = useToast();
   const [selectedClient, setSelectedClient] = useState('');
-  const [daysValid, setDaysValid] = useState('30');
+  const [daysValid, setDaysValid] = useState('1'); // Changed to 24 hours (1 day)
   const [generating, setGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
@@ -147,7 +147,7 @@ export default function GenerateWorkerLinkDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="days">Días de Validez</Label>
+            <Label htmlFor="days">Duración del Enlace</Label>
             <Input
               id="days"
               type="number"
@@ -158,7 +158,7 @@ export default function GenerateWorkerLinkDialog({
               disabled={!!generatedLink}
             />
             <p className="text-xs text-muted-foreground">
-              El enlace expirará después de {daysValid} días
+              El enlace expirará después de {daysValid} {daysValid === '1' ? 'día (24 horas)' : 'días'}
             </p>
           </div>
 
