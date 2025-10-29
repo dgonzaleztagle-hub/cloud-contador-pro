@@ -49,6 +49,8 @@ interface Honorario {
   notas: string | null;
   created_at: string;
   clients?: { rut: string; razon_social: string };
+  origen?: 'manual' | 'f29'; // Para identificar la fuente de datos
+  f29_id?: string; // ID de la declaración F29 si viene de ahí
 }
 
 interface HonorariosSummary {
@@ -116,8 +118,8 @@ export default function Honorarios() {
       if (clientsError) throw clientsError;
       setClients(clientsData || []);
 
-      // Cargar honorarios del período
-      let query = supabase
+      // Cargar honorarios manuales del período
+      let honorariosQuery = supabase
         .from('honorarios')
         .select(`
           *,
@@ -128,36 +130,88 @@ export default function Honorarios() {
         .order('created_at', { ascending: false });
 
       if (filterEstado !== 'all') {
-        query = query.eq('estado', filterEstado);
+        honorariosQuery = honorariosQuery.eq('estado', filterEstado);
       }
 
-      const { data: honorariosData, error: honorariosError } = await query;
-
+      const { data: honorariosData, error: honorariosError } = await honorariosQuery;
       if (honorariosError) throw honorariosError;
-      setHonorarios((honorariosData as any) || []);
 
-      // Cargar resumen del período
-      const { data: summaryData, error: summaryError } = await supabase
-        .rpc('get_honorarios_summary', {
-          p_mes: filterMes,
-          p_anio: filterAnio
-        })
-        .single();
+      // Marcar honorarios manuales con origen
+      const honorariosManuales = (honorariosData || []).map(h => ({
+        ...h,
+        origen: 'manual' as const
+      }));
 
-      if (!summaryError && summaryData) {
-        setSummary(summaryData);
-      } else {
-        // Si no hay datos, establecer resumen en cero
-        setSummary({
-          total_facturado: 0,
-          total_pendiente: 0,
-          total_pagado: 0,
-          total_parcial: 0,
-          cantidad_pendiente: 0,
-          cantidad_pagado: 0,
-          cantidad_parcial: 0
-        });
+      // Cargar honorarios de F29 del período
+      let f29Query = supabase
+        .from('f29_declarations')
+        .select(`
+          id,
+          client_id,
+          periodo_mes,
+          periodo_anio,
+          honorarios,
+          estado_honorarios,
+          created_at,
+          clients(rut, razon_social)
+        `)
+        .eq('periodo_mes', filterMes)
+        .eq('periodo_anio', filterAnio)
+        .gt('honorarios', 0)
+        .order('created_at', { ascending: false });
+
+      if (filterEstado !== 'all') {
+        f29Query = f29Query.eq('estado_honorarios', filterEstado);
       }
+
+      const { data: f29Data, error: f29Error } = await f29Query;
+      if (f29Error) throw f29Error;
+
+      // Convertir datos de F29 a formato Honorario
+      const honorariosF29 = (f29Data || []).map(f29 => ({
+        id: f29.id,
+        client_id: f29.client_id,
+        periodo_mes: f29.periodo_mes,
+        periodo_anio: f29.periodo_anio,
+        monto: f29.honorarios,
+        saldo_pendiente_anterior: 0,
+        total_con_saldo: f29.honorarios,
+        estado: f29.estado_honorarios as 'pendiente' | 'pagado' | 'parcial',
+        monto_pagado: f29.estado_honorarios === 'pagado' ? f29.honorarios : 0,
+        saldo_actual: f29.estado_honorarios === 'pagado' ? 0 : f29.honorarios,
+        fecha_pago: null,
+        notas: 'Honorarios desde F29',
+        created_at: f29.created_at,
+        clients: f29.clients,
+        origen: 'f29' as const,
+        f29_id: f29.id
+      }));
+
+      // Combinar ambos conjuntos de honorarios
+      const todosHonorarios = [...honorariosManuales, ...honorariosF29];
+      setHonorarios(todosHonorarios as any);
+
+      // Calcular resumen consolidado
+      const totalFacturado = todosHonorarios.reduce((sum, h) => sum + (h.monto || 0), 0);
+      const totalPagado = todosHonorarios
+        .filter(h => h.estado === 'pagado')
+        .reduce((sum, h) => sum + (h.monto || 0), 0);
+      const totalPendiente = todosHonorarios
+        .filter(h => h.estado === 'pendiente')
+        .reduce((sum, h) => sum + (h.saldo_actual || 0), 0);
+      const totalParcial = todosHonorarios
+        .filter(h => h.estado === 'parcial')
+        .reduce((sum, h) => sum + (h.saldo_actual || 0), 0);
+
+      setSummary({
+        total_facturado: totalFacturado,
+        total_pendiente: totalPendiente,
+        total_pagado: totalPagado,
+        total_parcial: totalParcial,
+        cantidad_pendiente: todosHonorarios.filter(h => h.estado === 'pendiente').length,
+        cantidad_pagado: todosHonorarios.filter(h => h.estado === 'pagado').length,
+        cantidad_parcial: todosHonorarios.filter(h => h.estado === 'parcial').length
+      });
 
     } catch (error: any) {
       console.error('Error loading data:', error);
@@ -673,6 +727,16 @@ export default function Honorarios() {
                             {honorario.clients?.razon_social}
                           </h3>
                           {getEstadoBadge(honorario.estado)}
+                          {honorario.origen === 'f29' && (
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30">
+                              F29
+                            </Badge>
+                          )}
+                          {honorario.origen === 'manual' && (
+                            <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/30">
+                              Manual
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           RUT: {honorario.clients?.rut}
@@ -702,7 +766,7 @@ export default function Honorarios() {
                         )}
                       </div>
 
-                      {canModify && (
+                      {canModify && honorario.origen === 'manual' && (
                         <div className="flex gap-2 ml-4">
                           <Button
                             variant="ghost"
@@ -719,6 +783,11 @@ export default function Honorarios() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        </div>
+                      )}
+                      {honorario.origen === 'f29' && (
+                        <div className="ml-4 text-xs text-muted-foreground">
+                          Desde F29 - No editable
                         </div>
                       )}
                     </div>
