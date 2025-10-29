@@ -314,11 +314,15 @@ const Index = () => {
                   <ul className="text-sm text-muted-foreground space-y-2">
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      Roles: master, admin, client, viewer
+                      <strong>Master:</strong> Administrador principal con acceso total
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      Permisos personalizados por rol
+                      <strong>Contador:</strong> Gestión de clientes y declaraciones
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <strong>Cliente:</strong> Visualización de sus propios datos
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
