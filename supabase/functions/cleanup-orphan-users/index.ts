@@ -11,9 +11,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Crear cliente con SERVICE_ROLE_KEY para operaciones administrativas
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Crear cliente con ANON_KEY para verificar el usuario actual
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         auth: {
           autoRefreshToken: false,
@@ -25,15 +38,26 @@ Deno.serve(async (req) => {
     // Verificar autenticación del usuario que hace la petición
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('No authorization header provided')
       throw new Error('No authorization header')
     }
 
     const token = authHeader.replace('Bearer ', '')
+    
+    console.log('Verifying user authentication...')
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
 
-    if (authError || !user) {
-      throw new Error('Unauthorized')
+    if (authError) {
+      console.error('Auth error:', authError)
+      throw new Error('Authentication failed')
     }
+
+    if (!user) {
+      console.error('No user found')
+      throw new Error('User not found')
+    }
+
+    console.log('User authenticated:', user.email)
 
     // Verificar que el usuario tenga rol master
     const { data: profile, error: profileError } = await supabaseClient
@@ -42,14 +66,20 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single()
 
-    if (profileError || profile?.role !== 'master') {
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+      throw new Error('Error fetching user profile')
+    }
+
+    if (profile?.role !== 'master') {
+      console.error('User does not have master role:', profile?.role)
       throw new Error('Unauthorized: Only master can cleanup orphan users')
     }
 
-    console.log('Starting orphan user cleanup...')
+    console.log('User has master role, proceeding with cleanup...')
 
     // Obtener todos los usuarios de auth
-    const { data: { users: authUsers }, error: listError } = await supabaseClient.auth.admin.listUsers()
+    const { data: { users: authUsers }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
     
     if (listError) {
       console.error('Error listing users:', listError)
@@ -59,7 +89,7 @@ Deno.serve(async (req) => {
     console.log(`Found ${authUsers.length} auth users`)
 
     // Obtener todos los perfiles
-    const { data: profiles, error: profilesError } = await supabaseClient
+    const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
       .select('id')
 
@@ -82,7 +112,7 @@ Deno.serve(async (req) => {
     for (const orphanUser of orphanUsers) {
       console.log(`Deleting orphan user: ${orphanUser.email} (${orphanUser.id})`)
       
-      const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(orphanUser.id)
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(orphanUser.id)
       
       if (deleteError) {
         console.error(`Error deleting user ${orphanUser.email}:`, deleteError)
