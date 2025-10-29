@@ -198,14 +198,14 @@ export function UploadDocumentDialog({
             <div>
               <Label>Mes</Label>
               <Select 
-                value={mes?.toString() || ''} 
-                onValueChange={(v) => setMes(v ? parseInt(v) : null)}
+                value={mes?.toString() || 'none'} 
+                onValueChange={(v) => setMes(v === 'none' ? null : parseInt(v))}
               >
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue placeholder="Seleccionar (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Ninguno</SelectItem>
+                  <SelectItem value="none">Ninguno</SelectItem>
                   {meses.map((m, i) => (
                     <SelectItem key={i} value={(i + 1).toString()}>
                       {m}
