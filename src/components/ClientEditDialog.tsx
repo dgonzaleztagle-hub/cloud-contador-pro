@@ -47,6 +47,17 @@ interface Client {
   observacion_3: string | null;
   activo: boolean;
   saldo_honorarios_pendiente: number;
+  socio_1_nombre: string | null;
+  socio_1_rut: string | null;
+  socio_1_clave_sii: string | null;
+  socio_2_nombre: string | null;
+  socio_2_rut: string | null;
+  socio_2_clave_sii: string | null;
+  socio_3_nombre: string | null;
+  socio_3_rut: string | null;
+  socio_3_clave_sii: string | null;
+  rcv_ventas: number;
+  rcv_compras: number;
 }
 
 interface ClientEditDialogProps {
@@ -407,6 +418,133 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                     id="region"
                     value={formData.region || ''}
                     onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Sección Socios */}
+            <div className="space-y-4 p-4 rounded-lg bg-muted/50">
+              <h3 className="text-lg font-semibold">Información de Socios</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Socio 1 */}
+                <div className="space-y-2">
+                  <Label htmlFor="socio_1_nombre">Socio 1 - Nombre</Label>
+                  <Input
+                    id="socio_1_nombre"
+                    value={formData.socio_1_nombre || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_1_nombre: e.target.value })}
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socio_1_rut">Socio 1 - RUT</Label>
+                  <Input
+                    id="socio_1_rut"
+                    value={formData.socio_1_rut || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_1_rut: e.target.value })}
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socio_1_clave_sii">Socio 1 - Clave SII</Label>
+                  <Input
+                    id="socio_1_clave_sii"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.socio_1_clave_sii || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_1_clave_sii: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
+                  />
+                </div>
+
+                {/* Socio 2 */}
+                <div className="space-y-2">
+                  <Label htmlFor="socio_2_nombre">Socio 2 - Nombre</Label>
+                  <Input
+                    id="socio_2_nombre"
+                    value={formData.socio_2_nombre || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_2_nombre: e.target.value })}
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socio_2_rut">Socio 2 - RUT</Label>
+                  <Input
+                    id="socio_2_rut"
+                    value={formData.socio_2_rut || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_2_rut: e.target.value })}
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socio_2_clave_sii">Socio 2 - Clave SII</Label>
+                  <Input
+                    id="socio_2_clave_sii"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.socio_2_clave_sii || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_2_clave_sii: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
+                  />
+                </div>
+
+                {/* Socio 3 */}
+                <div className="space-y-2">
+                  <Label htmlFor="socio_3_nombre">Socio 3 - Nombre</Label>
+                  <Input
+                    id="socio_3_nombre"
+                    value={formData.socio_3_nombre || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_3_nombre: e.target.value })}
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socio_3_rut">Socio 3 - RUT</Label>
+                  <Input
+                    id="socio_3_rut"
+                    value={formData.socio_3_rut || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_3_rut: e.target.value })}
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socio_3_clave_sii">Socio 3 - Clave SII</Label>
+                  <Input
+                    id="socio_3_clave_sii"
+                    type={canEditPasswords ? 'text' : 'password'}
+                    value={formData.socio_3_clave_sii || ''}
+                    onChange={(e) => setFormData({ ...formData, socio_3_clave_sii: e.target.value })}
+                    placeholder={canEditPasswords ? '' : '••••••••'}
+                    readOnly={!canEditPasswords}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Sección RCV */}
+            <div className="space-y-4 p-4 rounded-lg bg-muted/50">
+              <h3 className="text-lg font-semibold">Registro de Compras y Ventas (RCV)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rcv_ventas">RCV Ventas</Label>
+                  <Input
+                    id="rcv_ventas"
+                    type="number"
+                    value={formData.rcv_ventas || 0}
+                    onChange={(e) => setFormData({ ...formData, rcv_ventas: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rcv_compras">RCV Compras</Label>
+                  <Input
+                    id="rcv_compras"
+                    type="number"
+                    value={formData.rcv_compras || 0}
+                    onChange={(e) => setFormData({ ...formData, rcv_compras: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
                   />
                 </div>
               </div>
