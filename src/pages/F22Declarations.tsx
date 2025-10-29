@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink, Plus, Building2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink, Plus, Building2, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -86,6 +87,7 @@ export default function F22Declarations() {
   const [showOcultas, setShowOcultas] = useState(false);
   const [isPreloading, setIsPreloading] = useState(false);
   const [selectedClientForInfo, setSelectedClientForInfo] = useState<Client | null>(null);
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -97,6 +99,18 @@ export default function F22Declarations() {
   const [fechaAceptacion, setFechaAceptacion] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [oculta, setOculta] = useState(false);
+
+  const toggleClientExpanded = (clientId: string) => {
+    setExpandedClients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(clientId)) {
+        newSet.delete(clientId);
+      } else {
+        newSet.add(clientId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -703,7 +717,7 @@ export default function F22Declarations() {
 
         {/* Vista por Cliente */}
         {viewMode === 'por-cliente' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {clients
               .filter(client => {
                 // Filtrar por cliente seleccionado si aplica
@@ -717,135 +731,152 @@ export default function F22Declarations() {
                 const djsCliente = getDJsCliente(client.id);
                 const pendientes = djsCliente.filter(d => d.estado === 'pendiente');
                 const declaradas = djsCliente.filter(d => d.estado === 'declarada');
+                const isExpanded = expandedClients.has(client.id);
                 
                 return (
-                  <Card key={client.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <CardTitle className="flex items-center gap-2">
-                            <Building2 className="h-5 w-5" />
-                            {client.razon_social}
-                          </CardTitle>
-                          <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">RUT:</span> {client.rut}
-                            </div>
-                            {client.regimen_tributario && (
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">Régimen:</span> {client.regimen_tributario}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                            {pendientes.length} pendientes
-                          </Badge>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {declaradas.length} declaradas
-                          </Badge>
-                          <Badge variant="secondary">
-                            {djsCliente.length} total
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[200px]">Declaración</TableHead>
-                            <TableHead className="w-[140px]">RUT / Clave SII</TableHead>
-                            <TableHead className="w-[140px]">Representante</TableHead>
-                            <TableHead className="w-[180px]">Fecha Límite</TableHead>
-                            <TableHead className="w-[100px]">Estado</TableHead>
-                            <TableHead className="w-[100px]">Resultado</TableHead>
-                            <TableHead className="w-[100px]">F. Presentación</TableHead>
-                            {canModify && <TableHead className="text-right w-[100px]">Acciones</TableHead>}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {djsCliente.map((decl) => (
-                            <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
-                              <TableCell>
-                                <div className="text-sm">
-                                  <div className="font-semibold">{decl.tipo?.codigo}</div>
-                                  <div className="text-xs text-muted-foreground line-clamp-1">
-                                    {decl.tipo?.nombre}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-xs">
-                                  <div className="font-medium">{client.rut || 'N/A'}</div>
-                                  <div className="text-muted-foreground truncate">
-                                    {client.clave_sii ? '••••••' : 'Sin clave'}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-xs">
-                                  <div className="font-medium truncate">{client.representante_legal || 'N/A'}</div>
-                                  <div className="text-muted-foreground">
-                                    {client.rut_representante || 'N/A'}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {decl.tipo && (
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-1 text-xs">
-                                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                                      {format(
-                                        getFechaLimite(decl.tipo, decl.anio_tributario),
-                                        "dd/MM/yy"
-                                      )}
-                                    </div>
-                                    {getAlertaBadge(decl as any)}
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
-                              <TableCell>{getResultadoBadge(decl.resultado)}</TableCell>
-                              <TableCell className="text-xs">
-                                {decl.fecha_presentacion
-                                  ? format(new Date(decl.fecha_presentacion), 'dd/MM/yy')
-                                  : '-'}
-                              </TableCell>
-                              {canModify && (
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => handleToggleOculta(decl as any)}
-                                      title={decl.oculta ? 'Mostrar' : 'Ocultar'}
-                                    >
-                                      {decl.oculta ? (
-                                        <Eye className="h-3 w-3" />
-                                      ) : (
-                                        <EyeOff className="h-3 w-3" />
-                                      )}
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={() => handleEdit(decl as any)}
-                                    >
-                                      Editar
-                                    </Button>
-                                  </div>
-                                </TableCell>
+                  <Collapsible
+                    key={client.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleClientExpanded(client.id)}
+                  >
+                    <Card className="overflow-hidden">
+                      <CollapsibleTrigger className="w-full">
+                        <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3 flex-1">
+                              {isExpanded ? (
+                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
                               )}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
+                              <Building2 className="h-5 w-5 text-primary" />
+                              <div className="text-left">
+                                <CardTitle className="text-base">{client.razon_social}</CardTitle>
+                                <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                                  <span><span className="font-medium">RUT:</span> {client.rut}</span>
+                                  {client.regimen_tributario && (
+                                    <span><span className="font-medium">Régimen:</span> {client.regimen_tributario}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {pendientes.length > 0 && (
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                                  {pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''}
+                                </Badge>
+                              )}
+                              {declaradas.length > 0 && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                  {declaradas.length} declarada{declaradas.length !== 1 ? 's' : ''}
+                                </Badge>
+                              )}
+                              <Badge variant="secondary">
+                                {djsCliente.length} total
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <CardContent className="p-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[200px]">Declaración</TableHead>
+                                <TableHead className="w-[140px]">RUT / Clave SII</TableHead>
+                                <TableHead className="w-[140px]">Representante</TableHead>
+                                <TableHead className="w-[180px]">Fecha Límite</TableHead>
+                                <TableHead className="w-[100px]">Estado</TableHead>
+                                <TableHead className="w-[100px]">Resultado</TableHead>
+                                <TableHead className="w-[100px]">F. Presentación</TableHead>
+                                {canModify && <TableHead className="text-right w-[100px]">Acciones</TableHead>}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {djsCliente.map((decl) => (
+                                <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      <div className="font-semibold">{decl.tipo?.codigo}</div>
+                                      <div className="text-xs text-muted-foreground line-clamp-1">
+                                        {decl.tipo?.nombre}
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-xs">
+                                      <div className="font-medium">{client.rut || 'N/A'}</div>
+                                      <div className="text-muted-foreground truncate">
+                                        {client.clave_sii ? '••••••' : 'Sin clave'}
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-xs">
+                                      <div className="font-medium truncate">{client.representante_legal || 'N/A'}</div>
+                                      <div className="text-muted-foreground">
+                                        {client.rut_representante || 'N/A'}
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    {decl.tipo && (
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                                          {format(
+                                            getFechaLimite(decl.tipo, decl.anio_tributario),
+                                            "dd/MM/yy"
+                                          )}
+                                        </div>
+                                        {getAlertaBadge(decl as any)}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
+                                  <TableCell>{getResultadoBadge(decl.resultado)}</TableCell>
+                                  <TableCell className="text-xs">
+                                    {decl.fecha_presentacion
+                                      ? format(new Date(decl.fecha_presentacion), 'dd/MM/yy')
+                                      : '-'}
+                                  </TableCell>
+                                  {canModify && (
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => handleToggleOculta(decl as any)}
+                                          title={decl.oculta ? 'Mostrar' : 'Ocultar'}
+                                        >
+                                          {decl.oculta ? (
+                                            <Eye className="h-3 w-3" />
+                                          ) : (
+                                            <EyeOff className="h-3 w-3" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2 text-xs"
+                                          onClick={() => handleEdit(decl as any)}
+                                        >
+                                          Editar
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
                 );
               })}
             
