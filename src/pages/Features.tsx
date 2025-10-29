@@ -57,7 +57,7 @@ export default function Features() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-2 border-primary/20">
                   <CardHeader>
-                    <Badge className="w-fit mb-2">Master</Badge>
+                    <Badge className="w-fit mb-2">master</Badge>
                     <CardTitle className="text-lg">Administrador Principal</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm space-y-2">
@@ -70,7 +70,7 @@ export default function Features() {
 
                 <Card className="border-2 border-primary/20">
                   <CardHeader>
-                    <Badge className="w-fit mb-2" variant="secondary">Admin</Badge>
+                    <Badge className="w-fit mb-2" variant="secondary">admin</Badge>
                     <CardTitle className="text-lg">Contador</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm space-y-2">
@@ -83,7 +83,7 @@ export default function Features() {
 
                 <Card className="border-2 border-muted">
                   <CardHeader>
-                    <Badge className="w-fit mb-2" variant="outline">Client</Badge>
+                    <Badge className="w-fit mb-2" variant="outline">client</Badge>
                     <CardTitle className="text-lg">Cliente</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm space-y-2">
@@ -96,7 +96,7 @@ export default function Features() {
 
                 <Card className="border-2 border-muted">
                   <CardHeader>
-                    <Badge className="w-fit mb-2" variant="outline">Viewer</Badge>
+                    <Badge className="w-fit mb-2" variant="outline">viewer</Badge>
                     <CardTitle className="text-lg">Visualizador</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm space-y-2">
