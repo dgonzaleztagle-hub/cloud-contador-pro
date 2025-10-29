@@ -15,11 +15,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
-import { DocumentPreviewDialog } from '@/components/DocumentPreviewDialog';
+
 import GenerateWorkerLinkDialog from '@/components/GenerateWorkerLinkDialog';
 import WorkerAdminDialog from '@/components/WorkerAdminDialog';
 import { WorkerDetailDialog } from '@/components/WorkerDetailDialog';
-import { useDocumentPreview, isPreviewSupported } from '@/hooks/useDocumentPreview';
+
 import jsPDF from 'jspdf';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -97,12 +97,10 @@ export default function RRHH() {
   const [fromClientView, setFromClientView] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   
-  // Document preview hook (solo para contratos subidos)
-  const { previewUrl: contractPreviewUrl, previewContent, previewType, isPreviewOpen: isContractPreviewOpen, isLoadingPreview, handlePreview: handleContractPreview, closePreview: closeContractPreview } = useDocumentPreview();
-  
-  // Preview states para informes (igual que F29)
+  // Preview states (igual que F29)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState<string>('');
   
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
@@ -539,8 +537,44 @@ export default function RRHH() {
 
       if (error) throw error;
 
-      const fileName = `Contrato_${worker.nombre}_${worker.rut}.pdf`;
-      await handleContractPreview(data, fileName);
+      // Renderizar PDF igual que en previewPDF e F29
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      
+      const arrayBuffer = await data.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+      
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      if (!context) {
+        toast({
+          title: "Error",
+          description: "No se pudo crear el contexto del canvas",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      } as any).promise;
+      
+      // Convertir canvas a blob y mostrar preview
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const imageUrl = URL.createObjectURL(blob);
+          setPreviewUrl(imageUrl);
+          setPreviewTitle(`Contrato - ${worker.nombre}`);
+          setIsPreviewOpen(true);
+        }
+      }, 'image/jpeg', 0.95);
+
     } catch (error: any) {
       console.error('Error previsualizando contrato:', error);
       toast({
@@ -866,6 +900,7 @@ export default function RRHH() {
       if (blob) {
         const imageUrl = URL.createObjectURL(blob);
         setPreviewUrl(imageUrl);
+        setPreviewTitle('Informe Descuentos RRHH');
         setIsPreviewOpen(true);
       }
     }, 'image/jpeg', 0.95);
@@ -876,6 +911,7 @@ export default function RRHH() {
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl(null);
+    setPreviewTitle('');
     setIsPreviewOpen(false);
   };
 
@@ -1101,7 +1137,7 @@ export default function RRHH() {
                                 className="h-6 px-2 text-xs"
                                 disabled={(() => {
                                   const worker = workers.find(w => w.id === editingWorkerId);
-                                  return !worker?.contrato_pdf_path || !isPreviewSupported(worker.contrato_pdf_path);
+                                  return !worker?.contrato_pdf_path;
                                 })()}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
@@ -1705,33 +1741,23 @@ export default function RRHH() {
         />
       )}
 
-      {/* Preview Dialog para Informes (igual que F29) */}
+      {/* Preview Dialog unificado (igual que F29) */}
       <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
         <DialogContent className="max-w-2xl h-[85vh]">
           <DialogHeader>
-            <DialogTitle>Vista Previa - Informe RRHH</DialogTitle>
+            <DialogTitle>{previewTitle || 'Vista Previa'}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-hidden rounded border bg-gray-50">
             {previewUrl && (
               <iframe
                 src={previewUrl}
                 className="w-full h-[calc(85vh-80px)]"
-                title="Vista previa del informe"
+                title="Vista previa"
               />
             )}
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Preview Dialog para Contratos subidos */}
-      <DocumentPreviewDialog
-        isOpen={isContractPreviewOpen}
-        onClose={closeContractPreview}
-        previewUrl={contractPreviewUrl}
-        previewContent={previewContent}
-        previewType={previewType}
-        isLoading={isLoadingPreview}
-      />
 
       <GenerateWorkerLinkDialog
         open={linkDialogOpen}
