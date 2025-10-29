@@ -97,8 +97,12 @@ export default function RRHH() {
   const [fromClientView, setFromClientView] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   
-  // Document preview hook
-  const { previewUrl, previewContent, previewType, isPreviewOpen, isLoadingPreview, handlePreview, closePreview } = useDocumentPreview();
+  // Document preview hook (solo para contratos subidos)
+  const { previewUrl: contractPreviewUrl, previewContent, previewType, isPreviewOpen: isContractPreviewOpen, isLoadingPreview, handlePreview: handleContractPreview, closePreview: closeContractPreview } = useDocumentPreview();
+  
+  // Preview states para informes (igual que F29)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   // Worker Events
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
@@ -536,7 +540,7 @@ export default function RRHH() {
       if (error) throw error;
 
       const fileName = `Contrato_${worker.nombre}_${worker.rut}.pdf`;
-      await handlePreview(data, fileName);
+      await handleContractPreview(data, fileName);
     } catch (error: any) {
       console.error('Error previsualizando contrato:', error);
       toast({
@@ -857,12 +861,22 @@ export default function RRHH() {
       viewport: viewport
     } as any).promise;
     
-    // Convertir canvas a blob JPG y mostrar preview
+    // Convertir canvas a blob JPG y mostrar preview (igual que F29)
     canvas.toBlob((blob) => {
       if (blob) {
-        handlePreview(blob, `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.jpg`);
+        const imageUrl = URL.createObjectURL(blob);
+        setPreviewUrl(imageUrl);
+        setIsPreviewOpen(true);
       }
     }, 'image/jpeg', 0.95);
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setIsPreviewOpen(false);
   };
 
   const meses = [
@@ -1691,10 +1705,29 @@ export default function RRHH() {
         />
       )}
 
+      {/* Preview Dialog para Informes (igual que F29) */}
+      <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
+        <DialogContent className="max-w-2xl h-[85vh]">
+          <DialogHeader>
+            <DialogTitle>Vista Previa - Informe RRHH</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden rounded border bg-gray-50">
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-[calc(85vh-80px)]"
+                title="Vista previa del informe"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog para Contratos subidos */}
       <DocumentPreviewDialog
-        isOpen={isPreviewOpen}
-        onClose={closePreview}
-        previewUrl={previewUrl}
+        isOpen={isContractPreviewOpen}
+        onClose={closeContractPreview}
+        previewUrl={contractPreviewUrl}
         previewContent={previewContent}
         previewType={previewType}
         isLoading={isLoadingPreview}
