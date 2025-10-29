@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -205,23 +206,23 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
                 <div className="space-y-2">
                   <Label htmlFor="clave_sii">Clave Sii</Label>
-                  <Input
+                  <PasswordInput
                     id="clave_sii"
-                    type="text"
                     value={formData.clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, clave_sii: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="clave_certificado">Clave Certificado</Label>
-                  <Input
+                  <PasswordInput
                     id="clave_certificado"
-                    type="text"
                     value={formData.clave_certificado || ''}
                     onChange={(e) => setFormData({ ...formData, clave_certificado: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
 
@@ -351,23 +352,23 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
                 <div className="space-y-2">
                   <Label htmlFor="clave_sii_repr">Clave SII Representante</Label>
-                  <Input
+                  <PasswordInput
                     id="clave_sii_repr"
-                    type="text"
                     value={formData.clave_sii_repr || ''}
                     onChange={(e) => setFormData({ ...formData, clave_sii_repr: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="clave_unica">Clave Única</Label>
-                  <Input
+                  <PasswordInput
                     id="clave_unica"
-                    type="text"
                     value={formData.clave_unica || ''}
                     onChange={(e) => setFormData({ ...formData, clave_unica: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
 
@@ -445,12 +446,12 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="socio_1_clave_sii">Socio 1 - Clave SII</Label>
-                  <Input
+                  <PasswordInput
                     id="socio_1_clave_sii"
-                    type="text"
                     value={formData.socio_1_clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, socio_1_clave_sii: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
 
@@ -475,12 +476,12 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="socio_2_clave_sii">Socio 2 - Clave SII</Label>
-                  <Input
+                  <PasswordInput
                     id="socio_2_clave_sii"
-                    type="text"
                     value={formData.socio_2_clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, socio_2_clave_sii: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
 
@@ -505,12 +506,12 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="socio_3_clave_sii">Socio 3 - Clave SII</Label>
-                  <Input
+                  <PasswordInput
                     id="socio_3_clave_sii"
-                    type="text"
                     value={formData.socio_3_clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, socio_3_clave_sii: e.target.value })}
                     readOnly={!canEditPasswords}
+                    disabled={!canEditPasswords}
                   />
                 </div>
               </div>

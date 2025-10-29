@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus, PlusCircle, Trash2 } from 'lucide-react';
@@ -563,9 +564,8 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="clave_sii">Clave SII</Label>
-                <Input
+                <PasswordInput
                   id="clave_sii"
-                  type="password"
                   value={formData.clave_sii}
                   onChange={(e) => setFormData({ ...formData, clave_sii: e.target.value })}
                   className="bg-input border-border"
@@ -573,9 +573,8 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="clave_certificado">Clave Certificado</Label>
-                <Input
+                <PasswordInput
                   id="clave_certificado"
-                  type="password"
                   value={formData.clave_certificado}
                   onChange={(e) => setFormData({ ...formData, clave_certificado: e.target.value })}
                   className="bg-input border-border"
@@ -583,9 +582,8 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="clave_sii_repr">Clave SII Repr.</Label>
-                <Input
+                <PasswordInput
                   id="clave_sii_repr"
-                  type="password"
                   value={formData.clave_sii_repr}
                   onChange={(e) => setFormData({ ...formData, clave_sii_repr: e.target.value })}
                   className="bg-input border-border"
@@ -593,9 +591,8 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="clave_unica">Clave Única</Label>
-                <Input
+                <PasswordInput
                   id="clave_unica"
-                  type="password"
                   value={formData.clave_unica}
                   onChange={(e) => setFormData({ ...formData, clave_unica: e.target.value })}
                   className="bg-input border-border"
