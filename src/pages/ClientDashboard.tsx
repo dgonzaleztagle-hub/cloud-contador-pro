@@ -66,19 +66,24 @@ export default function ClientDashboard() {
         .select('id, razon_social, rut, saldo_honorarios_pendiente')
         .eq('user_id', user?.id)
         .eq('activo', true)
-        .single();
+        .maybeSingle();
 
-      if (clientError) throw clientError;
-      setClientData(client);
-
+      if (clientError) {
+        console.error('Error loading client data:', clientError);
+        throw clientError;
+      }
+      
       if (!client) {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'No se encontró información de cliente asociada a tu cuenta'
+          description: 'No se encontró información de cliente asociada a tu cuenta. Contacta al administrador.'
         });
+        setLoadingData(false);
         return;
       }
+
+      setClientData(client);
 
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
