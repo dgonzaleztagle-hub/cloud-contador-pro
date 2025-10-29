@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import * as pdfjsLib from 'pdfjs-dist';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -823,10 +824,44 @@ export default function RRHH() {
     doc.setTextColor(0, 102, 204);
     doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
     
-    // Generar PDF como blob y usar el hook para previsualizar
+    // Generar PDF y convertirlo a imagen para preview (igual que en F29)
     const pdfBlob = doc.output('blob');
-    const fileName = `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.pdf`;
-    await handlePreview(pdfBlob, fileName);
+    
+    // Configurar worker de PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+    
+    // Convertir PDF a imagen
+    const arrayBuffer = await pdfBlob.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!context) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear el contexto del canvas",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    } as any).promise;
+    
+    // Convertir canvas a blob JPG y mostrar preview
+    canvas.toBlob((blob) => {
+      if (blob) {
+        handlePreview(blob, `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.pdf`);
+      }
+    }, 'image/jpeg', 0.95);
   };
 
   const meses = [
