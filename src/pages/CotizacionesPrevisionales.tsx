@@ -84,6 +84,7 @@ export default function CotizacionesPrevisionales() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [workerPayments, setWorkerPayments] = useState<CotizacionTrabajador[]>([]);
   const [selectedCotizacionId, setSelectedCotizacionId] = useState('');
+  const [isPreloading, setIsPreloading] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -296,6 +297,88 @@ export default function CotizacionesPrevisionales() {
     }
   };
 
+  const handlePreloadCotizaciones = async () => {
+    if (!confirm(`¿Desea pre-cargar cotizaciones pendientes para todas las empresas con trabajadores activos para ${format(new Date(filterAnio, filterMes - 1), 'MMMM yyyy', { locale: es })}?`)) {
+      return;
+    }
+
+    setIsPreloading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Obtener todas las empresas con trabajadores activos
+      const { data: clientsWithWorkers, error: clientsError } = await supabase
+        .from('clients')
+        .select(`
+          id, 
+          razon_social,
+          rrhh_workers!inner(id)
+        `)
+        .eq('activo', true)
+        .eq('rrhh_workers.activo', true);
+
+      if (clientsError) throw clientsError;
+
+      // Obtener cotizaciones existentes para este período
+      const { data: existingCotizaciones, error: existingError } = await supabase
+        .from('cotizaciones_previsionales')
+        .select('client_id')
+        .eq('periodo_mes', filterMes)
+        .eq('periodo_anio', filterAnio);
+
+      if (existingError) throw existingError;
+
+      const existingClientIds = new Set(existingCotizaciones?.map(c => c.client_id) || []);
+      
+      // Filtrar solo las empresas que no tienen cotización para este período
+      const uniqueClients = Array.from(
+        new Map(clientsWithWorkers?.map(c => [c.id, c])).values()
+      ).filter(client => !existingClientIds.has(client.id));
+
+      if (uniqueClients.length === 0) {
+        toast({
+          title: "Información",
+          description: "Todas las empresas con trabajadores activos ya tienen cotización registrada para este período"
+        });
+        setIsPreloading(false);
+        return;
+      }
+
+      // Crear cotizaciones pendientes
+      const newCotizaciones = uniqueClients.map(client => ({
+        client_id: client.id,
+        periodo_mes: filterMes,
+        periodo_anio: filterAnio,
+        estado: 'pendiente',
+        monto_total: 0,
+        monto_pagado: 0,
+        created_by: user?.id
+      }));
+
+      const { error: insertError } = await supabase
+        .from('cotizaciones_previsionales')
+        .insert(newCotizaciones);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Cotizaciones pre-cargadas",
+        description: `Se crearon ${uniqueClients.length} cotizaciones pendientes`
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error preloading cotizaciones:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron pre-cargar las cotizaciones",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPreloading(false);
+    }
+  };
+
   const handleToggleWorkerPayment = async (workerId: string, currentPaid: boolean) => {
     try {
       const existingPayment = workerPayments.find(wp => wp.worker_id === workerId);
@@ -376,10 +459,29 @@ export default function CotizacionesPrevisionales() {
             <h1 className="text-3xl font-bold">Cotizaciones Previsionales</h1>
           </div>
           {canModify && (
-            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nueva Cotización
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handlePreloadCotizaciones}
+                disabled={isPreloading}
+              >
+                {isPreloading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Pre-cargando...
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                    Pre-cargar Cotizaciones
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nueva Cotización
+              </Button>
+            </div>
           )}
         </div>
 
