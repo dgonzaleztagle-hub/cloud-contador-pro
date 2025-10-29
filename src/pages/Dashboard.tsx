@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [clientsCount, setClientsCount] = useState({ total: 0, activos: 0, inactivos: 0 });
   const [f29Count, setF29Count] = useState(0);
   const [workersCount, setWorkersCount] = useState(0);
+  const [documentsCount, setDocumentsCount] = useState(0);
 
   useEffect(() => {
     console.log('Dashboard - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
@@ -115,6 +116,19 @@ export default function Dashboard() {
             }
             setWorkersCount(count || 0);
             console.log('Workers count:', count);
+          });
+
+        // Fetch documents count
+        supabase
+          .from('files')
+          .select('id', { count: 'exact' })
+          .then(({ count, error }) => {
+            if (error) {
+              console.error('Error fetching documents:', error);
+              return;
+            }
+            setDocumentsCount(count || 0);
+            console.log('Documents count:', count);
           });
       });
     }
@@ -236,9 +250,9 @@ export default function Dashboard() {
                 <BookOpen className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">0</div>
+                <div className="text-2xl font-bold text-foreground">{documentsCount}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  PDFs almacenados
+                  Documentos almacenados
                 </p>
               </CardContent>
             </Card>
