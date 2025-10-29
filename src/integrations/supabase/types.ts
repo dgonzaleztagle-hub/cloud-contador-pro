@@ -138,12 +138,23 @@ export type Database = {
           portal_electronico: string | null
           previred: string | null
           razon_social: string
+          rcv_compras: number | null
+          rcv_ventas: number | null
           regimen_tributario: string | null
           region: string | null
           representante_legal: string | null
           rut: string
           rut_representante: string | null
           saldo_honorarios_pendiente: number
+          socio_1_clave_sii: string | null
+          socio_1_nombre: string | null
+          socio_1_rut: string | null
+          socio_2_clave_sii: string | null
+          socio_2_nombre: string | null
+          socio_2_rut: string | null
+          socio_3_clave_sii: string | null
+          socio_3_nombre: string | null
+          socio_3_rut: string | null
           updated_at: string
           user_id: string | null
           valor: string | null
@@ -170,12 +181,23 @@ export type Database = {
           portal_electronico?: string | null
           previred?: string | null
           razon_social: string
+          rcv_compras?: number | null
+          rcv_ventas?: number | null
           regimen_tributario?: string | null
           region?: string | null
           representante_legal?: string | null
           rut: string
           rut_representante?: string | null
           saldo_honorarios_pendiente?: number
+          socio_1_clave_sii?: string | null
+          socio_1_nombre?: string | null
+          socio_1_rut?: string | null
+          socio_2_clave_sii?: string | null
+          socio_2_nombre?: string | null
+          socio_2_rut?: string | null
+          socio_3_clave_sii?: string | null
+          socio_3_nombre?: string | null
+          socio_3_rut?: string | null
           updated_at?: string
           user_id?: string | null
           valor?: string | null
@@ -202,12 +224,23 @@ export type Database = {
           portal_electronico?: string | null
           previred?: string | null
           razon_social?: string
+          rcv_compras?: number | null
+          rcv_ventas?: number | null
           regimen_tributario?: string | null
           region?: string | null
           representante_legal?: string | null
           rut?: string
           rut_representante?: string | null
           saldo_honorarios_pendiente?: number
+          socio_1_clave_sii?: string | null
+          socio_1_nombre?: string | null
+          socio_1_rut?: string | null
+          socio_2_clave_sii?: string | null
+          socio_2_nombre?: string | null
+          socio_2_rut?: string | null
+          socio_3_clave_sii?: string | null
+          socio_3_nombre?: string | null
+          socio_3_rut?: string | null
           updated_at?: string
           user_id?: string | null
           valor?: string | null
