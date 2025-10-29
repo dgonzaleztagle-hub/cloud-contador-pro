@@ -29,6 +29,10 @@ export default function Dashboard() {
     if (!loading && !user) {
       navigate('/auth');
     }
+    // Redirigir clientes (viewer) a su workspace específico
+    if (!loading && userRole === 'viewer') {
+      navigate('/client-workspace');
+    }
   }, [user, userRole, loading, navigate]);
 
   useEffect(() => {

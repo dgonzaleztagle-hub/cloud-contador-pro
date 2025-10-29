@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import MasterSignup from "./pages/MasterSignup";
 import Dashboard from "./pages/Dashboard";
+import ClientDashboard from "./pages/ClientDashboard";
 import Clients from "./pages/Clients";
 import ClientDetails from "./pages/ClientDetails";
 import ClientWorkspace from "./pages/ClientWorkspace";
@@ -36,16 +37,18 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/master" element={<MasterSignup />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/client-workspace" element={<ClientDashboard />} />
             <Route path="/features" element={<Features />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/clients/:id" element={<ClientWorkspace />} />
-            <Route path="/clients/:id/edit" element={<ClientDetails />} />
+            <Route path="/client/:id" element={<ClientDetails />} />
             <Route path="/f29" element={<F29Declarations />} />
             <Route path="/rrhh" element={<RRHH />} />
             <Route path="/honorarios" element={<Honorarios />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/cotizaciones-previsionales" element={<CotizacionesPrevisionales />} />
+            <Route path="/cotizaciones" element={<CotizacionesPrevisionales />} />
             <Route path="/f22" element={<F22Declarations />} />
             <Route path="/registro-trabajador/:token" element={<WorkerRegistration />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
