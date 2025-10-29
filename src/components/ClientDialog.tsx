@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Plus, PlusCircle, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { validateRut, formatRut } from '@/lib/rutValidator';
+import { RutInput } from '@/components/ui/rut-input';
 
 interface ClientDialogProps {
   onClientCreated: () => void;
@@ -226,6 +228,29 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar RUT principal
+    if (formData.rut && !validateRut(formData.rut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT de la empresa no es válido',
+      });
+      setIsSaving(false);
+      return;
+    }
+    
+    // Validar RUT representante si está presente
+    if (formData.rut_representante && !validateRut(formData.rut_representante)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT del representante no es válido',
+      });
+      setIsSaving(false);
+      return;
+    }
+    
     setIsSaving(true);
 
     try {
@@ -339,11 +364,10 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rut">RUT *</Label>
-                <Input
+                <RutInput
                   id="rut"
                   value={formData.rut}
-                  onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-                  placeholder="12.345.678-9"
+                  onChange={(value) => setFormData({ ...formData, rut: value })}
                   required
                   className="bg-input border-border"
                 />
@@ -548,10 +572,10 @@ export function ClientDialog({ onClientCreated }: ClientDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rut_representante">RUT Representante</Label>
-                <Input
+                <RutInput
                   id="rut_representante"
                   value={formData.rut_representante}
-                  onChange={(e) => setFormData({ ...formData, rut_representante: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, rut_representante: value })}
                   className="bg-input border-border"
                 />
               </div>

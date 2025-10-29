@@ -13,6 +13,8 @@ import { CalendarIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { validateRut, formatRut } from '@/lib/rutValidator';
+import { RutInput } from '@/components/ui/rut-input';
 
 export default function WorkerRegistration() {
   const { token } = useParams<{ token: string }>();
@@ -89,6 +91,17 @@ export default function WorkerRegistration() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar RUT
+    if (!validateRut(formData.rut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'Por favor ingrese un RUT válido',
+      });
+      return;
+    }
+    
     setSubmitting(true);
 
     try {
@@ -249,12 +262,11 @@ export default function WorkerRegistration() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="rut">Cédula de Identidad (RUT) *</Label>
-                    <Input
+                    <RutInput
                       id="rut"
                       required
-                      placeholder="12.345.678-9"
                       value={formData.rut}
-                      onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                      onChange={(value) => setFormData({ ...formData, rut: value })}
                     />
                   </div>
                   

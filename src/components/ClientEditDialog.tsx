@@ -9,6 +9,8 @@ import { Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { validateRut } from '@/lib/rutValidator';
+import { RutInput } from '@/components/ui/rut-input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,6 +87,52 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!client) return;
+
+    // Validar RUTs si están presentes
+    if (formData.rut && !validateRut(formData.rut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT de la empresa no es válido',
+      });
+      return;
+    }
+    
+    if (formData.rut_representante && !validateRut(formData.rut_representante)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT del representante no es válido',
+      });
+      return;
+    }
+    
+    if (formData.socio_1_rut && !validateRut(formData.socio_1_rut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT del Socio 1 no es válido',
+      });
+      return;
+    }
+    
+    if (formData.socio_2_rut && !validateRut(formData.socio_2_rut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT del Socio 2 no es válido',
+      });
+      return;
+    }
+    
+    if (formData.socio_3_rut && !validateRut(formData.socio_3_rut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT del Socio 3 no es válido',
+      });
+      return;
+    }
 
     setIsSaving(true);
     const { error } = await supabase
@@ -175,10 +223,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
                 <div className="space-y-2">
                   <Label htmlFor="rut">Rut</Label>
-                  <Input
+                  <RutInput
                     id="rut"
                     value={formData.rut || ''}
-                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, rut: value })}
                   />
                 </div>
 
@@ -343,10 +391,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
 
                 <div className="space-y-2">
                   <Label htmlFor="rut_representante">RUT Representante</Label>
-                  <Input
+                  <RutInput
                     id="rut_representante"
                     value={formData.rut_representante || ''}
-                    onChange={(e) => setFormData({ ...formData, rut_representante: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, rut_representante: value })}
                   />
                 </div>
 
@@ -437,11 +485,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="socio_1_rut">Socio 1 - RUT</Label>
-                  <Input
+                  <RutInput
                     id="socio_1_rut"
                     value={formData.socio_1_rut || ''}
-                    onChange={(e) => setFormData({ ...formData, socio_1_rut: e.target.value })}
-                    placeholder="12.345.678-9"
+                    onChange={(value) => setFormData({ ...formData, socio_1_rut: value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -467,11 +514,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="socio_2_rut">Socio 2 - RUT</Label>
-                  <Input
+                  <RutInput
                     id="socio_2_rut"
                     value={formData.socio_2_rut || ''}
-                    onChange={(e) => setFormData({ ...formData, socio_2_rut: e.target.value })}
-                    placeholder="12.345.678-9"
+                    onChange={(value) => setFormData({ ...formData, socio_2_rut: value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -497,11 +543,10 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="socio_3_rut">Socio 3 - RUT</Label>
-                  <Input
+                  <RutInput
                     id="socio_3_rut"
                     value={formData.socio_3_rut || ''}
-                    onChange={(e) => setFormData({ ...formData, socio_3_rut: e.target.value })}
-                    placeholder="12.345.678-9"
+                    onChange={(value) => setFormData({ ...formData, socio_3_rut: value })}
                   />
                 </div>
                 <div className="space-y-2">

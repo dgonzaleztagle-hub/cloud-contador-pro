@@ -15,6 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import { WorkerEventsDialog } from '@/components/WorkerEventsDialog';
+import { validateRut, formatRut } from '@/lib/rutValidator';
+import { RutInput } from '@/components/ui/rut-input';
 
 import GenerateWorkerLinkDialog from '@/components/GenerateWorkerLinkDialog';
 import WorkerAdminDialog from '@/components/WorkerAdminDialog';
@@ -313,6 +315,16 @@ export default function RRHH() {
         variant: 'destructive',
         title: 'Error',
         description: 'Por favor completa todos los campos requeridos',
+      });
+      return;
+    }
+    
+    // Validar RUT del trabajador
+    if (!validateRut(workerRut)) {
+      toast({
+        variant: 'destructive',
+        title: 'RUT inválido',
+        description: 'El RUT del trabajador no es válido',
       });
       return;
     }
@@ -986,10 +998,9 @@ export default function RRHH() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>RUT Trabajador *</Label>
-                        <Input
+                        <RutInput
                           value={workerRut}
-                          onChange={(e) => setWorkerRut(e.target.value)}
-                          placeholder="12345678-9"
+                          onChange={setWorkerRut}
                           required
                           className="bg-input border-border"
                         />
