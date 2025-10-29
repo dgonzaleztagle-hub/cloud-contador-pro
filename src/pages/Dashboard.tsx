@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText } from 'lucide-react';
+import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText, Landmark } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
@@ -244,14 +244,33 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-foreground mb-1">Agenda de Clientes</h3>
                 <p className="text-sm text-muted-foreground">Gestiona tus clientes</p>
               </button>
-              <button 
-                onClick={() => navigate('/f29')}
-                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
-              >
-                <Coins className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-semibold text-foreground mb-1">Declaraciones F29</h3>
-                <p className="text-sm text-muted-foreground">Gestión de impuestos</p>
-              </button>
+              
+              {/* Módulo SII */}
+              <div className="p-6 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Landmark className="h-6 w-6 text-primary" />
+                  <h3 className="font-bold text-foreground text-lg">SII</h3>
+                </div>
+                <div className="space-y-2">
+                  <button 
+                    onClick={() => navigate('/f29')}
+                    className="w-full p-4 rounded-lg bg-background hover:bg-secondary border border-border transition-all text-left group"
+                  >
+                    <Coins className="h-5 w-5 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                    <h4 className="font-semibold text-foreground text-sm">Declaraciones F29</h4>
+                    <p className="text-xs text-muted-foreground">Gestión de impuestos</p>
+                  </button>
+                  <button 
+                    onClick={() => navigate('/f22')}
+                    className="w-full p-4 rounded-lg bg-background hover:bg-secondary border border-border transition-all text-left group"
+                  >
+                    <FileText className="h-5 w-5 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                    <h4 className="font-semibold text-foreground text-sm">Declaraciones F22</h4>
+                    <p className="text-xs text-muted-foreground">DJ Anuales</p>
+                  </button>
+                </div>
+              </div>
+
               <button 
                 onClick={() => navigate('/honorarios')}
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
@@ -283,14 +302,6 @@ export default function Dashboard() {
                 <BookOpen className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Documentos</h3>
                 <p className="text-sm text-muted-foreground">Gestión de archivos</p>
-              </button>
-              <button 
-                onClick={() => navigate('/f22')}
-                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
-              >
-                <FileText className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-semibold text-foreground mb-1">Declaraciones F22</h3>
-                <p className="text-sm text-muted-foreground">DJ Anuales</p>
               </button>
             </CardContent>
           </Card>
