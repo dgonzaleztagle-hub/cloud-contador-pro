@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText, Landmark, ArrowLeft } from 'lucide-react';
+import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText, Landmark, ArrowLeft, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
 import NotificationBell from '@/components/NotificationBell';
+import { OrdenesTrabajoSection } from '@/components/OrdenesTrabajoSection';
 import logo from '@/assets/logo.png';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -344,6 +345,21 @@ export default function Dashboard() {
               </button>
             </CardContent>
           </Card>
+
+          {/* Sección de Órdenes de Trabajo - Solo para Master y Admin */}
+          {(userRole === 'master' || userRole === 'admin') && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  Órdenes de Trabajo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <OrdenesTrabajoSection />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Guía de Funcionalidades */}
           <Card className="border-border bg-gradient-to-br from-primary/5 to-accent/5">

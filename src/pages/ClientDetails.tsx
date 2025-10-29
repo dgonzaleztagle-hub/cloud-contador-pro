@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, ArrowLeft, Trash2, Download } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, Download, ClipboardList } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
+import { OrdenTrabajoDialog } from '@/components/OrdenTrabajoDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,7 @@ export default function ClientDetails() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState<Partial<Client>>({});
+  const [isOTDialogOpen, setIsOTDialogOpen] = useState(false);
 
   const canModify = userRole === 'master' || userRole === 'contador';
   const canEditPasswords = userRole === 'master';
@@ -308,6 +310,17 @@ export default function ClientDetails() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+              {userRole === 'viewer' && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setIsOTDialogOpen(true)}
+                  className="bg-gradient-to-r from-primary to-accent"
+                >
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Nueva Orden de Trabajo
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -683,6 +696,22 @@ export default function ClientDetails() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Orden de Trabajo Dialog */}
+      <OrdenTrabajoDialog
+        clientId={client?.id || ''}
+        clientName={client?.razon_social || ''}
+        isOpen={isOTDialogOpen}
+        onClose={() => setIsOTDialogOpen(false)}
+        onSuccess={() => {
+          toast({
+            title: 'Orden de Trabajo enviada',
+            description: 'Tu solicitud ha sido recibida correctamente'
+          });
+        }}
+      />
+
+      <Footer />
     </div>
   );
 }

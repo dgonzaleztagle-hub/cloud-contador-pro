@@ -21,7 +21,7 @@ interface ContractAlert {
 
 interface Notification {
   id: string;
-  type: 'f29' | 'cotizaciones' | 'f22' | 'contrato_vencido' | 'contrato_por_vencer' | 'f22_vencida' | 'f22_proxima' | 'honorarios_pendiente' | 'cotizacion_pendiente';
+  type: 'f29' | 'cotizaciones' | 'f22' | 'contrato_vencido' | 'contrato_por_vencer' | 'f22_vencida' | 'f22_proxima' | 'honorarios_pendiente' | 'cotizacion_pendiente' | 'orden_trabajo';
   title: string;
   message: string;
   date: Date;
@@ -185,6 +185,33 @@ export default function NotificationBell() {
       console.error('Error cargando cotizaciones:', error);
     }
 
+    // Cargar órdenes de trabajo nuevas (últimas 24 horas)
+    try {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const { data: ordenesNuevas } = await supabase
+        .from('ordenes_trabajo')
+        .select('*, clients(razon_social)')
+        .eq('estado', 'pendiente')
+        .gte('created_at', yesterday.toISOString());
+
+      if (ordenesNuevas && ordenesNuevas.length > 0) {
+        ordenesNuevas.forEach((ot: any) => {
+          notifs.push({
+            id: `ot-${ot.id}`,
+            type: 'orden_trabajo',
+            title: 'Nueva Orden de Trabajo',
+            message: `${ot.clients?.razon_social} - ${ot.descripcion.substring(0, 50)}${ot.descripcion.length > 50 ? '...' : ''}`,
+            date: new Date(ot.created_at),
+            priority: 'high'
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando órdenes de trabajo:', error);
+    }
+
     // Notificaciones de cotizaciones (día 10)
     if (currentDay >= 8 && currentDay <= 10) {
       notifs.push({
@@ -316,6 +343,8 @@ export default function NotificationBell() {
         return '💵';
       case 'cotizacion_pendiente':
         return '📊';
+      case 'orden_trabajo':
+        return '📝';
       default:
         return '🔔';
     }
