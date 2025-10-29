@@ -77,7 +77,7 @@ export default function Honorarios() {
   // Filtros
   const [filterMes, setFilterMes] = useState(new Date().getMonth() + 1);
   const [filterAnio, setFilterAnio] = useState(new Date().getFullYear());
-  const [filterEstado, setFilterEstado] = useState<string>('all');
+  const [filterEstado, setFilterEstado] = useState<string>('pendiente');
   
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
