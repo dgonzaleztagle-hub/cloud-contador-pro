@@ -1542,7 +1542,92 @@ export default function RRHH() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-2">
+                    {canModify && worker.activo && (
+                      <div className="pt-2 border-t border-border space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">Contrato Laboral</h4>
+                        <div className="flex gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => generateWordContract(worker)}
+                                  className="flex-1 gap-2"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  Generar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Generar contrato en Word</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEdit(worker)}
+                                  className="flex-1 gap-2"
+                                  disabled={!canModify}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  Subir PDF
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Subir contrato en PDF</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        {worker.contrato_pdf_path && (
+                          <div className="flex gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePreviewContract(worker)}
+                                    className="flex-1 gap-2"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                    Ver
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ver contrato subido</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownloadContract(worker)}
+                                    className="flex-1 gap-2"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Descargar
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Descargar contrato PDF</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t border-border">
                       <Button
                         variant="outline"
                         size="sm"
