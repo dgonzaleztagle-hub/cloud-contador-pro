@@ -283,8 +283,6 @@ export type Database = {
           fecha_declaracion: string | null
           fecha_pago: string | null
           id: string
-          monto_pagado: number | null
-          monto_total: number | null
           observaciones: string | null
           periodo_anio: number
           periodo_mes: number
@@ -298,8 +296,6 @@ export type Database = {
           fecha_declaracion?: string | null
           fecha_pago?: string | null
           id?: string
-          monto_pagado?: number | null
-          monto_total?: number | null
           observaciones?: string | null
           periodo_anio: number
           periodo_mes: number
@@ -313,8 +309,6 @@ export type Database = {
           fecha_declaracion?: string | null
           fecha_pago?: string | null
           id?: string
-          monto_pagado?: number | null
-          monto_total?: number | null
           observaciones?: string | null
           periodo_anio?: number
           periodo_mes?: number

@@ -35,8 +35,6 @@ interface Cotizacion {
   periodo_mes: number;
   periodo_anio: number;
   estado: string;
-  monto_total: number;
-  monto_pagado: number;
   fecha_declaracion: string | null;
   fecha_pago: string | null;
   observaciones: string | null;
@@ -75,8 +73,6 @@ export default function CotizacionesPrevisionales() {
   const [periodoMes, setPeriodoMes] = useState(new Date().getMonth() + 1);
   const [periodoAnio, setPeriodoAnio] = useState(new Date().getFullYear());
   const [estado, setEstado] = useState('pendiente');
-  const [montoTotal, setMontoTotal] = useState('');
-  const [montoPagado, setMontoPagado] = useState('');
   const [fechaDeclaracion, setFechaDeclaracion] = useState('');
   const [fechaPago, setFechaPago] = useState('');
   const [observaciones, setObservaciones] = useState('');
@@ -106,7 +102,7 @@ export default function CotizacionesPrevisionales() {
       setLoadingData(true);
 
       // Cargar clientes
-      const { data: clientsData, error: clientsError } = await supabase
+      const { data: clientsData, error: clientsError} = await supabase
         .from('clients')
         .select('id, razon_social')
         .eq('activo', true)
@@ -132,6 +128,21 @@ export default function CotizacionesPrevisionales() {
 
       if (cotizacionesError) throw cotizacionesError;
       setCotizaciones(cotizacionesData || []);
+      
+      // Cargar todos los trabajadores de las cotizaciones visibles
+      if (cotizacionesData && cotizacionesData.length > 0) {
+        const cotizacionIds = cotizacionesData.map(c => c.id);
+        const { data: workersData } = await supabase
+          .from('cotizaciones_trabajadores')
+          .select('*, rrhh_workers(nombre, rut)')
+          .in('cotizacion_id', cotizacionIds);
+        
+        if (workersData) {
+          setWorkerPayments(workersData);
+        }
+      } else {
+        setWorkerPayments([]);
+      }
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -174,8 +185,6 @@ export default function CotizacionesPrevisionales() {
     setPeriodoMes(new Date().getMonth() + 1);
     setPeriodoAnio(new Date().getFullYear());
     setEstado('pendiente');
-    setMontoTotal('');
-    setMontoPagado('');
     setFechaDeclaracion('');
     setFechaPago('');
     setObservaciones('');
@@ -188,8 +197,6 @@ export default function CotizacionesPrevisionales() {
     setPeriodoMes(cotizacion.periodo_mes);
     setPeriodoAnio(cotizacion.periodo_anio);
     setEstado(cotizacion.estado);
-    setMontoTotal(cotizacion.monto_total?.toString() || '');
-    setMontoPagado(cotizacion.monto_pagado?.toString() || '');
     setFechaDeclaracion(cotizacion.fecha_declaracion || '');
     setFechaPago(cotizacion.fecha_pago || '');
     setObservaciones(cotizacion.observaciones || '');
@@ -223,8 +230,6 @@ export default function CotizacionesPrevisionales() {
         periodo_mes: periodoMes,
         periodo_anio: periodoAnio,
         estado,
-        monto_total: parseFloat(montoTotal) || 0,
-        monto_pagado: parseFloat(montoPagado) || 0,
         fecha_declaracion: fechaDeclaracion || null,
         fecha_pago: fechaPago || null,
         observaciones: observaciones || null,
@@ -351,8 +356,6 @@ export default function CotizacionesPrevisionales() {
         periodo_mes: filterMes,
         periodo_anio: filterAnio,
         estado: 'pendiente',
-        monto_total: 0,
-        monto_pagado: 0,
         created_by: user?.id
       }));
 
@@ -562,8 +565,9 @@ export default function CotizacionesPrevisionales() {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Monto Total</TableHead>
-                  <TableHead className="text-right">Monto Pagado</TableHead>
+                  <TableHead className="text-center">Trabajadores</TableHead>
+                  <TableHead className="text-center">Pagados</TableHead>
+                  <TableHead className="text-center">Pendientes</TableHead>
                   <TableHead>Fecha Declaración</TableHead>
                   <TableHead>Fecha Pago</TableHead>
                   {canModify && <TableHead className="text-right">Acciones</TableHead>}
@@ -572,34 +576,48 @@ export default function CotizacionesPrevisionales() {
               <TableBody>
                 {cotizaciones.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No hay cotizaciones registradas para este período
                     </TableCell>
                   </TableRow>
                 ) : (
-                  cotizaciones.map((cotizacion) => (
-                    <TableRow key={cotizacion.id}>
-                      <TableCell>{cotizacion.clients?.razon_social}</TableCell>
-                      <TableCell>
-                        {format(new Date(cotizacion.periodo_anio, cotizacion.periodo_mes - 1), 'MMMM yyyy', { locale: es })}
-                      </TableCell>
-                      <TableCell>{getEstadoBadge(cotizacion.estado)}</TableCell>
-                      <TableCell className="text-right">
-                        ${cotizacion.monto_total?.toLocaleString('es-CL') || '0'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ${cotizacion.monto_pagado?.toLocaleString('es-CL') || '0'}
-                      </TableCell>
-                      <TableCell>
-                        {cotizacion.fecha_declaracion
-                          ? format(new Date(cotizacion.fecha_declaracion), 'dd/MM/yyyy')
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {cotizacion.fecha_pago
-                          ? format(new Date(cotizacion.fecha_pago), 'dd/MM/yyyy')
-                          : '-'}
-                      </TableCell>
+                  cotizaciones.map((cotizacion) => {
+                    // Calcular trabajadores desde workerPayments si están disponibles
+                    const payments = workerPayments.filter(p => p.cotizacion_id === cotizacion.id);
+                    const totalWorkers = payments.length;
+                    const paidWorkers = payments.filter(p => p.pagado).length;
+                    const pendingWorkers = totalWorkers - paidWorkers;
+                    
+                    return (
+                      <TableRow key={cotizacion.id}>
+                        <TableCell>{cotizacion.clients?.razon_social}</TableCell>
+                        <TableCell>
+                          {format(new Date(cotizacion.periodo_anio, cotizacion.periodo_mes - 1), 'MMMM yyyy', { locale: es })}
+                        </TableCell>
+                        <TableCell>{getEstadoBadge(cotizacion.estado)}</TableCell>
+                        <TableCell className="text-center font-medium">
+                          {totalWorkers}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            {paidWorkers}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-medium ${pendingWorkers > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>
+                            {pendingWorkers}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {cotizacion.fecha_declaracion
+                            ? format(new Date(cotizacion.fecha_declaracion), 'dd/MM/yyyy')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {cotizacion.fecha_pago
+                            ? format(new Date(cotizacion.fecha_pago), 'dd/MM/yyyy')
+                            : '-'}
+                        </TableCell>
                       {canModify && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -648,8 +666,9 @@ export default function CotizacionesPrevisionales() {
                           </div>
                         </TableCell>
                       )}
-                    </TableRow>
-                  ))
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -741,28 +760,6 @@ export default function CotizacionesPrevisionales() {
                     <SelectItem value="declarado_no_pagado">Declarado No Pagado</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Monto Total</Label>
-                  <Input
-                    type="number"
-                    value={montoTotal}
-                    onChange={(e) => setMontoTotal(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Monto Pagado</Label>
-                  <Input
-                    type="number"
-                    value={montoPagado}
-                    onChange={(e) => setMontoPagado(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
