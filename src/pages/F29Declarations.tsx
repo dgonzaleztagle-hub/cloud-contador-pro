@@ -365,7 +365,9 @@ export default function F29Declarations() {
       }
     }
 
-    const totalGeneral = totalImpuestos + honorariosVal;
+    // Sumar recargos si está fuera de plazo
+    const totalConRecargos = totalImpuestos + (fueraDePlazo ? recargosConCondonacion : 0);
+    const totalGeneral = totalConRecargos + honorariosVal;
 
     return {
       ivaNeto,
@@ -419,6 +421,14 @@ export default function F29Declarations() {
       observaciones: observaciones || null,
       estado_honorarios: estadoHonorarios,
       estado_declaracion: estadoDeclaracion,
+      fuera_de_plazo: fueraDePlazo,
+      fecha_limite_declaracion: fechaLimite || null,
+      dias_atraso: diasAtraso,
+      correccion_monetaria: correccionMonetaria,
+      interes_moratorio: interesMoratorio,
+      multa: multaCalculada,
+      total_recargos: totalRecargos,
+      recargos_con_condonacion: recargosConCondonacion,
     };
 
     let error;
@@ -530,6 +540,14 @@ export default function F29Declarations() {
     setObservaciones('');
     setEstadoHonorarios('pendiente');
     setEstadoDeclaracion('pendiente');
+    setFueraDePlazo(false);
+    setFechaLimite('');
+    setDiasAtraso(0);
+    setCorreccionMonetaria(0);
+    setInteresMoratorio(0);
+    setMultaCalculada(0);
+    setTotalRecargos(0);
+    setRecargosConCondonacion(0);
     setHasFormData(false);
   };
 
@@ -737,6 +755,14 @@ export default function F29Declarations() {
     setObservaciones(declaration.observaciones || '');
     setEstadoHonorarios(declaration.estado_honorarios);
     setEstadoDeclaracion(declaration.estado_declaracion);
+    setFueraDePlazo(declaration.fuera_de_plazo || false);
+    setFechaLimite(declaration.fecha_limite_declaracion || '');
+    setDiasAtraso(declaration.dias_atraso || 0);
+    setCorreccionMonetaria(declaration.correccion_monetaria || 0);
+    setInteresMoratorio(declaration.interes_moratorio || 0);
+    setMultaCalculada(declaration.multa || 0);
+    setTotalRecargos(declaration.total_recargos || 0);
+    setRecargosConCondonacion(declaration.recargos_con_condonacion || 0);
     setIsDialogOpen(true);
   };
 
@@ -805,8 +831,16 @@ export default function F29Declarations() {
     let currentY = startY;
     const rowHeight = 8;
     
-    // Función helper para filas
-    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number]) => {
+    // Función helper para filas - solo muestra si el valor no es cero
+    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number], forceShow = false) => {
+      // Omitir si el valor es 0 y no es forzado a mostrar
+      if (!forceShow && typeof value === 'number' && value === 0) {
+        return;
+      }
+      if (!forceShow && typeof value === 'string' && (value === '0' || value === '0%')) {
+        return;
+      }
+      
       if (fillColor) {
         doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
         doc.rect(leftMargin, currentY, tableWidth, rowHeight, 'F');
@@ -829,19 +863,30 @@ export default function F29Declarations() {
       doc.setTextColor(0);
     };
     
-    // Filas de la tabla
+    // Filas de la tabla - solo se muestran las que tienen valores
     addRow('REMANENTE PER ANTERIOR', declaration.remanente_anterior, true, [52, 73, 94]);
     addRow('IVA VENTAS', declaration.iva_ventas);
     addRow('IVA COMPRAS', declaration.iva_compras);
     addRow('IVA NETO', declaration.iva_neto);
     
     const tasaPPM = declaration.tasa_ppm || 0;
-    addRow('TASA PPM %', tasaPPM.toString() + '%');
+    if (tasaPPM > 0) {
+      addRow('TASA PPM %', tasaPPM.toString() + '%', false, undefined, true);
+    }
     addRow('PPM', declaration.ppm);
     addRow('HONORARIOS', declaration.honorarios);
     addRow('RETENCIÓN 2DA CATEGORÍA', declaration.retencion_2cat);
     addRow('IMPUESTO ÚNICO', declaration.impuesto_unico);
-    addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
+    
+    // Recargos por fuera de plazo (si aplica)
+    if (declaration.fuera_de_plazo) {
+      addRow('CORRECCIÓN MONETARIA', declaration.correccion_monetaria);
+      addRow('INTERÉS MORATORIO', declaration.interes_moratorio);
+      addRow('MULTA', declaration.multa);
+      addRow('RECARGOS CON CONDONACIÓN 70%', declaration.recargos_con_condonacion, true, [255, 193, 7]);
+    }
+    
+    addRow('TOTAL IMPUESTOS', declaration.total_impuestos, false, undefined, true);
     addRow('REMANENTE PROX PERIODO', declaration.remanente_proximo, true, [52, 73, 94]);
     
     // Total destacado
@@ -944,8 +989,17 @@ export default function F29Declarations() {
     let currentY = startY;
     const rowHeight = 8;
     
-    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number]) => {
+    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number], forceShow = false) => {
+      // Omitir si el valor es 0 y no es forzado a mostrar
+      if (!forceShow && typeof value === 'number' && value === 0) {
+        return;
+      }
+      if (!forceShow && typeof value === 'string' && (value === '0' || value === '0%')) {
+        return;
+      }
+      
       if (fillColor) {
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
         doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
         doc.rect(leftMargin, currentY, tableWidth, rowHeight, 'F');
       }
@@ -972,12 +1026,23 @@ export default function F29Declarations() {
     addRow('IVA NETO', declaration.iva_neto);
     
     const tasaPPM = declaration.tasa_ppm || 0;
-    addRow('TASA PPM %', tasaPPM.toString() + '%');
+    if (tasaPPM > 0) {
+      addRow('TASA PPM %', tasaPPM.toString() + '%', false, undefined, true);
+    }
     addRow('PPM', declaration.ppm);
     addRow('HONORARIOS', declaration.honorarios);
     addRow('RETENCIÓN 2DA CATEGORÍA', declaration.retencion_2cat);
     addRow('IMPUESTO ÚNICO', declaration.impuesto_unico);
-    addRow('TOTAL IMPUESTOS', declaration.total_impuestos);
+    
+    // Recargos por fuera de plazo (si aplica)
+    if (declaration.fuera_de_plazo) {
+      addRow('CORRECCIÓN MONETARIA', declaration.correccion_monetaria);
+      addRow('INTERÉS MORATORIO', declaration.interes_moratorio);
+      addRow('MULTA', declaration.multa);
+      addRow('RECARGOS CON CONDONACIÓN 70%', declaration.recargos_con_condonacion, true, [255, 193, 7]);
+    }
+    
+    addRow('TOTAL IMPUESTOS', declaration.total_impuestos, false, undefined, true);
     addRow('REMANENTE PROX PERIODO', declaration.remanente_proximo, true, [52, 73, 94]);
     
     currentY += 5;
@@ -1362,6 +1427,74 @@ export default function F29Declarations() {
                           <SelectItem value="girado">Girado</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Sección Fuera de Plazo */}
+                    <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/30">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="fueraDePlazo"
+                          checked={fueraDePlazo}
+                          onChange={(e) => setFueraDePlazo(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="fueraDePlazo" className="font-semibold">
+                          Declaración Fuera de Plazo
+                        </Label>
+                      </div>
+
+                      {fueraDePlazo && (
+                        <div className="space-y-3 pl-6 border-l-2 border-primary/50">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-sm">Días de Atraso</Label>
+                              <Input
+                                value={diasAtraso}
+                                readOnly
+                                className="bg-muted"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm">Fecha Límite</Label>
+                              <Input
+                                value={fechaLimite}
+                                readOnly
+                                className="bg-muted"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded">
+                            <h4 className="font-semibold text-sm">Cálculo de Recargos:</h4>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <span>Corrección Monetaria:</span>
+                              <span className="font-semibold">${Math.round(correccionMonetaria).toLocaleString('es-CL')}</span>
+                              
+                              <span>Interés Moratorio (0.05% diario):</span>
+                              <span className="font-semibold">${Math.round(interesMoratorio).toLocaleString('es-CL')}</span>
+                              
+                              <span>Multa:</span>
+                              <span className="font-semibold">${Math.round(multaCalculada).toLocaleString('es-CL')}</span>
+                              
+                              <span className="font-bold border-t pt-1">Total Recargos:</span>
+                              <span className="font-bold border-t pt-1">${Math.round(totalRecargos).toLocaleString('es-CL')}</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-sm">Con Condonación 70%:</span>
+                              <span className="font-bold text-lg text-green-600 dark:text-green-400">
+                                ${Math.round(recargosConCondonacion).toLocaleString('es-CL')}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Este monto se suma automáticamente al Total a Pagar
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <Button
