@@ -21,6 +21,7 @@ import WorkerRegistration from "./pages/WorkerRegistration";
 import CotizacionesPrevisionales from "./pages/CotizacionesPrevisionales";
 import F22Declarations from "./pages/F22Declarations";
 import Features from "./pages/Features";
+import MisOrdenesTrabajoPage from "./pages/MisOrdenesTrabajoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/cotizaciones-previsionales" element={<CotizacionesPrevisionales />} />
             <Route path="/cotizaciones" element={<CotizacionesPrevisionales />} />
             <Route path="/f22" element={<F22Declarations />} />
+            <Route path="/mis-ordenes-trabajo" element={<MisOrdenesTrabajoPage />} />
             <Route path="/registro-trabajador/:token" element={<WorkerRegistration />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

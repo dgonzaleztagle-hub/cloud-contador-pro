@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import NotificationBell from '@/components/NotificationBell';
 import { OrdenTrabajoDialog } from '@/components/OrdenTrabajoDialog';
-import { ClientOTSection } from '@/components/ClientOTSection';
 import logo from '@/assets/logo.png';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,7 +32,9 @@ export default function ClientDashboard() {
     trabajadores: 0,
     f29_mes: 0,
     cotizaciones_mes: 0,
-    documentos: 0
+    documentos: 0,
+    ot_pendientes: 0,
+    ot_terminadas: 0
   });
 
   useEffect(() => {
@@ -115,11 +116,25 @@ export default function ClientDashboard() {
         .select('id', { count: 'exact', head: true })
         .eq('client_id', client.id);
 
+      const { count: otPendientesCount } = await supabase
+        .from('ordenes_trabajo')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id)
+        .eq('estado', 'pendiente');
+
+      const { count: otTerminadasCount } = await supabase
+        .from('ordenes_trabajo')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id)
+        .eq('estado', 'terminada');
+
       setStats({
         trabajadores: trabajadoresCount || 0,
         f29_mes: f29Count || 0,
         cotizaciones_mes: cotizacionesCount || 0,
-        documentos: documentosCount || 0
+        documentos: documentosCount || 0,
+        ot_pendientes: otPendientesCount || 0,
+        ot_terminadas: otTerminadasCount || 0
       });
 
     } catch (error: any) {
@@ -244,16 +259,39 @@ export default function ClientDashboard() {
             </Card>
           </div>
 
-          {/* Sección de Órdenes de Trabajo */}
-          <Card className="border-border bg-card">
+          {/* Tarjeta Resumen de Órdenes de Trabajo */}
+          <Card className="border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all">
             <CardHeader>
-              <CardTitle className="text-foreground">Mis Órdenes de Trabajo</CardTitle>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                Mis Órdenes de Trabajo
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ClientOTSection 
-                clientId={clientData.id}
-                clientName={clientData.razon_social}
-              />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                  <p className="text-3xl font-bold text-primary">{stats.ot_pendientes}</p>
+                  <p className="text-sm text-muted-foreground mt-1">En Proceso</p>
+                </div>
+                <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                  <p className="text-3xl font-bold text-foreground">{stats.ot_terminadas}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Terminadas</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => navigate('/mis-ordenes-trabajo')}
+                className="w-full"
+                variant="outline"
+              >
+                Ver Todas las Órdenes
+              </Button>
+              <Button 
+                onClick={() => setIsOTDialogOpen(true)}
+                className="w-full bg-gradient-to-r from-primary to-accent"
+              >
+                <ClipboardList className="h-4 w-4 mr-2" />
+                Nueva Orden de Trabajo
+              </Button>
             </CardContent>
           </Card>
 
@@ -349,6 +387,17 @@ export default function ClientDashboard() {
           )}
         </div>
       </main>
+
+      <OrdenTrabajoDialog
+        clientId={clientData.id}
+        clientName={clientData.razon_social}
+        isOpen={isOTDialogOpen}
+        onClose={() => setIsOTDialogOpen(false)}
+        onSuccess={() => {
+          loadClientData();
+          setIsOTDialogOpen(false);
+        }}
+      />
 
       <Footer />
     </div>
