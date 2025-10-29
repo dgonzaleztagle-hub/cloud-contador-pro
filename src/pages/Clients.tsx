@@ -73,7 +73,11 @@ export default function Clients() {
     if (!loading && !user) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+    // Redirigir clientes (viewer) a su workspace
+    if (!loading && userRole === 'viewer') {
+      navigate('/client-workspace');
+    }
+  }, [user, userRole, loading, navigate]);
 
   useEffect(() => {
     if (user && userRole) {

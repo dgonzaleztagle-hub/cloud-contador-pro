@@ -90,13 +90,23 @@ export default function ClientWorkspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [f29Status, setF29Status] = useState<F29Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [showSocios, setShowSocios] = useState(false);
+
+  const handleBack = () => {
+    // Si es viewer (cliente), volver a su dashboard
+    if (userRole === 'viewer') {
+      navigate('/client-workspace');
+    } else {
+      // Si es master/admin, volver a la lista de clientes
+      navigate('/clients');
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -181,7 +191,7 @@ export default function ClientWorkspace() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
