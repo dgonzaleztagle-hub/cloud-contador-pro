@@ -538,7 +538,7 @@ export default function ClientWorkspace() {
                   variant="outline"
                   className="w-full justify-start"
                   size="sm"
-                  onClick={() => navigate(module.path)}
+                  onClick={() => window.open(module.path, "_blank")}
                 >
                   <module.icon className="h-4 w-4 mr-2" />
                   {module.name}
