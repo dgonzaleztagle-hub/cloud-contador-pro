@@ -23,6 +23,7 @@ import {
 import { ClientEditDialog } from "@/components/ClientEditDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { UploadDocumentDialog } from "@/components/UploadDocumentDialog";
+import { ClientOTSection } from "@/components/ClientOTSection";
 
 interface Client {
   id: string;
@@ -470,6 +471,19 @@ export default function ClientWorkspace() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Órdenes de Trabajo Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Órdenes de Trabajo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ClientOTSection 
+                clientId={client.id} 
+                clientName={client.razon_social}
+              />
             </CardContent>
           </Card>
         </div>
