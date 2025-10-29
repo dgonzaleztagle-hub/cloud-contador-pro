@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { ClientEditDialog } from "@/components/ClientEditDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { UploadDocumentDialog } from "@/components/UploadDocumentDialog";
 
 interface Client {
   id: string;
@@ -91,7 +92,7 @@ export default function ClientWorkspace() {
   const [f29Status, setF29Status] = useState<F29Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -154,48 +155,6 @@ export default function ClientWorkspace() {
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !event.target.files[0] || !client) return;
-
-    const file = event.target.files[0];
-    setUploading(true);
-
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${client.rut}_${Date.now()}.${fileExt}`;
-      const filePath = `${client.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase.from("files").insert({
-        client_id: client.id,
-        file_name: file.name,
-        file_path: filePath,
-        file_type: fileExt || "unknown",
-        file_category: "general",
-      });
-
-      if (dbError) throw dbError;
-
-      toast({
-        title: "Archivo subido",
-        description: "El archivo se guardó correctamente",
-      });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo subir el archivo",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -440,21 +399,14 @@ export default function ClientWorkspace() {
               <CardTitle className="text-lg">Subir Archivo</CardTitle>
             </CardHeader>
             <CardContent>
-              <Label htmlFor="file-upload" className="cursor-pointer">
-                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {uploading ? "Subiendo..." : "Click para subir"}
-                  </p>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                  />
-                </div>
-              </Label>
+              <Button 
+                onClick={() => setUploadDialogOpen(true)} 
+                className="w-full"
+                variant="outline"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Subir Documento
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -469,6 +421,18 @@ export default function ClientWorkspace() {
           setEditDialogOpen(false);
         }}
         userRole={userRole}
+      />
+
+      <UploadDocumentDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        preselectedClientId={client.id}
+        onUploadSuccess={() => {
+          toast({
+            title: "Éxito",
+            description: "El documento se subió correctamente"
+          });
+        }}
       />
     </div>
   );
