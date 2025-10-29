@@ -341,6 +341,53 @@ export default function Honorarios() {
     }
   };
 
+  const handleEditEstado = async (honorario: Honorario, nuevoEstado: 'pendiente' | 'pagado' | 'parcial') => {
+    setIsSaving(true);
+
+    try {
+      // Si es de origen F29, actualizar directamente el F29
+      if (honorario.origen === 'f29' && honorario.f29_id) {
+        const { error } = await supabase
+          .from('f29_declarations')
+          .update({ estado_honorarios: nuevoEstado })
+          .eq('id', honorario.f29_id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Estado actualizado',
+          description: 'El estado del honorario se actualizó en F29',
+        });
+      } else {
+        // Si es manual, actualizar en la tabla honorarios
+        const { error } = await supabase
+          .from('honorarios')
+          .update({ estado: nuevoEstado })
+          .eq('id', honorario.id);
+
+        if (error) throw error;
+
+        // Sincronizar con F29 si existe
+        await syncF29Estado(honorario.client_id, honorario.periodo_mes, honorario.periodo_anio, nuevoEstado);
+
+        toast({
+          title: 'Estado actualizado',
+          description: 'El estado del honorario se actualizó y sincronizó con F29',
+        });
+      }
+
+      loadData();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'No se pudo actualizar el estado',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleEdit = (honorario: Honorario) => {
     setEditingId(honorario.id);
     setSelectedClientId(honorario.client_id);
@@ -727,7 +774,6 @@ export default function Honorarios() {
                           <h3 className="font-semibold text-foreground">
                             {honorario.clients?.razon_social}
                           </h3>
-                          {getEstadoBadge(honorario.estado)}
                           {honorario.origen === 'f29' && (
                             <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30">
                               F29
@@ -760,6 +806,30 @@ export default function Honorarios() {
                             <div className="font-medium text-primary">${Number(honorario.saldo_actual).toLocaleString('es-CL')}</div>
                           </div>
                         </div>
+                        {canModify && (
+                          <div className="mt-2">
+                            <Label className="text-xs text-muted-foreground">Estado de Pago:</Label>
+                            <Select 
+                              value={honorario.estado} 
+                              onValueChange={(v: any) => handleEditEstado(honorario, v)}
+                              disabled={isSaving}
+                            >
+                              <SelectTrigger className="bg-input border-border h-8 text-sm mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pendiente">Pendiente</SelectItem>
+                                <SelectItem value="parcial">Pago Parcial</SelectItem>
+                                <SelectItem value="pagado">Pagado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        {!canModify && (
+                          <div className="mt-2">
+                            {getEstadoBadge(honorario.estado)}
+                          </div>
+                        )}
                         {honorario.notas && (
                           <div className="text-xs text-muted-foreground mt-2">
                             📝 {honorario.notas}
@@ -781,7 +851,7 @@ export default function Honorarios() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Editar honorario</p>
+                                <p>Editar datos del honorario</p>
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -800,11 +870,6 @@ export default function Honorarios() {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                        </div>
-                      )}
-                      {honorario.origen === 'f29' && (
-                        <div className="ml-4 text-xs text-muted-foreground">
-                          Desde F29 - No editable
                         </div>
                       )}
                     </div>
