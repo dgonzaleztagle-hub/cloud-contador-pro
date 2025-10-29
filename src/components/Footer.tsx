@@ -1,17 +1,62 @@
-import { Mail } from 'lucide-react';
+import { Mail, ExternalLink } from 'lucide-react';
+import nubixLogo from '@/assets/nubix-logo.jpg';
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-4 mt-auto">
-      <div className="container mx-auto px-6">
-        <a
-          href="mailto:dgonzalez.tagle@gmail.com?subject=Consulta sobre Plus Contable"
-          className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
-        >
-          <Mail className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
-          <span>App creada por <span className="font-semibold text-foreground">Daniel González</span></span>
-        </a>
+    <footer className="relative border-t border-border bg-gradient-to-b from-card/50 to-background backdrop-blur-sm mt-auto">
+      <div className="container mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          {/* Contact Info */}
+          <div className="flex justify-center md:justify-start">
+            <a
+              href="mailto:dgonzalez.tagle@gmail.com?subject=Consulta sobre Plus Contable"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-all duration-300 group"
+            >
+              <Mail className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <span>
+                Creado por <span className="font-semibold text-foreground">Daniel González</span>
+              </span>
+            </a>
+          </div>
+
+          {/* Powered by Nubix */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-3 group">
+              <img 
+                src={nubixLogo} 
+                alt="Nubix Logo" 
+                className="h-10 w-10 rounded-lg group-hover:scale-110 transition-transform duration-300"
+              />
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-0.5">Powered by</p>
+                <p className="font-bold text-lg bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Nubix
+                </p>
+                <p className="text-[10px] text-muted-foreground tracking-wider">
+                  Code. Cloud. Create.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="flex justify-center md:justify-end">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Plus Contable. Todos los derechos reservados.
+            </p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="mt-6 pt-4 border-t border-border/50">
+          <p className="text-center text-xs text-muted-foreground/70">
+            Sistema integral de gestión contable, tributaria y recursos humanos
+          </p>
+        </div>
       </div>
+
+      {/* Subtle glow effect */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
     </footer>
   );
 }
