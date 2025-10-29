@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -496,20 +497,28 @@ export default function F22Declarations() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 px-4">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Declaraciones Juradas F22</h1>
-              <p className="text-muted-foreground">
-                Año Tributario {filterAnio} (movimientos {filterAnio - 1})
-              </p>
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto py-8 px-4">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Volver al Dashboard</p>
+                </TooltipContent>
+              </Tooltip>
+              <div>
+                <h1 className="text-3xl font-bold">Declaraciones Juradas F22</h1>
+                <p className="text-muted-foreground">
+                  Año Tributario {filterAnio} (movimientos {filterAnio - 1})
+                </p>
+              </div>
             </div>
-          </div>
           {canModify && (
             <div className="flex gap-2">
               <Button 
@@ -1094,5 +1103,6 @@ export default function F22Declarations() {
 
       <Footer />
     </div>
+    </TooltipProvider>
   );
 }
