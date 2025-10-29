@@ -279,22 +279,33 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-foreground mb-1">Control de Honorarios</h3>
                 <p className="text-sm text-muted-foreground">Gestión mensual</p>
               </button>
-              <button 
-                onClick={() => navigate('/rrhh')}
-                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
-              >
-                <UsersRound className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-semibold text-foreground mb-1">Recursos Humanos</h3>
-                <p className="text-sm text-muted-foreground">Gestión de RRHH</p>
-              </button>
-              <button 
-                onClick={() => navigate('/cotizaciones-previsionales')}
-                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
-              >
-                <TrendingUp className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-semibold text-foreground mb-1">Cotizaciones Previsionales</h3>
-                <p className="text-sm text-muted-foreground">Control mensual</p>
-              </button>
+
+              {/* Módulo RRHH */}
+              <div className="p-6 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <UsersRound className="h-6 w-6 text-primary" />
+                  <h3 className="font-bold text-foreground text-lg">Recursos Humanos</h3>
+                </div>
+                <div className="space-y-2">
+                  <button 
+                    onClick={() => navigate('/rrhh')}
+                    className="w-full p-4 rounded-lg bg-background hover:bg-secondary border border-border transition-all text-left group"
+                  >
+                    <UsersRound className="h-5 w-5 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                    <h4 className="font-semibold text-foreground text-sm">Gestión de RRHH</h4>
+                    <p className="text-xs text-muted-foreground">Administración de personal</p>
+                  </button>
+                  <button 
+                    onClick={() => navigate('/cotizaciones-previsionales')}
+                    className="w-full p-4 rounded-lg bg-background hover:bg-secondary border border-border transition-all text-left group"
+                  >
+                    <TrendingUp className="h-5 w-5 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                    <h4 className="font-semibold text-foreground text-sm">Cotizaciones Previsionales</h4>
+                    <p className="text-xs text-muted-foreground">Control mensual</p>
+                  </button>
+                </div>
+              </div>
+
               <button 
                 onClick={() => navigate('/documents')}
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
