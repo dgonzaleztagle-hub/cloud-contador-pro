@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText, Landmark } from 'lucide-react';
+import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText, Landmark, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
@@ -313,6 +313,35 @@ export default function Dashboard() {
                 <BookOpen className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Documentos</h3>
                 <p className="text-sm text-muted-foreground">Gestión de archivos</p>
+              </button>
+            </CardContent>
+          </Card>
+
+          {/* Guía de Funcionalidades */}
+          <Card className="border-border bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Documentación y Ayuda
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <button 
+                onClick={() => navigate('/features')}
+                className="w-full p-6 rounded-lg bg-background hover:bg-secondary border border-primary/30 transition-all text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                      Guía Completa de Funcionalidades
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Consulta todas las características y módulos del sistema
+                    </p>
+                  </div>
+                  <ArrowLeft className="h-5 w-5 text-primary rotate-180" />
+                </div>
               </button>
             </CardContent>
           </Card>

@@ -44,7 +44,7 @@ const Index = () => {
           
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Diseñado específicamente para la normativa chilena con gestión F29, F22, control de honorarios, 
-            recursos humanos, cotizaciones previsionales y notificaciones inteligentes
+            recursos humanos, cotizaciones previsionales, gestión de clientes y documentos
           </p>
 
           {/* CTA Buttons */}
@@ -95,11 +95,11 @@ const Index = () => {
                 <ul className="text-sm text-muted-foreground space-y-2">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    DJ anuales (1887, 1879, 1947, etc.)
+                    DJ anuales (1887, 1879, 1947, 1926, etc.)
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    Estados: pendiente, presentada, aceptada
+                    Estados: Pendiente, Declarada, Aceptada, Observada
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -107,7 +107,11 @@ const Index = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    Control por régimen tributario
+                    Alertas de vencimiento automáticas
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    Pre-carga masiva de DJ por régimen
                   </li>
                 </ul>
               </CardContent>
@@ -203,15 +207,19 @@ const Index = () => {
                 <ul className="text-sm text-muted-foreground space-y-2">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    Espacio de trabajo personalizado
+                    Espacio de trabajo por cliente
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    Datos completos y socios
+                    Datos empresa, representante y socios
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    Accesos directos a servicios
+                    Accesos directos SII, MIDT, Previred
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    Visualización completa de claves
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -306,7 +314,11 @@ const Index = () => {
                   <ul className="text-sm text-muted-foreground space-y-2">
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      Roles: Master, Admin, Viewer
+                      Roles: Master, Admin, Client, Viewer
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      Permisos personalizados por rol
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />

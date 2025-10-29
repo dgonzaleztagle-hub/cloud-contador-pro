@@ -19,6 +19,7 @@ import Honorarios from "./pages/Honorarios";
 import WorkerRegistration from "./pages/WorkerRegistration";
 import CotizacionesPrevisionales from "./pages/CotizacionesPrevisionales";
 import F22Declarations from "./pages/F22Declarations";
+import Features from "./pages/Features";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/master" element={<MasterSignup />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/features" element={<Features />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/clients/:id" element={<ClientWorkspace />} />
             <Route path="/clients/:id/edit" element={<ClientDetails />} />
