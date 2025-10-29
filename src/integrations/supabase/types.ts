@@ -392,6 +392,7 @@ export type Database = {
           notificacion_enviada: boolean | null
           observaciones: string | null
           oculta: boolean | null
+          resultado: string | null
           updated_at: string
         }
         Insert: {
@@ -407,6 +408,7 @@ export type Database = {
           notificacion_enviada?: boolean | null
           observaciones?: string | null
           oculta?: boolean | null
+          resultado?: string | null
           updated_at?: string
         }
         Update: {
@@ -422,6 +424,7 @@ export type Database = {
           notificacion_enviada?: boolean | null
           observaciones?: string | null
           oculta?: boolean | null
+          resultado?: string | null
           updated_at?: string
         }
         Relationships: [

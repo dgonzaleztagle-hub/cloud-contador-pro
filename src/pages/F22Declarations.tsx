@@ -49,6 +49,7 @@ interface F22Declaracion {
   f22_tipo_id: string;
   anio_tributario: number;
   estado: string;
+  resultado: string | null;
   fecha_presentacion: string | null;
   fecha_aceptacion: string | null;
   observaciones: string | null;
@@ -91,6 +92,7 @@ export default function F22Declarations() {
   const [selectedTipoId, setSelectedTipoId] = useState('');
   const [anioTributario, setAnioTributario] = useState(new Date().getFullYear() + 1);
   const [estado, setEstado] = useState('pendiente');
+  const [resultado, setResultado] = useState<string>('');
   const [fechaPresentacion, setFechaPresentacion] = useState('');
   const [fechaAceptacion, setFechaAceptacion] = useState('');
   const [observaciones, setObservaciones] = useState('');
@@ -178,6 +180,7 @@ export default function F22Declarations() {
     setSelectedTipoId('');
     setAnioTributario(new Date().getFullYear() + 1);
     setEstado('pendiente');
+    setResultado('');
     setFechaPresentacion('');
     setFechaAceptacion('');
     setObservaciones('');
@@ -191,6 +194,7 @@ export default function F22Declarations() {
     setSelectedTipoId(declaracion.f22_tipo_id);
     setAnioTributario(declaracion.anio_tributario);
     setEstado(declaracion.estado);
+    setResultado(declaracion.resultado || '');
     setFechaPresentacion(declaracion.fecha_presentacion || '');
     setFechaAceptacion(declaracion.fecha_aceptacion || '');
     setObservaciones(declaracion.observaciones || '');
@@ -218,6 +222,7 @@ export default function F22Declarations() {
         f22_tipo_id: selectedTipoId,
         anio_tributario: anioTributario,
         estado,
+        resultado: resultado || null,
         fecha_presentacion: fechaPresentacion || null,
         fecha_aceptacion: fechaAceptacion || null,
         observaciones: observaciones || null,
@@ -309,13 +314,15 @@ export default function F22Declarations() {
     );
   };
 
-  const getResultadoBadge = (estado: string) => {
+  const getResultadoBadge = (resultado: string | null) => {
+    if (!resultado) return null;
+    
     const badges = {
       aceptada: { icon: CheckCircle2, bg: 'bg-green-500/10', text: 'text-green-700 dark:text-green-400', label: 'Aceptada' },
       observada: { icon: AlertCircle, bg: 'bg-red-500/10', text: 'text-red-700 dark:text-red-400', label: 'Observada' }
     };
     
-    const badge = badges[estado as keyof typeof badges];
+    const badge = badges[resultado as keyof typeof badges];
     if (!badge) return null;
     
     const Icon = badge.icon;
@@ -766,7 +773,7 @@ export default function F22Declarations() {
                           )}
                         </TableCell>
                         <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
-                        <TableCell>{getResultadoBadge(decl.estado)}</TableCell>
+                        <TableCell>{getResultadoBadge(decl.resultado)}</TableCell>
                         <TableCell className="text-xs">
                           {decl.fecha_presentacion
                             ? format(new Date(decl.fecha_presentacion), 'dd/MM/yy')
@@ -872,6 +879,7 @@ export default function F22Declarations() {
                             <TableHead>Representante Legal</TableHead>
                             <TableHead>Régimen</TableHead>
                             <TableHead>Estado</TableHead>
+                            <TableHead>Resultado</TableHead>
                             <TableHead>Fecha Presentación</TableHead>
                             {canModify && <TableHead className="text-right">Acciones</TableHead>}
                           </TableRow>
@@ -906,6 +914,9 @@ export default function F22Declarations() {
                                   {getEstadoBadge(decl.estado)}
                                   {getAlertaBadge(decl)}
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                {getResultadoBadge(decl.resultado)}
                               </TableCell>
                               <TableCell>
                                 {decl.fecha_presentacion
@@ -1022,7 +1033,7 @@ export default function F22Declarations() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Estado *</Label>
+                  <Label>Estado de Declaración *</Label>
                   <Select value={estado} onValueChange={setEstado}>
                     <SelectTrigger>
                       <SelectValue />
@@ -1030,13 +1041,31 @@ export default function F22Declarations() {
                     <SelectContent>
                       <SelectItem value="pendiente">Pendiente</SelectItem>
                       <SelectItem value="declarada">Declarada</SelectItem>
-                      <SelectItem value="aceptada">Aceptada (Declarada + SII Aceptó)</SelectItem>
-                      <SelectItem value="observada">Observada (Declarada + SII Observó)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Estado: Pendiente/Declarada | Resultado: Aceptada/Observada
-                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Resultado (solo si está declarada)</Label>
+                  <Select 
+                    value={resultado} 
+                    onValueChange={setResultado}
+                    disabled={estado !== 'declarada'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione resultado..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin resultado</SelectItem>
+                      <SelectItem value="aceptada">Aceptada por el SII</SelectItem>
+                      <SelectItem value="observada">Observada por el SII</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {estado !== 'declarada' && (
+                    <p className="text-xs text-muted-foreground">
+                      El resultado solo se puede asignar cuando la declaración está marcada como "Declarada"
+                    </p>
+                  )}
                 </div>
               </div>
 
