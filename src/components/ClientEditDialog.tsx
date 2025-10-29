@@ -207,10 +207,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="clave_sii">Clave Sii</Label>
                   <Input
                     id="clave_sii"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, clave_sii: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>
@@ -219,10 +218,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="clave_certificado">Clave Certificado</Label>
                   <Input
                     id="clave_certificado"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.clave_certificado || ''}
                     onChange={(e) => setFormData({ ...formData, clave_certificado: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>
@@ -355,10 +353,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="clave_sii_repr">Clave SII Representante</Label>
                   <Input
                     id="clave_sii_repr"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.clave_sii_repr || ''}
                     onChange={(e) => setFormData({ ...formData, clave_sii_repr: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>
@@ -367,10 +364,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="clave_unica">Clave Única</Label>
                   <Input
                     id="clave_unica"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.clave_unica || ''}
                     onChange={(e) => setFormData({ ...formData, clave_unica: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>
@@ -451,10 +447,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="socio_1_clave_sii">Socio 1 - Clave SII</Label>
                   <Input
                     id="socio_1_clave_sii"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.socio_1_clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, socio_1_clave_sii: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>
@@ -482,10 +477,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="socio_2_clave_sii">Socio 2 - Clave SII</Label>
                   <Input
                     id="socio_2_clave_sii"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.socio_2_clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, socio_2_clave_sii: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>
@@ -513,10 +507,9 @@ export function ClientEditDialog({ client, isOpen, onClose, onClientUpdated, use
                   <Label htmlFor="socio_3_clave_sii">Socio 3 - Clave SII</Label>
                   <Input
                     id="socio_3_clave_sii"
-                    type={canEditPasswords ? 'text' : 'password'}
+                    type="text"
                     value={formData.socio_3_clave_sii || ''}
                     onChange={(e) => setFormData({ ...formData, socio_3_clave_sii: e.target.value })}
-                    placeholder={canEditPasswords ? '' : '••••••••'}
                     readOnly={!canEditPasswords}
                   />
                 </div>

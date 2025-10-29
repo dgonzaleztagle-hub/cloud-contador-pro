@@ -390,11 +390,6 @@ export default function F22Declarations() {
     }
   };
 
-  const maskClave = (clave: string | null | undefined) => {
-    if (!clave) return 'No configurada';
-    return '•'.repeat(8);
-  };
-
   const getFechaLimite = (tipo: F22Tipo, anio: number) => {
     // La fecha límite es en el año del AT (ej: AT2026 = año 2026)
     return new Date(anio, tipo.fecha_limite_mes - 1, tipo.fecha_limite_dia);
@@ -718,7 +713,7 @@ export default function F22Declarations() {
                           <div className="text-sm">
                             <div className="font-medium">{decl.clients?.rut || 'N/A'}</div>
                             <div className="text-xs text-muted-foreground">
-                              {maskClave(decl.clients?.clave_sii)}
+                              {decl.clients?.clave_sii || 'No configurada'}
                             </div>
                           </div>
                         </TableCell>
@@ -726,7 +721,7 @@ export default function F22Declarations() {
                           <div className="text-sm">
                             <div className="font-medium">{decl.clients?.representante_legal || 'N/A'}</div>
                             <div className="text-xs text-muted-foreground">
-                              {decl.clients?.rut_representante || 'N/A'} · {maskClave(decl.clients?.clave_sii_repr)}
+                              {decl.clients?.rut_representante || 'N/A'} · {decl.clients?.clave_sii_repr || 'No configurada'}
                             </div>
                           </div>
                         </TableCell>
@@ -866,7 +861,7 @@ export default function F22Declarations() {
                                 <div className="text-sm">
                                   <div className="font-medium">{decl.clients?.rut || 'N/A'}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    {maskClave(decl.clients?.clave_sii)}
+                                    {decl.clients?.clave_sii || 'No configurada'}
                                   </div>
                                 </div>
                               </TableCell>
@@ -874,7 +869,7 @@ export default function F22Declarations() {
                                 <div className="text-sm">
                                   <div className="font-medium">{decl.clients?.representante_legal || 'N/A'}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    {decl.clients?.rut_representante || 'N/A'} · {maskClave(decl.clients?.clave_sii_repr)}
+                                    {decl.clients?.rut_representante || 'N/A'} · {decl.clients?.clave_sii_repr || 'No configurada'}
                                   </div>
                                 </div>
                               </TableCell>

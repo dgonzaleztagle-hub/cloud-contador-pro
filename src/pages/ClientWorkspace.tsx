@@ -222,7 +222,7 @@ export default function ClientWorkspace() {
                 <div>
                   <Label>Clave SII Empresa</Label>
                   <div className="flex gap-2 mt-1">
-                    <Input value={client.clave_sii || "Sin información"} readOnly type="password" />
+                    <Input value={client.clave_sii || "Sin información"} readOnly />
                     {client.clave_sii && (
                       <Button
                         size="icon"
@@ -323,7 +323,7 @@ export default function ClientWorkspace() {
                 <div>
                   <Label>Clave SII Representante</Label>
                   <div className="flex gap-2 mt-1">
-                    <Input value={client.clave_sii_repr || "Sin información"} readOnly type="password" />
+                    <Input value={client.clave_sii_repr || "Sin información"} readOnly />
                     {client.clave_sii_repr && (
                       <Button
                         size="icon"
@@ -338,7 +338,7 @@ export default function ClientWorkspace() {
                 <div>
                   <Label>Clave Única del Representante</Label>
                   <div className="flex gap-2 mt-1">
-                    <Input value={client.clave_unica || "Sin información"} readOnly type="password" />
+                    <Input value={client.clave_unica || "Sin información"} readOnly />
                     {client.clave_unica && (
                       <Button
                         size="icon"
@@ -422,7 +422,7 @@ export default function ClientWorkspace() {
                         <div className="md:col-span-2">
                           <Label>Clave SII</Label>
                           <div className="flex gap-2 mt-1">
-                            <Input value={claveSii as string || "Sin información"} readOnly type="password" />
+                            <Input value={claveSii as string || "Sin información"} readOnly />
                             {claveSii && (
                               <Button
                                 size="icon"
