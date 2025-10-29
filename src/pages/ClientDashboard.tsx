@@ -259,38 +259,35 @@ export default function ClientDashboard() {
             </Card>
           </div>
 
-          {/* Tarjeta Resumen de Órdenes de Trabajo */}
-          <Card className="border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
-                Mis Órdenes de Trabajo
+          {/* Órdenes de Trabajo */}
+          <Card className="border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer" onClick={() => navigate('/mis-ordenes-trabajo')}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Órdenes de Trabajo
               </CardTitle>
+              <ClipboardList className="h-4 w-4 text-primary" />
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-secondary/30 rounded-lg">
-                  <p className="text-3xl font-bold text-primary">{stats.ot_pendientes}</p>
-                  <p className="text-sm text-muted-foreground mt-1">En Proceso</p>
+            <CardContent>
+              <div className="flex items-baseline gap-4">
+                <div>
+                  <div className="text-2xl font-bold text-primary">{stats.ot_pendientes}</div>
+                  <p className="text-xs text-muted-foreground mt-1">En proceso</p>
                 </div>
-                <div className="text-center p-4 bg-secondary/30 rounded-lg">
-                  <p className="text-3xl font-bold text-foreground">{stats.ot_terminadas}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Terminadas</p>
+                <div>
+                  <div className="text-2xl font-bold text-foreground">{stats.ot_terminadas}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Terminadas</p>
                 </div>
               </div>
               <Button 
-                onClick={() => navigate('/mis-ordenes-trabajo')}
-                className="w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOTDialogOpen(true);
+                }}
+                size="sm"
+                className="w-full mt-3"
                 variant="outline"
               >
-                Ver Todas las Órdenes
-              </Button>
-              <Button 
-                onClick={() => setIsOTDialogOpen(true)}
-                className="w-full bg-gradient-to-r from-primary to-accent"
-              >
-                <ClipboardList className="h-4 w-4 mr-2" />
-                Nueva Orden de Trabajo
+                Nueva Orden
               </Button>
             </CardContent>
           </Card>
