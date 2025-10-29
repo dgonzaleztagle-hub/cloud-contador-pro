@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 
-type AppRole = 'master' | 'contador' | 'cliente';
+type AppRole = 'master' | 'admin' | 'viewer';
 
 interface UserProfile {
   id: string;
@@ -43,7 +43,7 @@ export default function AdminUsers() {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newFullName, setNewFullName] = useState('');
-  const [newRole, setNewRole] = useState<AppRole>('cliente');
+  const [newRole, setNewRole] = useState<AppRole>('viewer');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
 
   useEffect(() => {
@@ -112,8 +112,8 @@ export default function AdminUsers() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar que si es cliente, se haya seleccionado una empresa
-    if (newRole === 'cliente' && !selectedClientId) {
+    // Validar que si es viewer (cliente), se haya seleccionado una empresa
+    if (newRole === 'viewer' && !selectedClientId) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -150,8 +150,8 @@ export default function AdminUsers() {
 
         if (updateError) throw updateError;
 
-        // Si es cliente, asociar con la empresa seleccionada
-        if (newRole === 'cliente' && selectedClientId) {
+        // Si es viewer (cliente), asociar con la empresa seleccionada
+        if (newRole === 'viewer' && selectedClientId) {
           const { error: clientUpdateError } = await supabase
             .from('clients')
             .update({ user_id: authData.user.id })
@@ -169,7 +169,7 @@ export default function AdminUsers() {
         setNewEmail('');
         setNewPassword('');
         setNewFullName('');
-        setNewRole('cliente');
+        setNewRole('viewer');
         setSelectedClientId('');
         setIsDialogOpen(false);
         loadUsers();
@@ -323,13 +323,13 @@ export default function AdminUsers() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="master">Master</SelectItem>
-                        <SelectItem value="contador">Contador</SelectItem>
-                        <SelectItem value="cliente">Cliente</SelectItem>
+                        <SelectItem value="admin">Contador</SelectItem>
+                        <SelectItem value="viewer">Cliente</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
-                  {newRole === 'cliente' && (
+                  {newRole === 'viewer' && (
                     <div className="space-y-2">
                       <Label htmlFor="client">Empresa *</Label>
                       <Select value={selectedClientId} onValueChange={setSelectedClientId}>
@@ -362,7 +362,7 @@ export default function AdminUsers() {
 
                   <Button
                     type="submit"
-                    disabled={isCreating || (newRole === 'cliente' && !selectedClientId)}
+                    disabled={isCreating || (newRole === 'viewer' && !selectedClientId)}
                     className="w-full bg-gradient-to-r from-primary to-accent"
                   >
                     {isCreating ? (
@@ -414,8 +414,8 @@ export default function AdminUsers() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="master">Master</SelectItem>
-                        <SelectItem value="contador">Contador</SelectItem>
-                        <SelectItem value="cliente">Cliente</SelectItem>
+                        <SelectItem value="admin">Contador</SelectItem>
+                        <SelectItem value="viewer">Cliente</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
