@@ -1,0 +1,789 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Footer } from '@/components/Footer';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface Client {
+  id: string;
+  razon_social: string;
+  regimen_tributario: string;
+}
+
+interface F22Tipo {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  fecha_limite_dia: number;
+  fecha_limite_mes: number;
+  regimen_tributario: string[];
+  orden: number;
+}
+
+interface F22Declaracion {
+  id: string;
+  client_id: string;
+  f22_tipo_id: string;
+  anio_tributario: number;
+  estado: string;
+  fecha_presentacion: string | null;
+  fecha_aceptacion: string | null;
+  observaciones: string | null;
+  oculta: boolean;
+  clients?: { razon_social: string; regimen_tributario: string };
+  f22_tipos?: F22Tipo;
+}
+
+export default function F22Declarations() {
+  const { user, userRole, loading } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const [clients, setClients] = useState<Client[]>([]);
+  const [f22Tipos, setF22Tipos] = useState<F22Tipo[]>([]);
+  const [declaraciones, setDeclaraciones] = useState<F22Declaracion[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const [viewMode, setViewMode] = useState<'por-cliente' | 'por-dj'>('por-cliente');
+  const [filterClientId, setFilterClientId] = useState<string>('all');
+  const [filterTipoId, setFilterTipoId] = useState<string>('all');
+  const [filterAnio, setFilterAnio] = useState(new Date().getFullYear() + 1); // AT 2026 para 2025
+  const [showOcultas, setShowOcultas] = useState(false);
+  
+  // Form state
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedTipoId, setSelectedTipoId] = useState('');
+  const [anioTributario, setAnioTributario] = useState(new Date().getFullYear() + 1);
+  const [estado, setEstado] = useState('pendiente');
+  const [fechaPresentacion, setFechaPresentacion] = useState('');
+  const [fechaAceptacion, setFechaAceptacion] = useState('');
+  const [observaciones, setObservaciones] = useState('');
+  const [oculta, setOculta] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, filterClientId, filterTipoId, filterAnio, showOcultas]);
+
+  const canModify = userRole === 'master' || userRole === 'admin';
+
+  const loadData = async () => {
+    try {
+      setLoadingData(true);
+
+      // Cargar clientes
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, razon_social, regimen_tributario')
+        .eq('activo', true)
+        .order('razon_social');
+
+      if (clientsError) throw clientsError;
+      setClients(clientsData || []);
+
+      // Cargar tipos de F22
+      const { data: tiposData, error: tiposError } = await supabase
+        .from('f22_tipos')
+        .select('*')
+        .eq('activo', true)
+        .order('orden');
+
+      if (tiposError) throw tiposError;
+      setF22Tipos(tiposData || []);
+
+      // Cargar declaraciones
+      let query = supabase
+        .from('f22_declaraciones')
+        .select(`
+          *,
+          clients(razon_social, regimen_tributario),
+          f22_tipos(*)
+        `)
+        .eq('anio_tributario', filterAnio);
+
+      if (filterClientId !== 'all') {
+        query = query.eq('client_id', filterClientId);
+      }
+
+      if (filterTipoId !== 'all') {
+        query = query.eq('f22_tipo_id', filterTipoId);
+      }
+
+      if (!showOcultas) {
+        query = query.eq('oculta', false);
+      }
+
+      const { data: declaracionesData, error: declaracionesError } = await query;
+
+      if (declaracionesError) throw declaracionesError;
+      setDeclaraciones(declaracionesData || []);
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedClientId('');
+    setSelectedTipoId('');
+    setAnioTributario(new Date().getFullYear() + 1);
+    setEstado('pendiente');
+    setFechaPresentacion('');
+    setFechaAceptacion('');
+    setObservaciones('');
+    setOculta(false);
+    setEditingId(null);
+  };
+
+  const handleEdit = (declaracion: F22Declaracion) => {
+    setEditingId(declaracion.id);
+    setSelectedClientId(declaracion.client_id);
+    setSelectedTipoId(declaracion.f22_tipo_id);
+    setAnioTributario(declaracion.anio_tributario);
+    setEstado(declaracion.estado);
+    setFechaPresentacion(declaracion.fecha_presentacion || '');
+    setFechaAceptacion(declaracion.fecha_aceptacion || '');
+    setObservaciones(declaracion.observaciones || '');
+    setOculta(declaracion.oculta);
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedClientId || !selectedTipoId) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un cliente y tipo de DJ",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const declaracionData = {
+        client_id: selectedClientId,
+        f22_tipo_id: selectedTipoId,
+        anio_tributario: anioTributario,
+        estado,
+        fecha_presentacion: fechaPresentacion || null,
+        fecha_aceptacion: fechaAceptacion || null,
+        observaciones: observaciones || null,
+        oculta,
+        created_by: user?.id
+      };
+
+      if (editingId) {
+        const { error } = await supabase
+          .from('f22_declaraciones')
+          .update(declaracionData)
+          .eq('id', editingId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Declaración actualizada",
+          description: "Los datos se han actualizado correctamente"
+        });
+      } else {
+        const { error } = await supabase
+          .from('f22_declaraciones')
+          .insert(declaracionData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Declaración registrada",
+          description: "La declaración se ha registrado correctamente"
+        });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      loadData();
+    } catch (error: any) {
+      console.error('Error saving declaracion:', error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar la declaración",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleOculta = async (declaracion: F22Declaracion) => {
+    try {
+      const { error } = await supabase
+        .from('f22_declaraciones')
+        .update({ oculta: !declaracion.oculta })
+        .eq('id', declaracion.id);
+
+      if (error) throw error;
+
+      toast({
+        title: declaracion.oculta ? "DJ visible" : "DJ ocultada",
+        description: declaracion.oculta 
+          ? "La declaración ahora es visible" 
+          : "La declaración ha sido ocultada"
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error toggling oculta:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getEstadoBadge = (estado: string) => {
+    const badges = {
+      pendiente: { icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pendiente' },
+      presentada: { icon: FileText, bg: 'bg-blue-100', text: 'text-blue-800', label: 'Presentada' },
+      aceptada: { icon: CheckCircle2, bg: 'bg-green-100', text: 'text-green-800', label: 'Aceptada' },
+      observada: { icon: AlertCircle, bg: 'bg-red-100', text: 'text-red-800', label: 'Observada' }
+    };
+    
+    const badge = badges[estado as keyof typeof badges] || badges.pendiente;
+    const Icon = badge.icon;
+    
+    return (
+      <Badge variant="secondary" className={`${badge.bg} ${badge.text} gap-1`}>
+        <Icon className="h-3 w-3" />
+        {badge.label}
+      </Badge>
+    );
+  };
+
+  const getFechaLimite = (tipo: F22Tipo, anio: number) => {
+    // La fecha límite es en el año del AT (ej: AT2026 = año 2026)
+    return new Date(anio, tipo.fecha_limite_mes - 1, tipo.fecha_limite_dia);
+  };
+
+  const getClientesDJ = (tipoId: string) => {
+    return declaraciones
+      .filter(d => d.f22_tipo_id === tipoId && (!d.oculta || showOcultas))
+      .map(d => ({
+        ...d,
+        cliente: d.clients?.razon_social || 'N/A'
+      }));
+  };
+
+  const getDJsCliente = (clientId: string) => {
+    return declaraciones
+      .filter(d => d.client_id === clientId && (!d.oculta || showOcultas))
+      .map(d => ({
+        ...d,
+        tipo: d.f22_tipos
+      }));
+  };
+
+  if (loading || loadingData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Declaraciones Juradas F22</h1>
+              <p className="text-muted-foreground">
+                Año Tributario {filterAnio} (movimientos {filterAnio - 1})
+              </p>
+            </div>
+          </div>
+          {canModify && (
+            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+              <FileText className="mr-2 h-4 w-4" />
+              Nueva Declaración
+            </Button>
+          )}
+        </div>
+
+        {/* Filtros */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filtros y Visualización</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label>Año Tributario</Label>
+                <Select 
+                  value={filterAnio.toString()} 
+                  onValueChange={(v) => setFilterAnio(parseInt(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[2024, 2025, 2026, 2027, 2028].map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        AT {year} ({year - 1})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Modo de Vista</Label>
+                <Select value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="por-cliente">Por Cliente</SelectItem>
+                    <SelectItem value="por-dj">Por Declaración</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {viewMode === 'por-cliente' && (
+                <div className="space-y-2">
+                  <Label>Cliente</Label>
+                  <Select value={filterClientId} onValueChange={setFilterClientId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los clientes</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.razon_social}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {viewMode === 'por-dj' && (
+                <div className="space-y-2">
+                  <Label>Declaración</Label>
+                  <Select value={filterTipoId} onValueChange={setFilterTipoId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las DJ</SelectItem>
+                      {f22Tipos.map((tipo) => (
+                        <SelectItem key={tipo.id} value={tipo.id}>
+                          {tipo.codigo} - {tipo.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex items-end">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-ocultas"
+                    checked={showOcultas}
+                    onCheckedChange={(checked) => setShowOcultas(checked as boolean)}
+                  />
+                  <Label htmlFor="show-ocultas" className="cursor-pointer">
+                    Mostrar ocultadas
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Vista por Cliente */}
+        {viewMode === 'por-cliente' && (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {filterClientId === 'all' && <TableHead>Cliente</TableHead>}
+                    <TableHead>Declaración</TableHead>
+                    <TableHead>Fecha Límite</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Fecha Presentación</TableHead>
+                    <TableHead>Fecha Aceptación</TableHead>
+                    {canModify && <TableHead className="text-right">Acciones</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {declaraciones.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        No hay declaraciones registradas
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    declaraciones.map((decl) => (
+                      <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
+                        {filterClientId === 'all' && (
+                          <TableCell className="font-medium">
+                            {decl.clients?.razon_social}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{decl.f22_tipos?.codigo}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {decl.f22_tipos?.nombre}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {decl.f22_tipos && (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {format(
+                                getFechaLimite(decl.f22_tipos, decl.anio_tributario),
+                                "d 'de' MMMM, yyyy",
+                                { locale: es }
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
+                        <TableCell>
+                          {decl.fecha_presentacion
+                            ? format(new Date(decl.fecha_presentacion), 'dd/MM/yyyy')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {decl.fecha_aceptacion
+                            ? format(new Date(decl.fecha_aceptacion), 'dd/MM/yyyy')
+                            : '-'}
+                        </TableCell>
+                        {canModify && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleToggleOculta(decl)}
+                                title={decl.oculta ? 'Mostrar' : 'Ocultar'}
+                              >
+                                {decl.oculta ? (
+                                  <Eye className="h-4 w-4" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(decl)}
+                              >
+                                Editar
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Vista por DJ */}
+        {viewMode === 'por-dj' && (
+          <div className="space-y-6">
+            {f22Tipos
+              .filter(tipo => filterTipoId === 'all' || tipo.id === filterTipoId)
+              .map((tipo) => {
+                const clientesDJ = getClientesDJ(tipo.id);
+                if (clientesDJ.length === 0) return null;
+
+                return (
+                  <Card key={tipo.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            {tipo.codigo} - {tipo.nombre}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {tipo.descripcion}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            Fecha límite: {format(
+                              getFechaLimite(tipo, filterAnio),
+                              "d 'de' MMMM, yyyy",
+                              { locale: es }
+                            )}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">
+                          {clientesDJ.length} {clientesDJ.length === 1 ? 'cliente' : 'clientes'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead>Régimen</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Fecha Presentación</TableHead>
+                            {canModify && <TableHead className="text-right">Acciones</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {clientesDJ.map((decl) => (
+                            <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
+                              <TableCell className="font-medium">{decl.cliente}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {decl.clients?.regimen_tributario || 'N/A'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
+                              <TableCell>
+                                {decl.fecha_presentacion
+                                  ? format(new Date(decl.fecha_presentacion), 'dd/MM/yyyy')
+                                  : '-'}
+                              </TableCell>
+                              {canModify && (
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleToggleOculta(decl)}
+                                      title={decl.oculta ? 'Mostrar' : 'Ocultar'}
+                                    >
+                                      {decl.oculta ? (
+                                        <Eye className="h-4 w-4" />
+                                      ) : (
+                                        <EyeOff className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEdit(decl)}
+                                    >
+                                      Editar
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </div>
+        )}
+
+        {/* Dialog para crear/editar */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? 'Editar Declaración' : 'Nueva Declaración'}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cliente *</Label>
+                  <Select
+                    value={selectedClientId}
+                    onValueChange={setSelectedClientId}
+                    disabled={!!editingId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.razon_social}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo de DJ *</Label>
+                  <Select
+                    value={selectedTipoId}
+                    onValueChange={setSelectedTipoId}
+                    disabled={!!editingId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {f22Tipos.map((tipo) => (
+                        <SelectItem key={tipo.id} value={tipo.id}>
+                          {tipo.codigo} - {tipo.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Año Tributario *</Label>
+                  <Select
+                    value={anioTributario.toString()}
+                    onValueChange={(v) => setAnioTributario(parseInt(v))}
+                    disabled={!!editingId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2024, 2025, 2026, 2027, 2028].map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          AT {year} ({year - 1})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Estado *</Label>
+                  <Select value={estado} onValueChange={setEstado}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendiente">Pendiente</SelectItem>
+                      <SelectItem value="presentada">Presentada</SelectItem>
+                      <SelectItem value="aceptada">Aceptada</SelectItem>
+                      <SelectItem value="observada">Observada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fecha Presentación</Label>
+                  <Input
+                    type="date"
+                    value={fechaPresentacion}
+                    onChange={(e) => setFechaPresentacion(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Fecha Aceptación</Label>
+                  <Input
+                    type="date"
+                    value={fechaAceptacion}
+                    onChange={(e) => setFechaAceptacion(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Observaciones</Label>
+                <Textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  rows={3}
+                  placeholder="Observaciones o comentarios adicionales..."
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="oculta"
+                  checked={oculta}
+                  onCheckedChange={(checked) => setOculta(checked as boolean)}
+                />
+                <Label htmlFor="oculta" className="cursor-pointer">
+                  Ocultar esta declaración (no se presentará)
+                </Label>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSubmit} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}

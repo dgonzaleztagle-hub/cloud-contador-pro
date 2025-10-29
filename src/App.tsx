@@ -18,6 +18,7 @@ import Documents from "./pages/Documents";
 import Honorarios from "./pages/Honorarios";
 import WorkerRegistration from "./pages/WorkerRegistration";
 import CotizacionesPrevisionales from "./pages/CotizacionesPrevisionales";
+import F22Declarations from "./pages/F22Declarations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/documents" element={<Documents />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/cotizaciones-previsionales" element={<CotizacionesPrevisionales />} />
+            <Route path="/f22" element={<F22Declarations />} />
             <Route path="/registro-trabajador/:token" element={<WorkerRegistration />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

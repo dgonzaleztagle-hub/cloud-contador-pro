@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign } from 'lucide-react';
+import { Loader2, TrendingUp, Coins, BookOpen, Building2, LogOut, Settings, UsersRound, Notebook, UserCog, DollarSign, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
+import NotificationBell from '@/components/NotificationBell';
 import logo from '@/assets/logo.png';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -138,11 +139,12 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">UTM: <span className="font-medium text-foreground">${utm}</span></span>
                 <span className="text-muted-foreground">USD: <span className="font-medium text-foreground">${dollar}</span></span>
               </div>
+              <NotificationBell />
               <Button
                 onClick={signOut}
                 variant="outline"
                 size="sm"
-                className="border-primary/50 text-primary hover:bg-primary/10 ml-2"
+                className="border-primary/50 text-primary hover:bg-primary/10"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Salir
@@ -281,6 +283,14 @@ export default function Dashboard() {
                 <BookOpen className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Documentos</h3>
                 <p className="text-sm text-muted-foreground">Gestión de archivos</p>
+              </button>
+              <button 
+                onClick={() => navigate('/f22')}
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+              >
+                <FileText className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                <h3 className="font-semibold text-foreground mb-1">Declaraciones F22</h3>
+                <p className="text-sm text-muted-foreground">DJ Anuales</p>
               </button>
             </CardContent>
           </Card>

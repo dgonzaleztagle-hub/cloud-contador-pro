@@ -378,6 +378,111 @@ export type Database = {
           },
         ]
       }
+      f22_declaraciones: {
+        Row: {
+          anio_tributario: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          estado: string
+          f22_tipo_id: string
+          fecha_aceptacion: string | null
+          fecha_presentacion: string | null
+          id: string
+          notificacion_enviada: boolean | null
+          observaciones: string | null
+          oculta: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          anio_tributario: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          f22_tipo_id: string
+          fecha_aceptacion?: string | null
+          fecha_presentacion?: string | null
+          id?: string
+          notificacion_enviada?: boolean | null
+          observaciones?: string | null
+          oculta?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          anio_tributario?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          f22_tipo_id?: string
+          fecha_aceptacion?: string | null
+          fecha_presentacion?: string | null
+          id?: string
+          notificacion_enviada?: boolean | null
+          observaciones?: string | null
+          oculta?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "f22_declaraciones_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "f22_declaraciones_f22_tipo_id_fkey"
+            columns: ["f22_tipo_id"]
+            isOneToOne: false
+            referencedRelation: "f22_tipos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      f22_tipos: {
+        Row: {
+          activo: boolean | null
+          codigo: string
+          created_at: string
+          descripcion: string | null
+          es_comun: boolean | null
+          fecha_limite_dia: number
+          fecha_limite_mes: number
+          id: string
+          nombre: string
+          orden: number | null
+          regimen_tributario: string[] | null
+        }
+        Insert: {
+          activo?: boolean | null
+          codigo: string
+          created_at?: string
+          descripcion?: string | null
+          es_comun?: boolean | null
+          fecha_limite_dia: number
+          fecha_limite_mes: number
+          id?: string
+          nombre: string
+          orden?: number | null
+          regimen_tributario?: string[] | null
+        }
+        Update: {
+          activo?: boolean | null
+          codigo?: string
+          created_at?: string
+          descripcion?: string | null
+          es_comun?: boolean | null
+          fecha_limite_dia?: number
+          fecha_limite_mes?: number
+          id?: string
+          nombre?: string
+          orden?: number | null
+          regimen_tributario?: string[] | null
+        }
+        Relationships: []
+      }
       f29_declarations: {
         Row: {
           client_id: string
