@@ -112,12 +112,38 @@ export function OrdenesTrabajoSection() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Descarga completa',
+        description: `Archivo ${fileName} descargado exitosamente`
+      });
     } catch (error: any) {
       console.error('Error downloading file:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo descargar el archivo'
+        title: 'Error al descargar',
+        description: error.message || 'No se pudo descargar el archivo'
+      });
+    }
+  };
+
+  const viewFile = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600); // URL válida por 1 hora
+
+      if (error) throw error;
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error: any) {
+      console.error('Error viewing file:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al visualizar',
+        description: error.message || 'No se pudo visualizar el archivo'
       });
     }
   };
@@ -168,25 +194,44 @@ export function OrdenesTrabajoSection() {
 
         {orden.ot_archivos && orden.ot_archivos.length > 0 && (
           <div>
-            <Label className="text-sm font-semibold">Archivos adjuntos:</Label>
-            <div className="space-y-2 mt-2">
+            <Label className="text-sm font-semibold mb-2 block">
+              Archivos adjuntos ({orden.ot_archivos.length}):
+            </Label>
+            <div className="space-y-2">
               {orden.ot_archivos.map((archivo) => (
                 <div
                   key={archivo.id}
-                  className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border"
+                  className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border hover:border-primary/50 transition-colors"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span className="text-sm truncate">{archivo.file_name}</span>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{archivo.file_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {archivo.file_type || 'Archivo'}
+                      </p>
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
-                    className="flex-shrink-0"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => viewFile(archivo.file_path, archivo.file_name)}
+                      className="hover:bg-primary/10"
+                      title="Ver archivo"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
+                      className="hover:bg-primary/10"
+                      title="Descargar archivo"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
