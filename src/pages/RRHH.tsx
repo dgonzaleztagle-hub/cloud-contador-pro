@@ -720,153 +720,149 @@ export default function RRHH() {
   };
 
   const previewPDF = async (worker: Worker) => {
+    const doc = new jsPDF();
+    
     try {
-      // Crear un canvas para renderizar el informe directamente como imagen
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      
-      if (!context) {
-        toast({
-          title: "Error",
-          description: "No se pudo crear el canvas",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Configurar dimensiones del canvas (A4 en píxeles a 150 DPI)
-      canvas.width = 1240;
-      canvas.height = 1754;
-      
-      // Fondo blanco
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Logo (si existe)
-      try {
-        const logoImg = new Image();
-        logoImg.src = '/logo-pdf.png';
-        await new Promise((resolve) => {
-          logoImg.onload = resolve;
-          logoImg.onerror = resolve;
-        });
-        if (logoImg.complete && logoImg.naturalHeight > 0) {
-          context.drawImage(logoImg, 31, 21, 177, 177);
-        }
-      } catch (e) {
-        console.log('Logo no disponible');
-      }
-      
-      // Título
-      context.font = 'bold 33px Arial';
-      context.fillStyle = '#34495e';
-      context.textAlign = 'center';
-      const mesTexto = meses[viewMes - 1].toUpperCase();
-      context.fillText(`INFORME DESCUENTOS ${mesTexto} ${viewAnio}`, 620, 160);
-      
-      // Empresa
-      context.font = '25px Arial';
-      context.fillText(`EMPRESA: ${worker.clients?.razon_social || 'N/A'}`, 620, 195);
-      
-      // Trabajador
-      context.font = '23px Arial';
-      context.fillText(`TRABAJADOR: ${worker.nombre} - RUT: ${worker.rut}`, 620, 230);
-      
-      // Configuración para la tabla
-      const startY = 288;
-      const tableWidth = 708;
-      const leftMargin = (canvas.width - tableWidth) / 2;
-      const rightCol = leftMargin + tableWidth;
-      const labelCol = leftMargin + 10;
-      const valueCol = rightCol - 10;
-      
-      let currentY = startY;
-      const rowHeight = 47;
-      
-      const addRow = (label: string, value: string | number, isBold = false, fillColor?: string) => {
-        if (fillColor) {
-          context.fillStyle = fillColor;
-          context.fillRect(leftMargin, currentY, tableWidth, rowHeight);
-        }
-        
-        context.font = isBold ? 'bold 21px Arial' : '21px Arial';
-        context.fillStyle = fillColor ? '#ffffff' : '#000000';
-        context.textAlign = 'left';
-        context.fillText(label, labelCol, currentY + 30);
-        
-        const valueText = typeof value === 'number' ? value.toLocaleString('es-CL') : value;
-        context.textAlign = 'right';
-        context.fillText(valueText, valueCol, currentY + 30);
-        
-        // Borde
-        context.strokeStyle = '#646464';
-        context.lineWidth = 2;
-        context.strokeRect(leftMargin, currentY, tableWidth, rowHeight);
-        
-        currentY += rowHeight;
-        context.fillStyle = '#000000';
-      };
-      
-      const totalAtrasos = getEventTotal(worker.id, 'atraso');
-      const totalFaltasCompletas = getEventTotal(worker.id, 'falta_completa');
-      const totalFaltasMedias = getEventTotal(worker.id, 'falta_media');
-      const totalPermisosHoras = getEventTotal(worker.id, 'permiso_horas');
-      const totalPermisosMedios = getEventTotal(worker.id, 'permiso_medio_dia');
-      const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
-      const totalLicenciasMedicas = getEventTotal(worker.id, 'licencia_medica');
-      const totalAnticipos = getEventTotal(worker.id, 'anticipo');
-
-      addRow('ATRASOS', '', true, '#34495e');
-      addRow('Minutos', `${totalAtrasos} min`);
-      
-      addRow('PERMISOS', '', true, '#34495e');
-      addRow('Minutos', `${totalPermisosHoras} min`);
-      addRow('Medio día', `${totalPermisosMedios}`);
-      addRow('Día completo', `${totalPermisosCompletos}`);
-      
-      addRow('FALTAS', '', true, '#34495e');
-      addRow('Medio día', `${totalFaltasMedias}`);
-      addRow('Día completo', `${totalFaltasCompletas}`);
-      
-      addRow('LICENCIAS MÉDICAS', '', true, '#34495e');
-      addRow('Días', `${totalLicenciasMedicas}`);
-      
-      addRow('ANTICIPOS', '', true, '#34495e');
-      addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
-      
-      // Firma
-      currentY += 78;
-      context.font = 'bold 29px Arial';
-      context.textAlign = 'center';
-      context.fillStyle = '#000000';
-      context.fillText('PLUS CONTABLE LTDA', 620, currentY);
-      
-      context.font = '23px Arial';
-      context.fillText('Joel Carvajal Rantul', 620, currentY + 37);
-      
-      context.font = 'italic 21px Arial';
-      context.fillStyle = '#646464';
-      context.fillText('Contador General y Auditor', 620, currentY + 68);
-      
-      context.font = '21px Arial';
-      context.fillStyle = '#0066cc';
-      context.fillText('pluscontableltda@gmail.com', 620, currentY + 99);
-      
-      // Convertir canvas a blob y mostrar preview
-      canvas.toBlob((blob) => {
-        if (blob) {
-          handlePreview(blob, `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.png`);
-        }
-      }, 'image/png', 0.95);
-      
-    } catch (error) {
-      console.error('Error generando preview:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo generar la vista previa',
+      const logoImg = new Image();
+      logoImg.src = '/logo-pdf.png';
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve;
       });
+      if (logoImg.complete) {
+        doc.addImage(logoImg, 'PNG', 15, 10, 30, 30);
+      }
+    } catch (e) {
+      console.log('Logo no disponible');
     }
+    
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(52, 73, 94);
+    const mesTexto = meses[viewMes - 1].toUpperCase();
+    doc.text(`INFORME DESCUENTOS ${mesTexto} ${viewAnio}`, 105, 25, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(`EMPRESA: ${worker.clients?.razon_social || 'N/A'}`, 105, 35, { align: 'center' });
+    doc.setFontSize(11);
+    doc.text(`TRABAJADOR: ${worker.nombre} - RUT: ${worker.rut}`, 105, 42, { align: 'center' });
+    
+    const startY = 55;
+    const tableWidth = 120;
+    const leftMargin = (210 - tableWidth) / 2;
+    const rightCol = leftMargin + tableWidth;
+    const labelCol = leftMargin + 5;
+    const valueCol = rightCol - 5;
+    
+    let currentY = startY;
+    const rowHeight = 8;
+    
+    const addRow = (label: string, value: string | number, isBold = false, fillColor?: [number, number, number]) => {
+      if (fillColor) {
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+        doc.rect(leftMargin, currentY, tableWidth, rowHeight, 'F');
+      }
+      
+      doc.setFont(undefined, isBold ? 'bold' : 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(fillColor ? 255 : 0);
+      doc.text(label, labelCol, currentY + 5.5);
+      
+      const valueText = typeof value === 'number' ? value.toLocaleString('es-CL') : value;
+      doc.text(valueText, valueCol, currentY + 5.5, { align: 'right' });
+      
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.1);
+      doc.rect(leftMargin, currentY, tableWidth, rowHeight);
+      
+      currentY += rowHeight;
+      doc.setTextColor(0);
+    };
+    
+    const totalAtrasos = getEventTotal(worker.id, 'atraso');
+    const totalFaltasCompletas = getEventTotal(worker.id, 'falta_completa');
+    const totalFaltasMedias = getEventTotal(worker.id, 'falta_media');
+    const totalPermisosHoras = getEventTotal(worker.id, 'permiso_horas');
+    const totalPermisosMedios = getEventTotal(worker.id, 'permiso_medio_dia');
+    const totalPermisosCompletos = getEventTotal(worker.id, 'permiso_completo');
+    const totalLicenciasMedicas = getEventTotal(worker.id, 'licencia_medica');
+    const totalAnticipos = getEventTotal(worker.id, 'anticipo');
+
+    addRow('ATRASOS', '', true, [52, 73, 94]);
+    addRow('Minutos', `${totalAtrasos} min`);
+    
+    addRow('PERMISOS', '', true, [52, 73, 94]);
+    addRow('Minutos', `${totalPermisosHoras} min`);
+    addRow('Medio día', `${totalPermisosMedios}`);
+    addRow('Día completo', `${totalPermisosCompletos}`);
+    
+    addRow('FALTAS', '', true, [52, 73, 94]);
+    addRow('Medio día', `${totalFaltasMedias}`);
+    addRow('Día completo', `${totalFaltasCompletas}`);
+    
+    addRow('LICENCIAS MÉDICAS', '', true, [52, 73, 94]);
+    addRow('Días', `${totalLicenciasMedicas}`);
+    
+    addRow('ANTICIPOS', '', true, [52, 73, 94]);
+    addRow('Monto', `$${totalAnticipos.toLocaleString('es-CL')}`);
+    
+    currentY += 15;
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.text('PLUS CONTABLE LTDA', 105, currentY, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.text('Joel Carvajal Rantul', 105, currentY + 7, { align: 'center' });
+    
+    doc.setFont(undefined, 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Contador General y Auditor', 105, currentY + 13, { align: 'center' });
+    
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0, 102, 204);
+    doc.text('pluscontableltda@gmail.com', 105, currentY + 19, { align: 'center' });
+    
+    // Generar PDF y convertirlo a imagen para preview (igual que en F29)
+    const pdfBlob = doc.output('blob');
+    
+    // Configurar worker de PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+    
+    // Convertir PDF a imagen
+    const arrayBuffer = await pdfBlob.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!context) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear el contexto del canvas",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    } as any).promise;
+    
+    // Convertir canvas a blob JPG y mostrar preview
+    canvas.toBlob((blob) => {
+      if (blob) {
+        handlePreview(blob, `Informe_RRHH_${worker.rut}_${meses[viewMes - 1]}_${viewAnio}.jpg`);
+      }
+    }, 'image/jpeg', 0.95);
   };
 
   const meses = [
