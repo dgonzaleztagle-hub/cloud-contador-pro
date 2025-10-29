@@ -25,13 +25,10 @@ export function Footer() {
               <img 
                 src={nubixLogo} 
                 alt="Nubix Logo" 
-                className="h-10 w-10 rounded-lg group-hover:scale-110 transition-transform duration-300"
+                className="h-12 w-12 rounded-lg group-hover:scale-110 transition-transform duration-300 object-contain"
               />
-              <div className="text-center">
+              <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Powered by</p>
-                <p className="font-bold text-lg bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                  Nubix
-                </p>
                 <p className="text-[10px] text-muted-foreground tracking-wider">
                   Code. Cloud. Create.
                 </p>
