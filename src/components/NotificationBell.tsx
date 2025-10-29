@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ContractAlert {
   worker_id: string;
@@ -31,55 +32,73 @@ interface Notification {
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const { userRole, user } = useAuth();
 
   useEffect(() => {
-    checkNotifications();
-  }, []);
+    if (userRole) {
+      checkNotifications();
+    }
+  }, [userRole, user]);
 
   const checkNotifications = async () => {
     const today = new Date();
     const currentDay = today.getDate();
     const currentMonth = today.getMonth() + 1;
     const notifs: Notification[] = [];
+    
+    // Si es viewer (cliente), obtener su client_id primero
+    let clientId: string | null = null;
+    if (userRole === 'viewer' && user) {
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!clientData) return; // Si no tiene cliente asociado, no mostrar nada
+      clientId = clientData.id;
+    }
 
-    // Cargar contratos vencidos y por vencer
-    try {
-      // Contratos vencidos
-      const { data: expiredContracts } = await supabase
-        .rpc('get_expired_contracts');
+    // Cargar contratos vencidos y por vencer (solo para master/admin)
+    if (userRole === 'master' || userRole === 'admin') {
+      try {
+        // Contratos vencidos
+        const { data: expiredContracts } = await supabase
+          .rpc('get_expired_contracts');
 
-      if (expiredContracts && expiredContracts.length > 0) {
-        expiredContracts.forEach((contract: ContractAlert) => {
-          notifs.push({
-            id: `contract-expired-${contract.worker_id}`,
-            type: 'contrato_vencido',
-            title: 'Contrato Vencido',
-            message: `${contract.worker_name} (${contract.client_name}) - Vencido hace ${contract.days_expired} días`,
-            date: new Date(contract.fecha_termino),
-            priority: 'high'
+        if (expiredContracts && expiredContracts.length > 0) {
+          expiredContracts.forEach((contract: ContractAlert) => {
+            notifs.push({
+              id: `contract-expired-${contract.worker_id}`,
+              type: 'contrato_vencido',
+              title: 'Contrato Vencido',
+              message: `${contract.worker_name} (${contract.client_name}) - Vencido hace ${contract.days_expired} días`,
+              date: new Date(contract.fecha_termino),
+              priority: 'high'
+            });
           });
-        });
-      }
+        }
 
-      // Contratos por vencer (próximos 30 días)
-      const { data: expiringContracts } = await supabase
-        .rpc('get_expiring_contracts', { days_threshold: 30 });
+        // Contratos por vencer (próximos 30 días)
+        const { data: expiringContracts } = await supabase
+          .rpc('get_expiring_contracts', { days_threshold: 30 });
 
-      if (expiringContracts && expiringContracts.length > 0) {
-        expiringContracts.forEach((contract: ContractAlert) => {
-          const priority = contract.days_remaining && contract.days_remaining <= 7 ? 'high' : 'medium';
-          notifs.push({
-            id: `contract-expiring-${contract.worker_id}`,
-            type: 'contrato_por_vencer',
-            title: 'Contrato por Vencer',
-            message: `${contract.worker_name} (${contract.client_name}) - Vence en ${contract.days_remaining} días`,
-            date: new Date(contract.fecha_termino),
-            priority
+        if (expiringContracts && expiringContracts.length > 0) {
+          expiringContracts.forEach((contract: ContractAlert) => {
+            const priority = contract.days_remaining && contract.days_remaining <= 7 ? 'high' : 'medium';
+            notifs.push({
+              id: `contract-expiring-${contract.worker_id}`,
+              type: 'contrato_por_vencer',
+              title: 'Contrato por Vencer',
+              message: `${contract.worker_name} (${contract.client_name}) - Vence en ${contract.days_remaining} días`,
+              date: new Date(contract.fecha_termino),
+              priority
+            });
           });
-        });
+        }
+      } catch (error) {
+        console.error('Error cargando notificaciones de contratos:', error);
       }
-    } catch (error) {
-      console.error('Error cargando notificaciones de contratos:', error);
     }
 
     // Cargar notificaciones de F22
@@ -89,10 +108,17 @@ export default function NotificationBell() {
         .select('*')
         .eq('activo', true);
 
-      const { data: f22Declaraciones } = await supabase
+      let f22Query = supabase
         .from('f22_declaraciones')
         .select('*, f22_tipos(*), clients(razon_social)')
         .eq('estado', 'pendiente');
+      
+      // Si es viewer, solo sus declaraciones
+      if (clientId) {
+        f22Query = f22Query.eq('client_id', clientId);
+      }
+      
+      const { data: f22Declaraciones } = await f22Query;
 
       if (f22Types && f22Declaraciones) {
         f22Declaraciones.forEach((decl: any) => {
@@ -135,167 +161,176 @@ export default function NotificationBell() {
       console.error('Error cargando notificaciones F22:', error);
     }
 
-    // Cargar honorarios pendientes del mes actual
-    try {
-      const { data: honorariosPendientes } = await supabase
-        .from('honorarios')
-        .select('*, clients(razon_social)')
-        .eq('periodo_mes', currentMonth)
-        .eq('periodo_anio', today.getFullYear())
-        .in('estado', ['pendiente', 'parcial']);
+    // Cargar honorarios pendientes del mes actual (solo master/admin)
+    if (userRole === 'master' || userRole === 'admin') {
+      try {
+        const { data: honorariosPendientes } = await supabase
+          .from('honorarios')
+          .select('*, clients(razon_social)')
+          .eq('periodo_mes', currentMonth)
+          .eq('periodo_anio', today.getFullYear())
+          .in('estado', ['pendiente', 'parcial']);
 
-      if (honorariosPendientes && honorariosPendientes.length > 0) {
-        honorariosPendientes.forEach((hon: any) => {
-          notifs.push({
-            id: `honorario-${hon.id}`,
-            type: 'honorarios_pendiente',
-            title: 'Honorarios Pendientes',
-            message: `${hon.clients?.razon_social} - $${Math.round(hon.saldo_actual || hon.monto).toLocaleString()}`,
-            date: new Date(hon.created_at),
-            priority: hon.estado === 'pendiente' ? 'medium' : 'low'
+        if (honorariosPendientes && honorariosPendientes.length > 0) {
+          honorariosPendientes.forEach((hon: any) => {
+            notifs.push({
+              id: `honorario-${hon.id}`,
+              type: 'honorarios_pendiente',
+              title: 'Honorarios Pendientes',
+              message: `${hon.clients?.razon_social} - $${Math.round(hon.saldo_actual || hon.monto).toLocaleString()}`,
+              date: new Date(hon.created_at),
+              priority: hon.estado === 'pendiente' ? 'medium' : 'low'
+            });
           });
-        });
+        }
+      } catch (error) {
+        console.error('Error cargando honorarios:', error);
       }
-    } catch (error) {
-      console.error('Error cargando honorarios:', error);
     }
 
-    // Cargar cotizaciones pendientes del mes actual
-    try {
-      const { data: cotizacionesPendientes } = await supabase
-        .from('cotizaciones_previsionales')
-        .select('*, clients(razon_social)')
-        .eq('periodo_mes', currentMonth)
-        .eq('periodo_anio', today.getFullYear())
-        .in('estado', ['pendiente', 'declarado_no_pagado']);
+    // Cargar cotizaciones pendientes del mes actual (solo master/admin)
+    if (userRole === 'master' || userRole === 'admin') {
+      try {
+        const { data: cotizacionesPendientes } = await supabase
+          .from('cotizaciones_previsionales')
+          .select('*, clients(razon_social)')
+          .eq('periodo_mes', currentMonth)
+          .eq('periodo_anio', today.getFullYear())
+          .in('estado', ['pendiente', 'declarado_no_pagado']);
 
-      if (cotizacionesPendientes && cotizacionesPendientes.length > 0) {
-        cotizacionesPendientes.forEach((cot: any) => {
-          notifs.push({
-            id: `cotizacion-${cot.id}`,
-            type: 'cotizacion_pendiente',
-            title: 'Cotización Pendiente',
-            message: `${cot.clients?.razon_social} - ${cot.estado === 'declarado_no_pagado' ? 'Declarado no pagado' : 'Pendiente'}`,
-            date: new Date(cot.created_at),
-            priority: cot.estado === 'declarado_no_pagado' ? 'high' : 'medium'
+        if (cotizacionesPendientes && cotizacionesPendientes.length > 0) {
+          cotizacionesPendientes.forEach((cot: any) => {
+            notifs.push({
+              id: `cotizacion-${cot.id}`,
+              type: 'cotizacion_pendiente',
+              title: 'Cotización Pendiente',
+              message: `${cot.clients?.razon_social} - ${cot.estado === 'declarado_no_pagado' ? 'Declarado no pagado' : 'Pendiente'}`,
+              date: new Date(cot.created_at),
+              priority: cot.estado === 'declarado_no_pagado' ? 'high' : 'medium'
+            });
           });
-        });
+        }
+      } catch (error) {
+        console.error('Error cargando cotizaciones:', error);
       }
-    } catch (error) {
-      console.error('Error cargando cotizaciones:', error);
     }
 
-    // Cargar órdenes de trabajo nuevas (últimas 24 horas)
-    try {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+    // Cargar órdenes de trabajo nuevas (últimas 24 horas) - solo master/admin
+    if (userRole === 'master' || userRole === 'admin') {
+      try {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
 
-      const { data: ordenesNuevas } = await supabase
-        .from('ordenes_trabajo')
-        .select('*, clients(razon_social)')
-        .eq('estado', 'pendiente')
-        .gte('created_at', yesterday.toISOString());
+        const { data: ordenesNuevas } = await supabase
+          .from('ordenes_trabajo')
+          .select('*, clients(razon_social)')
+          .eq('estado', 'pendiente')
+          .gte('created_at', yesterday.toISOString());
 
-      if (ordenesNuevas && ordenesNuevas.length > 0) {
-        ordenesNuevas.forEach((ot: any) => {
-          notifs.push({
-            id: `ot-${ot.id}`,
-            type: 'orden_trabajo',
-            title: 'Nueva Orden de Trabajo',
-            message: `${ot.clients?.razon_social} - ${ot.descripcion.substring(0, 50)}${ot.descripcion.length > 50 ? '...' : ''}`,
-            date: new Date(ot.created_at),
-            priority: 'high'
+        if (ordenesNuevas && ordenesNuevas.length > 0) {
+          ordenesNuevas.forEach((ot: any) => {
+            notifs.push({
+              id: `ot-${ot.id}`,
+              type: 'orden_trabajo',
+              title: 'Nueva Orden de Trabajo',
+              message: `${ot.clients?.razon_social} - ${ot.descripcion.substring(0, 50)}${ot.descripcion.length > 50 ? '...' : ''}`,
+              date: new Date(ot.created_at),
+              priority: 'high'
+            });
           });
-        });
+        }
+      } catch (error) {
+        console.error('Error cargando órdenes de trabajo:', error);
       }
-    } catch (error) {
-      console.error('Error cargando órdenes de trabajo:', error);
     }
 
-    // Notificaciones de cotizaciones (día 10)
-    if (currentDay >= 8 && currentDay <= 10) {
-      notifs.push({
-        id: 'cot-declaracion',
-        type: 'cotizaciones',
-        title: 'Declaración de Cotizaciones',
-        message: `Fecha tope: ${currentDay === 10 ? 'HOY' : `${10 - currentDay} días`} - Declaración sin pago`,
-        date: new Date(today.getFullYear(), currentMonth - 1, 10),
-        priority: currentDay === 10 ? 'high' : 'medium'
-      });
-    }
-
-    // Notificaciones de cotizaciones (día 13)
-    if (currentDay >= 11 && currentDay <= 13) {
-      notifs.push({
-        id: 'cot-pago',
-        type: 'cotizaciones',
-        title: 'Pago de Cotizaciones',
-        message: `Fecha tope: ${currentDay === 13 ? 'HOY' : `${13 - currentDay} días`} - Declarar y pagar`,
-        date: new Date(today.getFullYear(), currentMonth - 1, 13),
-        priority: currentDay === 13 ? 'high' : 'medium'
-      });
-    }
-
-    // F29 no electrónicos (día 12)
-    if (currentDay >= 10 && currentDay <= 12) {
-      notifs.push({
-        id: 'f29-no-elect',
-        type: 'f29',
-        title: 'F29 No Electrónicos',
-        message: `Fecha tope: ${currentDay === 12 ? 'HOY' : `${12 - currentDay} días`} - Facturadores no electrónicos`,
-        date: new Date(today.getFullYear(), currentMonth - 1, 12),
-        priority: currentDay === 12 ? 'high' : 'medium'
-      });
-    }
-
-    // F29 electrónicos (día 20)
-    if (currentDay >= 18 && currentDay <= 20) {
-      notifs.push({
-        id: 'f29-elect',
-        type: 'f29',
-        title: 'F29 Electrónicos',
-        message: `Fecha tope: ${currentDay === 20 ? 'HOY' : `${20 - currentDay} días`} - Facturadores electrónicos`,
-        date: new Date(today.getFullYear(), currentMonth - 1, 20),
-        priority: currentDay === 20 ? 'high' : 'medium'
-      });
-    }
-
-    // F29 sin movimientos (día 28)
-    if (currentDay >= 26 && currentDay <= 28) {
-      notifs.push({
-        id: 'f29-sin-mov',
-        type: 'f29',
-        title: 'F29 Sin Movimientos',
-        message: `Fecha tope: ${currentDay === 28 ? 'HOY' : `${28 - currentDay} días`}`,
-        date: new Date(today.getFullYear(), currentMonth - 1, 28),
-        priority: currentDay === 28 ? 'high' : 'low'
-      });
-    }
-
-    // Notificaciones de F22 (marzo)
-    if (currentMonth === 3) {
-      // DJ hasta 15 de marzo
-      if (currentDay >= 13 && currentDay <= 15) {
+    // Notificaciones generales solo para master/admin
+    if (userRole === 'master' || userRole === 'admin') {
+      // Notificaciones de cotizaciones (día 10)
+      if (currentDay >= 8 && currentDay <= 10) {
         notifs.push({
-          id: 'f22-15-marzo',
-          type: 'f22',
-          title: 'Declaraciones Juradas',
-          message: `Vencen ${currentDay === 15 ? 'HOY' : `en ${15 - currentDay} días`}: DJ 1887, 1879, 1835`,
-          date: new Date(today.getFullYear(), 2, 15),
-          priority: currentDay === 15 ? 'high' : 'medium'
+          id: 'cot-declaracion',
+          type: 'cotizaciones',
+          title: 'Declaración de Cotizaciones',
+          message: `Fecha tope: ${currentDay === 10 ? 'HOY' : `${10 - currentDay} días`} - Declaración sin pago`,
+          date: new Date(today.getFullYear(), currentMonth - 1, 10),
+          priority: currentDay === 10 ? 'high' : 'medium'
         });
       }
 
-      // DJ hasta 29 de marzo
-      if (currentDay >= 27 && currentDay <= 29) {
+      // Notificaciones de cotizaciones (día 13)
+      if (currentDay >= 11 && currentDay <= 13) {
         notifs.push({
-          id: 'f22-29-marzo',
-          type: 'f22',
-          title: 'Declaraciones Juradas',
-          message: `Vencen ${currentDay === 29 ? 'HOY' : `en ${29 - currentDay} días`}: DJ 1947, 1926, 1948, 1943, 1909`,
-          date: new Date(today.getFullYear(), 2, 29),
-          priority: currentDay === 29 ? 'high' : 'medium'
+          id: 'cot-pago',
+          type: 'cotizaciones',
+          title: 'Pago de Cotizaciones',
+          message: `Fecha tope: ${currentDay === 13 ? 'HOY' : `${13 - currentDay} días`} - Declarar y pagar`,
+          date: new Date(today.getFullYear(), currentMonth - 1, 13),
+          priority: currentDay === 13 ? 'high' : 'medium'
         });
+      }
+
+      // F29 no electrónicos (día 12)
+      if (currentDay >= 10 && currentDay <= 12) {
+        notifs.push({
+          id: 'f29-no-elect',
+          type: 'f29',
+          title: 'F29 No Electrónicos',
+          message: `Fecha tope: ${currentDay === 12 ? 'HOY' : `${12 - currentDay} días`} - Facturadores no electrónicos`,
+          date: new Date(today.getFullYear(), currentMonth - 1, 12),
+          priority: currentDay === 12 ? 'high' : 'medium'
+        });
+      }
+
+      // F29 electrónicos (día 20)
+      if (currentDay >= 18 && currentDay <= 20) {
+        notifs.push({
+          id: 'f29-elect',
+          type: 'f29',
+          title: 'F29 Electrónicos',
+          message: `Fecha tope: ${currentDay === 20 ? 'HOY' : `${20 - currentDay} días`} - Facturadores electrónicos`,
+          date: new Date(today.getFullYear(), currentMonth - 1, 20),
+          priority: currentDay === 20 ? 'high' : 'medium'
+        });
+      }
+
+      // F29 sin movimientos (día 28)
+      if (currentDay >= 26 && currentDay <= 28) {
+        notifs.push({
+          id: 'f29-sin-mov',
+          type: 'f29',
+          title: 'F29 Sin Movimientos',
+          message: `Fecha tope: ${currentDay === 28 ? 'HOY' : `${28 - currentDay} días`}`,
+          date: new Date(today.getFullYear(), currentMonth - 1, 28),
+          priority: currentDay === 28 ? 'high' : 'low'
+        });
+      }
+
+      // Notificaciones de F22 (marzo)
+      if (currentMonth === 3) {
+        // DJ hasta 15 de marzo
+        if (currentDay >= 13 && currentDay <= 15) {
+          notifs.push({
+            id: 'f22-15-marzo',
+            type: 'f22',
+            title: 'Declaraciones Juradas',
+            message: `Vencen ${currentDay === 15 ? 'HOY' : `en ${15 - currentDay} días`}: DJ 1887, 1879, 1835`,
+            date: new Date(today.getFullYear(), 2, 15),
+            priority: currentDay === 15 ? 'high' : 'medium'
+          });
+        }
+
+        // DJ hasta 29 de marzo
+        if (currentDay >= 27 && currentDay <= 29) {
+          notifs.push({
+            id: 'f22-29-marzo',
+            type: 'f22',
+            title: 'Declaraciones Juradas',
+            message: `Vencen ${currentDay === 29 ? 'HOY' : `en ${29 - currentDay} días`}: DJ 1947, 1926, 1948, 1943, 1909`,
+            date: new Date(today.getFullYear(), 2, 29),
+            priority: currentDay === 29 ? 'high' : 'medium'
+          });
+        }
       }
     }
 
