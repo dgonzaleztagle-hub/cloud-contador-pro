@@ -162,15 +162,25 @@ export default function AdminUsers() {
 
         // Si es viewer (cliente), asociar con la empresa seleccionada
         if (newRole === 'viewer' && selectedClientId) {
-          const { error: clientUpdateError } = await supabase
+          console.log('Asociando usuario', authData.user.id, 'con empresa', selectedClientId);
+          
+          const { data: updateResult, error: clientUpdateError } = await supabase
             .from('clients')
             .update({ user_id: authData.user.id })
-            .eq('id', selectedClientId);
+            .eq('id', selectedClientId)
+            .select();
 
           if (clientUpdateError) {
             console.error('Error linking client:', clientUpdateError);
-            throw new Error('Error al asociar el usuario con la empresa.');
+            throw new Error(`Error al asociar el usuario con la empresa: ${clientUpdateError.message}`);
           }
+          
+          if (!updateResult || updateResult.length === 0) {
+            console.error('No se actualizó ninguna empresa. ID:', selectedClientId);
+            throw new Error('No se pudo asociar el usuario con la empresa seleccionada.');
+          }
+          
+          console.log('Empresa actualizada correctamente:', updateResult);
         }
 
         toast({
