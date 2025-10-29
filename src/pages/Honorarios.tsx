@@ -174,14 +174,32 @@ export default function Honorarios() {
 
     setIsSaving(true);
 
+    // Calcular campos derivados
+    const montoNum = parseFloat(monto) || 0;
+    const saldoAnteriorNum = parseFloat(saldoPendienteAnterior) || 0;
+    const montoPagadoNum = parseFloat(montoPagado) || 0;
+    
+    const totalConSaldo = montoNum + saldoAnteriorNum;
+    let saldoActual = 0;
+    
+    if (estado === 'pendiente') {
+      saldoActual = totalConSaldo;
+    } else if (estado === 'parcial') {
+      saldoActual = totalConSaldo - montoPagadoNum;
+    } else if (estado === 'pagado') {
+      saldoActual = 0;
+    }
+
     const honorarioData = {
       client_id: selectedClientId,
       periodo_mes: filterMes,
       periodo_anio: filterAnio,
-      monto: parseFloat(monto) || 0,
-      saldo_pendiente_anterior: parseFloat(saldoPendienteAnterior) || 0,
+      monto: montoNum,
+      saldo_pendiente_anterior: saldoAnteriorNum,
+      total_con_saldo: totalConSaldo,
       estado,
-      monto_pagado: parseFloat(montoPagado) || 0,
+      monto_pagado: montoPagadoNum,
+      saldo_actual: saldoActual,
       fecha_pago: fechaPago || null,
       notas: notas || null,
     };
