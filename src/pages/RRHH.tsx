@@ -1572,7 +1572,6 @@ export default function RRHH() {
                                   size="sm"
                                   onClick={() => handleEdit(worker)}
                                   className="flex-1 gap-2"
-                                  disabled={!canModify}
                                 >
                                   <FileText className="h-4 w-4" />
                                   Subir PDF
@@ -1627,25 +1626,46 @@ export default function RRHH() {
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-2 border-t border-border">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => previewPDF(worker)}
-                        className="flex-1 gap-2"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Vista Previa
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => exportToPDF(worker)}
-                        className="flex-1 gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        Exportar PDF
-                      </Button>
+                    <div className="pt-2 border-t border-border space-y-2">
+                      <h4 className="text-sm font-semibold text-foreground">Informe Descuentos</h4>
+                      <div className="flex gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => previewPDF(worker)}
+                                className="flex-1 gap-2"
+                              >
+                                <Eye className="h-4 w-4" />
+                                Vista Previa
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Vista previa informe mensual</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => exportToPDF(worker)}
+                                className="flex-1 gap-2"
+                              >
+                                <Download className="h-4 w-4" />
+                                Exportar
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Exportar informe mensual PDF</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
