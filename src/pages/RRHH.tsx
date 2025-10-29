@@ -20,6 +20,8 @@ import { useDocumentPreview } from '@/hooks/useDocumentPreview';
 import jsPDF from 'jspdf';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Packer } from 'docx';
+import { generateContractDocument } from '@/lib/contractGenerator';
 
 // Interfaces
 interface Client {
@@ -635,6 +637,63 @@ export default function RRHH() {
       title: 'PDF exportado',
       description: 'El informe se exportó correctamente',
     });
+  };
+
+  const generateWordContract = async (worker: Worker) => {
+    try {
+      // Obtener el cliente completo
+      const client = clients.find(c => c.id === worker.client_id);
+      if (!client) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se encontró la información del cliente',
+        });
+        return;
+      }
+
+      // Obtener datos completos del trabajador desde la BD
+      const { data: fullWorkerData, error } = await supabase
+        .from('rrhh_workers')
+        .select('*')
+        .eq('id', worker.id)
+        .single();
+
+      if (error || !fullWorkerData) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudieron cargar los datos completos del trabajador',
+        });
+        return;
+      }
+
+      // Generar el documento
+      const doc = generateContractDocument(fullWorkerData, client);
+
+      // Convertir a blob y descargar
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Contrato_${worker.nombre.replace(/\s+/g, '_')}_${worker.rut}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Contrato generado',
+        description: 'El contrato en Word se ha descargado correctamente. Ahora puedes editarlo y luego subirlo como PDF.',
+      });
+    } catch (error) {
+      console.error('Error generating contract:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo generar el contrato',
+      });
+    }
   };
 
   const previewPDF = async (worker: Worker) => {
@@ -1282,10 +1341,26 @@ export default function RRHH() {
                       </div>
                       
                       {/* Sección de Contrato */}
-                      {worker.contrato_pdf_path && (
-                        <div className="pt-2 border-t border-border">
+                      <div className="pt-2 border-t border-border space-y-2">
+                        {/* Botón para generar contrato Word */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">📝 Generar Contrato:</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generateWordContract(worker)}
+                            className="h-7 px-2 text-xs hover:bg-accent"
+                            title="Generar contrato Word editable"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Word
+                          </Button>
+                        </div>
+                        
+                        {/* Contrato subido */}
+                        {worker.contrato_pdf_path && (
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">📄 Contrato:</span>
+                            <span className="text-muted-foreground">📄 Contrato Subido:</span>
                             <div className="flex gap-1">
                               <Button
                                 variant="ghost"
@@ -1309,8 +1384,8 @@ export default function RRHH() {
                               </Button>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-3">
