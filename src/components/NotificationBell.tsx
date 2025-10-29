@@ -8,6 +8,7 @@ import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface ContractAlert {
   worker_id: string;
@@ -33,6 +34,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const { userRole, user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (userRole) {
@@ -345,6 +347,37 @@ export default function NotificationBell() {
     setNotifications(notifs);
   };
 
+  const handleNotificationClick = (type: string) => {
+    setOpen(false);
+    
+    switch (type) {
+      case 'contrato_vencido':
+      case 'contrato_por_vencer':
+        navigate('/rrhh');
+        break;
+      case 'f29':
+        navigate('/f29-declarations');
+        break;
+      case 'f22':
+      case 'f22_vencida':
+      case 'f22_proxima':
+        navigate('/f22-declarations');
+        break;
+      case 'honorarios_pendiente':
+        navigate('/honorarios');
+        break;
+      case 'cotizaciones':
+      case 'cotizacion_pendiente':
+        navigate('/cotizaciones-previsionales');
+        break;
+      case 'orden_trabajo':
+        navigate('/client-workspace');
+        break;
+      default:
+        break;
+    }
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -415,7 +448,11 @@ export default function NotificationBell() {
           <ScrollArea className="max-h-[400px]">
             <div className="divide-y">
               {notifications.map((notif) => (
-                <div key={notif.id} className="p-4 hover:bg-secondary/50 transition-colors">
+                <div 
+                  key={notif.id} 
+                  className="p-4 hover:bg-secondary/50 transition-colors cursor-pointer"
+                  onClick={() => handleNotificationClick(notif.type)}
+                >
                   <div className="flex gap-3">
                     <div className="text-2xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1 space-y-1">
