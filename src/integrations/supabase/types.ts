@@ -823,6 +823,7 @@ export type Database = {
           segundo_nombre: string | null
           sucursal_admin: string | null
           sucursal_id: string | null
+          sueldo_base: number | null
           telefono: string | null
           tipo_cuenta: string | null
           tipo_jornada: string
@@ -863,6 +864,7 @@ export type Database = {
           segundo_nombre?: string | null
           sucursal_admin?: string | null
           sucursal_id?: string | null
+          sueldo_base?: number | null
           telefono?: string | null
           tipo_cuenta?: string | null
           tipo_jornada?: string
@@ -903,6 +905,7 @@ export type Database = {
           segundo_nombre?: string | null
           sucursal_admin?: string | null
           sucursal_id?: string | null
+          sueldo_base?: number | null
           telefono?: string | null
           tipo_cuenta?: string | null
           tipo_jornada?: string

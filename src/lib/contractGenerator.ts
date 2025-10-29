@@ -22,6 +22,7 @@ interface WorkerData {
   banco?: string;
   tipo_cuenta?: string;
   numero_cuenta?: string;
+  sueldo_base?: number;
 }
 
 interface ClientData {
@@ -256,7 +257,21 @@ export function generateContractDocument(worker: WorkerData, client: ClientData)
               bold: true,
             }),
             new TextRun({
-              text: "Por los servicios convenidos, EL EMPLEADOR pagará a EL TRABAJADOR una remuneración mensual de $__________, pagadera mensualmente los últimos días de cada mes.",
+              text: `Por los servicios convenidos, EL EMPLEADOR pagará a EL TRABAJADOR una remuneración mensual de $${worker.sueldo_base ? worker.sueldo_base.toLocaleString('es-CL') : '__________'}, pagadera dentro de los primeros 5 días hábiles de cada mes.`,
+            }),
+          ],
+          spacing: { before: 200, after: 200 },
+        }),
+
+        // CUARTO BIS: Gratificación
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "CUARTO BIS: ",
+              bold: true,
+            }),
+            new TextRun({
+              text: "EL TRABAJADOR tendrá derecho a una gratificación equivalente al 25% de su remuneración mensual, la cual será pagada mensualmente junto con su remuneración.",
             }),
           ],
           spacing: { before: 200, after: 200 },
@@ -361,22 +376,45 @@ export function generateContractDocument(worker: WorkerData, client: ClientData)
         new Paragraph({
           children: [
             new TextRun({
-              text: `    ${client.representante_legal || '___________'}`,
+              text: `    ${client.razon_social}`,
+              bold: true,
             }),
             new TextRun({
               text: `                                   ${worker.nombre}`,
             }),
           ],
-          spacing: { after: 100 },
+          spacing: { after: 50 },
         }),
 
         new Paragraph({
           children: [
             new TextRun({
-              text: `    RUT: ${client.rut_representante || '___________'}`,
+              text: `    RUT: ${client.rut}`,
             }),
             new TextRun({
               text: `                              RUT: ${worker.rut}`,
+            }),
+          ],
+          spacing: { after: 50 },
+        }),
+
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `    Representante Legal: ${client.representante_legal || '___________'}`,
+              italics: true,
+              size: 20,
+            }),
+          ],
+          spacing: { after: 50 },
+        }),
+
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `    RUT Rep. Legal: ${client.rut_representante || '___________'}`,
+              italics: true,
+              size: 20,
             }),
           ],
         }),
