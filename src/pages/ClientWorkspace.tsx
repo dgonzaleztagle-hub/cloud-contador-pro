@@ -272,36 +272,6 @@ export default function ClientWorkspace() {
                     )}
                   </div>
                 </div>
-                <div>
-                  <Label>Dirección</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input value={client.direccion || "Sin información"} readOnly />
-                    {client.direccion && (
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => copyToClipboard(client.direccion!, "Dirección")}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <Label>Ciudad</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input value={client.ciudad || "Sin información"} readOnly />
-                    {client.ciudad && (
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => copyToClipboard(client.ciudad!, "Ciudad")}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
