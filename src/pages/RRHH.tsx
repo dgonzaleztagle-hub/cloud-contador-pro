@@ -1751,12 +1751,12 @@ export default function RRHH() {
           <DialogHeader>
             <DialogTitle>{previewTitle || 'Vista Previa'}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-hidden rounded border bg-gray-50">
+          <div className="flex-1 overflow-auto rounded border bg-gray-50 flex items-center justify-center">
             {previewUrl && (
-              <iframe
+              <img
                 src={previewUrl}
-                className="w-full h-[calc(85vh-80px)]"
-                title="Vista previa"
+                alt="Vista previa"
+                className="max-w-full h-auto"
               />
             )}
           </div>
