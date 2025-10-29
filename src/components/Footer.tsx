@@ -47,7 +47,7 @@ export function Footer() {
         {/* Divider */}
         <div className="mt-6 pt-4 border-t border-border/50">
           <p className="text-center text-xs text-muted-foreground/70">
-            Sistema integral de gestión contable, tributaria y recursos humanos
+            Sistema integral de gestión administrativa, tributaria y recursos humanos
           </p>
         </div>
       </div>

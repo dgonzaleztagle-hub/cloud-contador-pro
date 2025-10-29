@@ -39,7 +39,7 @@ const Index = () => {
           </h1>
           
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Sistema integral de gestión contable, tributaria y recursos humanos
+            Sistema integral de gestión administrativa, tributaria y recursos humanos
           </p>
           
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
