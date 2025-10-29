@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
 import NotificationBell from '@/components/NotificationBell';
 import { OrdenTrabajoDialog } from '@/components/OrdenTrabajoDialog';
+import { ClientOTSection } from '@/components/ClientOTSection';
 import logo from '@/assets/logo.png';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -243,6 +244,19 @@ export default function ClientDashboard() {
             </Card>
           </div>
 
+          {/* Sección de Órdenes de Trabajo */}
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="text-foreground">Mis Órdenes de Trabajo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ClientOTSection 
+                clientId={clientData.id}
+                clientName={clientData.razon_social}
+              />
+            </CardContent>
+          </Card>
+
           {/* Acciones Rápidas */}
           <Card className="border-border bg-card">
             <CardHeader>
@@ -304,15 +318,6 @@ export default function ClientDashboard() {
               </button>
 
               <button 
-                onClick={() => setIsOTDialogOpen(true)}
-                className="p-6 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 transition-all text-left group hover:scale-105"
-              >
-                <ClipboardList className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-semibold text-foreground mb-1">Nueva Orden de Trabajo</h3>
-                <p className="text-sm text-muted-foreground">Enviar solicitud de trabajo</p>
-              </button>
-
-              <button 
                 onClick={() => navigate(`/client/${clientData.id}`)}
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
               >
@@ -344,14 +349,6 @@ export default function ClientDashboard() {
           )}
         </div>
       </main>
-
-      <OrdenTrabajoDialog
-        clientId={clientData.id}
-        clientName={clientData.razon_social}
-        isOpen={isOTDialogOpen}
-        onClose={() => setIsOTDialogOpen(false)}
-        onSuccess={loadClientData}
-      />
 
       <Footer />
     </div>
