@@ -263,6 +263,21 @@ export default function Dashboard() {
             </Card>
           </div>
 
+          {/* Sección de Órdenes de Trabajo - Solo para Master y Admin */}
+          {(userRole === 'master' || userRole === 'admin') && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  Órdenes de Trabajo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <OrdenesTrabajoSection />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Quick Actions */}
           <Card className="border-border bg-card">
             <CardHeader>
@@ -349,21 +364,6 @@ export default function Dashboard() {
               </button>
             </CardContent>
           </Card>
-
-          {/* Sección de Órdenes de Trabajo - Solo para Master y Admin */}
-          {(userRole === 'master' || userRole === 'admin') && (
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5 text-primary" />
-                  Órdenes de Trabajo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <OrdenesTrabajoSection />
-              </CardContent>
-            </Card>
-          )}
 
           {/* Guía de Funcionalidades */}
           <Card className="border-border bg-gradient-to-br from-primary/5 to-accent/5">
