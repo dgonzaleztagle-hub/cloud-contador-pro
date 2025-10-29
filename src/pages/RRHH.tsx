@@ -40,11 +40,24 @@ interface Worker {
   client_id: string;
   rut: string;
   nombre: string;
+  nacionalidad?: string | null;
+  estado_civil?: string | null;
+  fecha_nacimiento?: string | null;
+  direccion?: string | null;
+  ciudad?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  cargo?: string | null;
   tipo_plazo: string;
   fecha_termino: string | null;
   fecha_inicio: string | null;
   tipo_jornada: string;
   sucursal_id: string | null;
+  afp?: string | null;
+  salud?: string | null;
+  banco?: string | null;
+  tipo_cuenta?: string | null;
+  numero_cuenta?: string | null;
   contrato_pdf_path: string | null;
   activo: boolean;
   created_at: string;
@@ -1322,22 +1335,132 @@ export default function RRHH() {
                         <span className="text-muted-foreground">Período de visualización:</span>
                         <span className="font-medium">{meses[viewMes - 1]} {viewAnio}</span>
                       </div>
-                      {worker.sucursales && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Sucursal:</span>
-                          <span className="font-medium text-right">{worker.sucursales.nombre}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tipo:</span>
-                        <span className="font-medium">{worker.tipo_plazo === 'indefinido' ? 'Indefinido' : 'Plazo Fijo'}</span>
+                      
+                      {/* Datos personales completos */}
+                      <div className="pt-2 border-t border-border mt-2">
+                        <h4 className="font-semibold text-sm mb-2">Datos Personales</h4>
+                        {worker.nacionalidad && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Nacionalidad:</span>
+                            <span className="font-medium">{worker.nacionalidad}</span>
+                          </div>
+                        )}
+                        {worker.estado_civil && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Estado Civil:</span>
+                            <span className="font-medium">{worker.estado_civil}</span>
+                          </div>
+                        )}
+                        {worker.fecha_nacimiento && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Fecha Nac.:</span>
+                            <span className="font-medium">{format(new Date(worker.fecha_nacimiento), 'dd/MM/yyyy')}</span>
+                          </div>
+                        )}
+                        {worker.direccion && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Dirección:</span>
+                            <span className="font-medium text-right text-xs">{worker.direccion}</span>
+                          </div>
+                        )}
+                        {worker.ciudad && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Ciudad:</span>
+                            <span className="font-medium">{worker.ciudad}</span>
+                          </div>
+                        )}
+                        {worker.telefono && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Teléfono:</span>
+                            <span className="font-medium">{worker.telefono}</span>
+                          </div>
+                        )}
+                        {worker.email && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Email:</span>
+                            <span className="font-medium text-right text-xs">{worker.email}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Jornada:</span>
-                        <span className="font-medium">
-                          {worker.tipo_jornada === 'completa' ? 'Completa' : 
-                           worker.tipo_jornada === 'parcial_30' ? 'Parcial 30hrs' : 'Parcial 20hrs'}
-                        </span>
+
+                      {/* Información laboral */}
+                      <div className="pt-2 border-t border-border mt-2">
+                        <h4 className="font-semibold text-sm mb-2">Información Laboral</h4>
+                        {worker.sucursales && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Sucursal:</span>
+                            <span className="font-medium text-right">{worker.sucursales.nombre}</span>
+                          </div>
+                        )}
+                        {worker.cargo && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Cargo:</span>
+                            <span className="font-medium">{worker.cargo}</span>
+                          </div>
+                        )}
+                        {worker.fecha_inicio && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Fecha Inicio:</span>
+                            <span className="font-medium">{format(new Date(worker.fecha_inicio), 'dd/MM/yyyy')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tipo Contrato:</span>
+                          <span className="font-medium">{worker.tipo_plazo === 'indefinido' ? 'Indefinido' : 'Plazo Fijo'}</span>
+                        </div>
+                        {worker.fecha_termino && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Fecha Término:</span>
+                            <span className="font-medium">{format(new Date(worker.fecha_termino), 'dd/MM/yyyy')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Jornada:</span>
+                          <span className="font-medium">
+                            {worker.tipo_jornada === 'completa' ? 'Completa' : 
+                             worker.tipo_jornada === 'parcial_30' ? 'Parcial 30hrs' : 'Parcial 20hrs'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Previsión */}
+                      <div className="pt-2 border-t border-border mt-2">
+                        <h4 className="font-semibold text-sm mb-2">Previsión</h4>
+                        {worker.afp && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">AFP:</span>
+                            <span className="font-medium">{worker.afp}</span>
+                          </div>
+                        )}
+                        {worker.salud && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Salud:</span>
+                            <span className="font-medium">{worker.salud}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Datos bancarios */}
+                      <div className="pt-2 border-t border-border mt-2">
+                        <h4 className="font-semibold text-sm mb-2">Datos Bancarios</h4>
+                        {worker.banco && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Banco:</span>
+                            <span className="font-medium">{worker.banco}</span>
+                          </div>
+                        )}
+                        {worker.tipo_cuenta && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Tipo Cuenta:</span>
+                            <span className="font-medium">{worker.tipo_cuenta}</span>
+                          </div>
+                        )}
+                        {worker.numero_cuenta && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">N° Cuenta:</span>
+                            <span className="font-medium">{worker.numero_cuenta}</span>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Sección de Contrato */}
