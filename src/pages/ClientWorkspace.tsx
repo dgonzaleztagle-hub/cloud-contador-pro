@@ -16,7 +16,9 @@ import {
   DollarSign,
   ExternalLink,
   Upload,
-  Edit
+  Edit,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { ClientEditDialog } from "@/components/ClientEditDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,6 +95,7 @@ export default function ClientWorkspace() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [showSocios, setShowSocios] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -194,13 +197,58 @@ export default function ClientWorkspace() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Contact Info Card */}
+          {/* Información de Empresa */}
           <Card>
             <CardHeader>
-              <CardTitle>Información de Contacto</CardTitle>
+              <CardTitle>Información de la Empresa</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>RUT Empresa</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.rut || "Sin información"} readOnly />
+                    {client.rut && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.rut, "RUT Empresa")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Clave SII Empresa</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.clave_sii || "Sin información"} readOnly type="password" />
+                    {client.clave_sii && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.clave_sii!, "Clave SII")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Dirección</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.direccion || "Sin información"} readOnly />
+                    {client.direccion && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.direccion!, "Dirección")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <Label>Teléfono</Label>
                   <div className="flex gap-2 mt-1">
@@ -235,61 +283,167 @@ export default function ClientWorkspace() {
             </CardContent>
           </Card>
 
-          {/* Socios Card */}
+          {/* Representante Legal */}
           <Card>
             <CardHeader>
-              <CardTitle>Socios</CardTitle>
+              <CardTitle>Representante Legal</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[1, 2, 3].map((num) => {
-                const nombre = client[`socio_${num}_nombre` as keyof Client];
-                const rut = client[`socio_${num}_rut` as keyof Client];
-                
-                if (!nombre && !rut) return null;
-
-                return (
-                  <div key={num}>
-                    <h4 className="font-semibold mb-2">Socio {num}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Nombre</Label>
-                        <div className="flex gap-2 mt-1">
-                          <Input value={nombre as string || "Sin información"} readOnly />
-                          {nombre && (
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => copyToClipboard(nombre as string, `Nombre Socio ${num}`)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <Label>RUT</Label>
-                        <div className="flex gap-2 mt-1">
-                          <Input value={rut as string || "Sin información"} readOnly />
-                          {rut && (
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => copyToClipboard(rut as string, `RUT Socio ${num}`)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {num < 3 && <Separator className="mt-4" />}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.representante_legal || "Sin información"} readOnly />
+                    {client.representante_legal && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.representante_legal!, "Nombre Representante")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                );
-              })}
-              {!client.socio_1_nombre && !client.socio_1_rut && (
-                <p className="text-muted-foreground text-sm">No hay información de socios registrada</p>
-              )}
+                </div>
+                <div>
+                  <Label>RUT</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.rut_representante || "Sin información"} readOnly />
+                    {client.rut_representante && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.rut_representante!, "RUT Representante")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Clave SII Representante</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.clave_sii_repr || "Sin información"} readOnly type="password" />
+                    {client.clave_sii_repr && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.clave_sii_repr!, "Clave SII Representante")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Clave Única del Representante</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={client.clave_unica || "Sin información"} readOnly type="password" />
+                    {client.clave_unica && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(client.clave_unica!, "Clave Única")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </CardContent>
+          </Card>
+
+          {/* Socios Card - Collapsible */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Información de Socios</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSocios(!showSocios)}
+                >
+                  {showSocios ? (
+                    <>
+                      Ocultar <ChevronUp className="h-4 w-4 ml-2" />
+                    </>
+                  ) : (
+                    <>
+                      Mostrar <ChevronDown className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            {showSocios && (
+              <CardContent className="space-y-4">
+                {[1, 2, 3].map((num) => {
+                  const nombre = client[`socio_${num}_nombre` as keyof Client];
+                  const rut = client[`socio_${num}_rut` as keyof Client];
+                  const claveSii = client[`socio_${num}_clave_sii` as keyof Client];
+                  
+                  if (!nombre && !rut) return null;
+
+                  return (
+                    <div key={num}>
+                      <h4 className="font-semibold mb-2">Socio {num}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Nombre</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input value={nombre as string || "Sin información"} readOnly />
+                            {nombre && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => copyToClipboard(nombre as string, `Nombre Socio ${num}`)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>RUT</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input value={rut as string || "Sin información"} readOnly />
+                            {rut && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => copyToClipboard(rut as string, `RUT Socio ${num}`)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Clave SII</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input value={claveSii as string || "Sin información"} readOnly type="password" />
+                            {claveSii && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => copyToClipboard(claveSii as string, `Clave SII Socio ${num}`)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {num < 3 && <Separator className="mt-4" />}
+                    </div>
+                  );
+                })}
+                {!client.socio_1_nombre && !client.socio_1_rut && (
+                  <p className="text-muted-foreground text-sm">No hay información de socios registrada</p>
+                )}
+              </CardContent>
+            )}
           </Card>
 
           {/* RCV Data Card */}
