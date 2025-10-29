@@ -196,23 +196,43 @@ export default function AdminUsers() {
     }
 
     if (confirm(`¿Estás seguro de eliminar el usuario ${email}?`)) {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          throw new Error('No session found');
+        }
 
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No se pudo eliminar el usuario',
-        });
-      } else {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Error al eliminar usuario');
+        }
+
         toast({
           title: 'Usuario eliminado',
           description: `Usuario ${email} eliminado exitosamente`,
         });
         loadUsers();
+      } catch (error: any) {
+        console.error('Error deleting user:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'No se pudo eliminar el usuario',
+        });
       }
     }
   };
