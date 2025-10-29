@@ -31,6 +31,10 @@ interface Client {
   id: string;
   rut: string;
   razon_social: string;
+  direccion?: string | null;
+  ciudad?: string | null;
+  representante_legal?: string | null;
+  rut_representante?: string | null;
 }
 
 interface Sucursal {
@@ -196,7 +200,7 @@ export default function RRHH() {
       // Cargar clientes
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
-        .select('id, rut, razon_social')
+        .select('id, rut, razon_social, direccion, ciudad, representante_legal, rut_representante')
         .eq('activo', true)
         .order('razon_social');
 
