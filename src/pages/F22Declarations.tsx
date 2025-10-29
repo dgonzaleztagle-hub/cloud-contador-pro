@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink, Plus } from 'lucide-react';
+import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink, Plus, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -703,116 +703,163 @@ export default function F22Declarations() {
 
         {/* Vista por Cliente */}
         {viewMode === 'por-cliente' && (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {filterClientId === 'all' && <TableHead className="w-[180px]">Cliente</TableHead>}
-                    <TableHead className="w-[200px]">Declaración</TableHead>
-                    <TableHead className="w-[140px]">RUT / Clave SII</TableHead>
-                    <TableHead className="w-[140px]">Representante</TableHead>
-                    <TableHead className="w-[180px]">Fecha Límite</TableHead>
-                    <TableHead className="w-[100px]">Estado</TableHead>
-                    <TableHead className="w-[100px]">Resultado</TableHead>
-                    <TableHead className="w-[100px]">F. Presentación</TableHead>
-                    {canModify && <TableHead className="text-right w-[100px]">Acciones</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {declaraciones.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                        No hay declaraciones registradas
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    declaraciones.map((decl) => (
-                      <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
-                        {filterClientId === 'all' && (
-                          <TableCell className="font-medium text-sm">
-                            {decl.clients?.razon_social}
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-semibold">{decl.f22_tipos?.codigo}</div>
-                            <div className="text-xs text-muted-foreground line-clamp-1">
-                              {decl.f22_tipos?.nombre}
+          <div className="space-y-6">
+            {clients
+              .filter(client => {
+                // Filtrar por cliente seleccionado si aplica
+                if (filterClientId !== 'all' && client.id !== filterClientId) return false;
+                
+                // Ver si este cliente tiene declaraciones
+                const djsCliente = getDJsCliente(client.id);
+                return djsCliente.length > 0;
+              })
+              .map((client) => {
+                const djsCliente = getDJsCliente(client.id);
+                const pendientes = djsCliente.filter(d => d.estado === 'pendiente');
+                const declaradas = djsCliente.filter(d => d.estado === 'declarada');
+                
+                return (
+                  <Card key={client.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5" />
+                            {client.razon_social}
+                          </CardTitle>
+                          <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">RUT:</span> {client.rut}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <div className="font-medium">{decl.clients?.rut || 'N/A'}</div>
-                            <div className="text-muted-foreground truncate">
-                              {decl.clients?.clave_sii ? '••••••' : 'Sin clave'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <div className="font-medium truncate">{decl.clients?.representante_legal || 'N/A'}</div>
-                            <div className="text-muted-foreground">
-                              {decl.clients?.rut_representante || 'N/A'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {decl.f22_tipos && (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-xs">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                {format(
-                                  getFechaLimite(decl.f22_tipos, decl.anio_tributario),
-                                  "dd/MM/yy"
-                                )}
+                            {client.regimen_tributario && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">Régimen:</span> {client.regimen_tributario}
                               </div>
-                              {getAlertaBadge(decl)}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
-                        <TableCell>{getResultadoBadge(decl.resultado)}</TableCell>
-                        <TableCell className="text-xs">
-                          {decl.fecha_presentacion
-                            ? format(new Date(decl.fecha_presentacion), 'dd/MM/yy')
-                            : '-'}
-                        </TableCell>
-                        {canModify && (
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleToggleOculta(decl)}
-                                title={decl.oculta ? 'Mostrar' : 'Ocultar'}
-                              >
-                                {decl.oculta ? (
-                                  <Eye className="h-3 w-3" />
-                                ) : (
-                                  <EyeOff className="h-3 w-3" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                            {pendientes.length} pendientes
+                          </Badge>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            {declaradas.length} declaradas
+                          </Badge>
+                          <Badge variant="secondary">
+                            {djsCliente.length} total
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Declaración</TableHead>
+                            <TableHead className="w-[140px]">RUT / Clave SII</TableHead>
+                            <TableHead className="w-[140px]">Representante</TableHead>
+                            <TableHead className="w-[180px]">Fecha Límite</TableHead>
+                            <TableHead className="w-[100px]">Estado</TableHead>
+                            <TableHead className="w-[100px]">Resultado</TableHead>
+                            <TableHead className="w-[100px]">F. Presentación</TableHead>
+                            {canModify && <TableHead className="text-right w-[100px]">Acciones</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {djsCliente.map((decl) => (
+                            <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <div className="font-semibold">{decl.tipo?.codigo}</div>
+                                  <div className="text-xs text-muted-foreground line-clamp-1">
+                                    {decl.tipo?.nombre}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-xs">
+                                  <div className="font-medium">{client.rut || 'N/A'}</div>
+                                  <div className="text-muted-foreground truncate">
+                                    {client.clave_sii ? '••••••' : 'Sin clave'}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-xs">
+                                  <div className="font-medium truncate">{client.representante_legal || 'N/A'}</div>
+                                  <div className="text-muted-foreground">
+                                    {client.rut_representante || 'N/A'}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {decl.tipo && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1 text-xs">
+                                      <Calendar className="h-3 w-3 text-muted-foreground" />
+                                      {format(
+                                        getFechaLimite(decl.tipo, decl.anio_tributario),
+                                        "dd/MM/yy"
+                                      )}
+                                    </div>
+                                    {getAlertaBadge(decl as any)}
+                                  </div>
                                 )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={() => handleEdit(decl)}
-                              >
-                                Editar
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                              </TableCell>
+                              <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
+                              <TableCell>{getResultadoBadge(decl.resultado)}</TableCell>
+                              <TableCell className="text-xs">
+                                {decl.fecha_presentacion
+                                  ? format(new Date(decl.fecha_presentacion), 'dd/MM/yy')
+                                  : '-'}
+                              </TableCell>
+                              {canModify && (
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => handleToggleOculta(decl as any)}
+                                      title={decl.oculta ? 'Mostrar' : 'Ocultar'}
+                                    >
+                                      {decl.oculta ? (
+                                        <Eye className="h-3 w-3" />
+                                      ) : (
+                                        <EyeOff className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => handleEdit(decl as any)}
+                                    >
+                                      Editar
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            
+            {clients.filter(client => {
+              if (filterClientId !== 'all' && client.id !== filterClientId) return false;
+              return getDJsCliente(client.id).length > 0;
+            }).length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  No hay declaraciones registradas para mostrar
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
 
         {/* Vista por DJ */}
