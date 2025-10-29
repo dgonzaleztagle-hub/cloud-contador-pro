@@ -46,20 +46,35 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized: Only master can delete users')
     }
 
-    // Obtener el ID del usuario a eliminar
-    const { userId } = await req.json()
+    // Obtener el ID o email del usuario a eliminar
+    const { userId, email } = await req.json()
 
-    if (!userId) {
-      throw new Error('User ID is required')
+    if (!userId && !email) {
+      throw new Error('User ID or email is required')
+    }
+
+    let userIdToDelete = userId
+
+    // Si se proporcionó email, buscar el ID del usuario
+    if (!userIdToDelete && email) {
+      const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers()
+      
+      if (listError) throw listError
+      
+      const userToDelete = users.find(u => u.email === email)
+      if (!userToDelete) {
+        throw new Error(`User with email ${email} not found`)
+      }
+      userIdToDelete = userToDelete.id
     }
 
     // No permitir que el usuario se elimine a sí mismo
-    if (userId === user.id) {
+    if (userIdToDelete === user.id) {
       throw new Error('Cannot delete your own account')
     }
 
     // Eliminar el usuario de auth.users (esto también eliminará el perfil por la cascade)
-    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId)
+    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userIdToDelete)
 
     if (deleteError) {
       console.error('Error deleting user:', deleteError)

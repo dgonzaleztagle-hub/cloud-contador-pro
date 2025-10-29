@@ -136,7 +136,13 @@ export default function AdminUsers() {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Mostrar mensajes de error más específicos
+        if (authError.message.includes('already registered')) {
+          throw new Error('Este correo ya está registrado en el sistema. Si crees que esto es un error, contacta al administrador.');
+        }
+        throw authError;
+      }
 
       if (authData.user) {
         // Actualizar rol del usuario
@@ -148,7 +154,10 @@ export default function AdminUsers() {
           })
           .eq('id', authData.user.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating profile:', updateError);
+          throw new Error('Error al actualizar el perfil del usuario.');
+        }
 
         // Si es viewer (cliente), asociar con la empresa seleccionada
         if (newRole === 'viewer' && selectedClientId) {
@@ -157,7 +166,10 @@ export default function AdminUsers() {
             .update({ user_id: authData.user.id })
             .eq('id', selectedClientId);
 
-          if (clientUpdateError) throw clientUpdateError;
+          if (clientUpdateError) {
+            console.error('Error linking client:', clientUpdateError);
+            throw new Error('Error al asociar el usuario con la empresa.');
+          }
         }
 
         toast({
@@ -175,6 +187,7 @@ export default function AdminUsers() {
         loadUsers();
       }
     } catch (error: any) {
+      console.error('Error creating user:', error);
       toast({
         variant: 'destructive',
         title: 'Error al crear usuario',
