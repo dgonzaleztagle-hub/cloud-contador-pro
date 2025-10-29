@@ -6,10 +6,22 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+
+interface ContractAlert {
+  worker_id: string;
+  worker_name: string;
+  worker_rut: string;
+  client_name: string;
+  fecha_termino: string;
+  days_remaining?: number;
+  days_expired?: number;
+}
+
 
 interface Notification {
   id: string;
-  type: 'f29' | 'cotizaciones' | 'f22';
+  type: 'f29' | 'cotizaciones' | 'f22' | 'contrato_vencido' | 'contrato_por_vencer';
   title: string;
   message: string;
   date: Date;
@@ -24,11 +36,51 @@ export default function NotificationBell() {
     checkNotifications();
   }, []);
 
-  const checkNotifications = () => {
+  const checkNotifications = async () => {
     const today = new Date();
     const currentDay = today.getDate();
     const currentMonth = today.getMonth() + 1;
     const notifs: Notification[] = [];
+
+    // Cargar contratos vencidos y por vencer
+    try {
+      // Contratos vencidos
+      const { data: expiredContracts } = await supabase
+        .rpc('get_expired_contracts');
+
+      if (expiredContracts && expiredContracts.length > 0) {
+        expiredContracts.forEach((contract: ContractAlert) => {
+          notifs.push({
+            id: `contract-expired-${contract.worker_id}`,
+            type: 'contrato_vencido',
+            title: 'Contrato Vencido',
+            message: `${contract.worker_name} (${contract.client_name}) - Vencido hace ${contract.days_expired} días`,
+            date: new Date(contract.fecha_termino),
+            priority: 'high'
+          });
+        });
+      }
+
+      // Contratos por vencer (próximos 30 días)
+      const { data: expiringContracts } = await supabase
+        .rpc('get_expiring_contracts', { days_threshold: 30 });
+
+      if (expiringContracts && expiringContracts.length > 0) {
+        expiringContracts.forEach((contract: ContractAlert) => {
+          const priority = contract.days_remaining && contract.days_remaining <= 7 ? 'high' : 'medium';
+          notifs.push({
+            id: `contract-expiring-${contract.worker_id}`,
+            type: 'contrato_por_vencer',
+            title: 'Contrato por Vencer',
+            message: `${contract.worker_name} (${contract.client_name}) - Vence en ${contract.days_remaining} días`,
+            date: new Date(contract.fecha_termino),
+            priority
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando notificaciones de contratos:', error);
+    }
 
     // Notificaciones de cotizaciones (día 10)
     if (currentDay >= 8 && currentDay <= 10) {
@@ -117,6 +169,14 @@ export default function NotificationBell() {
       }
     }
 
+    // Ordenar por prioridad y fecha
+    notifs.sort((a, b) => {
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.date.getTime() - b.date.getTime();
+    });
+
     setNotifications(notifs);
   };
 
@@ -141,6 +201,10 @@ export default function NotificationBell() {
         return '💼';
       case 'f22':
         return '📄';
+      case 'contrato_vencido':
+        return '⚠️';
+      case 'contrato_por_vencer':
+        return '⏰';
       default:
         return '🔔';
     }
