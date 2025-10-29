@@ -126,77 +126,50 @@ export default function AdminUsers() {
     setIsCreating(true);
 
     try {
-      // Crear usuario en auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newEmail,
-        password: newPassword,
-        options: {
-          data: {
-            full_name: newFullName,
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      // Llamar a la edge function para crear usuario sin afectar la sesión actual
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
           },
-        },
+          body: JSON.stringify({
+            email: newEmail,
+            password: newPassword,
+            fullName: newFullName,
+            role: newRole,
+            clientId: selectedClientId,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al crear usuario');
+      }
+
+      toast({
+        title: 'Usuario creado',
+        description: `Usuario ${newEmail} creado exitosamente con rol ${newRole}`,
       });
 
-      if (authError) {
-        // Mostrar mensajes de error más específicos
-        if (authError.message.includes('already registered')) {
-          throw new Error('Este correo ya está registrado en el sistema. Si crees que esto es un error, contacta al administrador.');
-        }
-        throw authError;
-      }
-
-      if (authData.user) {
-        // Actualizar rol del usuario
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
-            role: newRole as any,
-            full_name: newFullName 
-          })
-          .eq('id', authData.user.id);
-
-        if (updateError) {
-          console.error('Error updating profile:', updateError);
-          throw new Error('Error al actualizar el perfil del usuario.');
-        }
-
-        // Si es viewer (cliente), asociar con la empresa seleccionada
-        if (newRole === 'viewer' && selectedClientId) {
-          console.log('Asociando usuario', authData.user.id, 'con empresa', selectedClientId);
-          
-          const { data: updateResult, error: clientUpdateError } = await supabase
-            .from('clients')
-            .update({ user_id: authData.user.id })
-            .eq('id', selectedClientId)
-            .select();
-
-          if (clientUpdateError) {
-            console.error('Error linking client:', clientUpdateError);
-            throw new Error(`Error al asociar el usuario con la empresa: ${clientUpdateError.message}`);
-          }
-          
-          if (!updateResult || updateResult.length === 0) {
-            console.error('No se actualizó ninguna empresa. ID:', selectedClientId);
-            throw new Error('No se pudo asociar el usuario con la empresa seleccionada.');
-          }
-          
-          console.log('Empresa actualizada correctamente:', updateResult);
-        }
-
-        toast({
-          title: 'Usuario creado',
-          description: `Usuario ${newEmail} creado exitosamente con rol ${newRole}`,
-        });
-
-        // Reset form
-        setNewEmail('');
-        setNewPassword('');
-        setNewFullName('');
-        setNewRole('viewer');
-        setSelectedClientId('');
-        setIsDialogOpen(false);
-        loadUsers();
-      }
+      // Reset form
+      setNewEmail('');
+      setNewPassword('');
+      setNewFullName('');
+      setNewRole('viewer');
+      setSelectedClientId('');
+      setIsDialogOpen(false);
+      loadUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
       toast({
