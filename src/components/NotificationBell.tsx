@@ -21,7 +21,7 @@ interface ContractAlert {
 
 interface Notification {
   id: string;
-  type: 'f29' | 'cotizaciones' | 'f22' | 'contrato_vencido' | 'contrato_por_vencer';
+  type: 'f29' | 'cotizaciones' | 'f22' | 'contrato_vencido' | 'contrato_por_vencer' | 'f22_vencida' | 'f22_proxima' | 'honorarios_pendiente' | 'cotizacion_pendiente';
   title: string;
   message: string;
   date: Date;
@@ -80,6 +80,109 @@ export default function NotificationBell() {
       }
     } catch (error) {
       console.error('Error cargando notificaciones de contratos:', error);
+    }
+
+    // Cargar notificaciones de F22
+    try {
+      const { data: f22Types } = await supabase
+        .from('f22_tipos')
+        .select('*')
+        .eq('activo', true);
+
+      const { data: f22Declaraciones } = await supabase
+        .from('f22_declaraciones')
+        .select('*, f22_tipos(*), clients(razon_social)')
+        .eq('estado', 'pendiente');
+
+      if (f22Types && f22Declaraciones) {
+        f22Declaraciones.forEach((decl: any) => {
+          if (!decl.f22_tipos) return;
+          
+          const fechaLimite = new Date(decl.anio_tributario, decl.f22_tipos.fecha_limite_mes - 1, decl.f22_tipos.fecha_limite_dia);
+          const diasRestantes = Math.ceil((fechaLimite.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (diasRestantes < 0) {
+            notifs.push({
+              id: `f22-vencida-${decl.id}`,
+              type: 'f22_vencida',
+              title: 'DJ F22 Vencida',
+              message: `${decl.f22_tipos.nombre} - ${decl.clients?.razon_social} (${Math.abs(diasRestantes)} días)`,
+              date: fechaLimite,
+              priority: 'high'
+            });
+          } else if (diasRestantes <= 7) {
+            notifs.push({
+              id: `f22-proxima-${decl.id}`,
+              type: 'f22_proxima',
+              title: 'DJ F22 Próxima a Vencer',
+              message: `${decl.f22_tipos.nombre} - ${decl.clients?.razon_social} (${diasRestantes} días)`,
+              date: fechaLimite,
+              priority: 'high'
+            });
+          } else if (diasRestantes <= 15) {
+            notifs.push({
+              id: `f22-proxima-${decl.id}`,
+              type: 'f22_proxima',
+              title: 'DJ F22 Próxima a Vencer',
+              message: `${decl.f22_tipos.nombre} - ${decl.clients?.razon_social} (${diasRestantes} días)`,
+              date: fechaLimite,
+              priority: 'medium'
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando notificaciones F22:', error);
+    }
+
+    // Cargar honorarios pendientes del mes actual
+    try {
+      const { data: honorariosPendientes } = await supabase
+        .from('honorarios')
+        .select('*, clients(razon_social)')
+        .eq('periodo_mes', currentMonth)
+        .eq('periodo_anio', today.getFullYear())
+        .in('estado', ['pendiente', 'parcial']);
+
+      if (honorariosPendientes && honorariosPendientes.length > 0) {
+        honorariosPendientes.forEach((hon: any) => {
+          notifs.push({
+            id: `honorario-${hon.id}`,
+            type: 'honorarios_pendiente',
+            title: 'Honorarios Pendientes',
+            message: `${hon.clients?.razon_social} - $${Math.round(hon.saldo_actual || hon.monto).toLocaleString()}`,
+            date: new Date(hon.created_at),
+            priority: hon.estado === 'pendiente' ? 'medium' : 'low'
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando honorarios:', error);
+    }
+
+    // Cargar cotizaciones pendientes del mes actual
+    try {
+      const { data: cotizacionesPendientes } = await supabase
+        .from('cotizaciones_previsionales')
+        .select('*, clients(razon_social)')
+        .eq('periodo_mes', currentMonth)
+        .eq('periodo_anio', today.getFullYear())
+        .in('estado', ['pendiente', 'declarado_no_pagado']);
+
+      if (cotizacionesPendientes && cotizacionesPendientes.length > 0) {
+        cotizacionesPendientes.forEach((cot: any) => {
+          notifs.push({
+            id: `cotizacion-${cot.id}`,
+            type: 'cotizacion_pendiente',
+            title: 'Cotización Pendiente',
+            message: `${cot.clients?.razon_social} - ${cot.estado === 'declarado_no_pagado' ? 'Declarado no pagado' : 'Pendiente'}`,
+            date: new Date(cot.created_at),
+            priority: cot.estado === 'declarado_no_pagado' ? 'high' : 'medium'
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando cotizaciones:', error);
     }
 
     // Notificaciones de cotizaciones (día 10)
@@ -205,6 +308,14 @@ export default function NotificationBell() {
         return '⚠️';
       case 'contrato_por_vencer':
         return '⏰';
+      case 'f22_vencida':
+        return '🚨';
+      case 'f22_proxima':
+        return '📅';
+      case 'honorarios_pendiente':
+        return '💵';
+      case 'cotizacion_pendiente':
+        return '📊';
       default:
         return '🔔';
     }
