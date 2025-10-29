@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Loader2, ArrowLeft, Eye, EyeOff, FileText, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -23,6 +23,11 @@ interface Client {
   id: string;
   razon_social: string;
   regimen_tributario: string;
+  rut: string;
+  clave_sii: string;
+  representante_legal: string;
+  rut_representante: string;
+  clave_sii_repr: string;
 }
 
 interface F22Tipo {
@@ -34,6 +39,7 @@ interface F22Tipo {
   fecha_limite_mes: number;
   regimen_tributario: string[];
   orden: number;
+  es_comun: boolean;
 }
 
 interface F22Declaracion {
@@ -46,7 +52,15 @@ interface F22Declaracion {
   fecha_aceptacion: string | null;
   observaciones: string | null;
   oculta: boolean;
-  clients?: { razon_social: string; regimen_tributario: string };
+  clients?: { 
+    razon_social: string; 
+    regimen_tributario: string;
+    rut: string;
+    clave_sii: string;
+    representante_legal: string;
+    rut_representante: string;
+    clave_sii_repr: string;
+  };
   f22_tipos?: F22Tipo;
 }
 
@@ -68,6 +82,8 @@ export default function F22Declarations() {
   const [filterTipoId, setFilterTipoId] = useState<string>('all');
   const [filterAnio, setFilterAnio] = useState(new Date().getFullYear() + 1); // AT 2026 para 2025
   const [showOcultas, setShowOcultas] = useState(false);
+  const [isPreloading, setIsPreloading] = useState(false);
+  const [selectedClientForInfo, setSelectedClientForInfo] = useState<Client | null>(null);
   
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -100,7 +116,7 @@ export default function F22Declarations() {
       // Cargar clientes
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
-        .select('id, razon_social, regimen_tributario')
+        .select('id, razon_social, regimen_tributario, rut, clave_sii, representante_legal, rut_representante, clave_sii_repr')
         .eq('activo', true)
         .order('razon_social');
 
@@ -122,7 +138,7 @@ export default function F22Declarations() {
         .from('f22_declaraciones')
         .select(`
           *,
-          clients(razon_social, regimen_tributario),
+          clients(razon_social, regimen_tributario, rut, clave_sii, representante_legal, rut_representante, clave_sii_repr),
           f22_tipos(*)
         `)
         .eq('anio_tributario', filterAnio);
@@ -278,7 +294,7 @@ export default function F22Declarations() {
   const getEstadoBadge = (estado: string) => {
     const badges = {
       pendiente: { icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pendiente' },
-      presentada: { icon: FileText, bg: 'bg-blue-100', text: 'text-blue-800', label: 'Presentada' },
+      declarada: { icon: FileText, bg: 'bg-blue-100', text: 'text-blue-800', label: 'Declarada' },
       aceptada: { icon: CheckCircle2, bg: 'bg-green-100', text: 'text-green-800', label: 'Aceptada' },
       observada: { icon: AlertCircle, bg: 'bg-red-100', text: 'text-red-800', label: 'Observada' }
     };
@@ -292,6 +308,91 @@ export default function F22Declarations() {
         {badge.label}
       </Badge>
     );
+  };
+
+  const handlePreloadDeclaraciones = async () => {
+    if (!confirm(`¿Desea pre-cargar todas las declaraciones juradas para todos los clientes activos para el AT ${filterAnio}?`)) {
+      return;
+    }
+
+    setIsPreloading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Obtener declaraciones existentes para este año
+      const { data: existingDeclaraciones, error: existingError } = await supabase
+        .from('f22_declaraciones')
+        .select('client_id, f22_tipo_id')
+        .eq('anio_tributario', filterAnio);
+
+      if (existingError) throw existingError;
+
+      const existingCombos = new Set(
+        existingDeclaraciones?.map(d => `${d.client_id}_${d.f22_tipo_id}`) || []
+      );
+
+      // Crear todas las combinaciones posibles de cliente + tipo DJ
+      const newDeclaraciones = [];
+      for (const client of clients) {
+        const regimenCliente = client.regimen_tributario || '';
+        
+        for (const tipo of f22Tipos) {
+          // Verificar si el tipo DJ aplica al régimen del cliente
+          const aplicaRegimen = tipo.es_comun || 
+            (tipo.regimen_tributario && tipo.regimen_tributario.includes(regimenCliente));
+          
+          if (!aplicaRegimen) continue;
+
+          const combo = `${client.id}_${tipo.id}`;
+          if (!existingCombos.has(combo)) {
+            newDeclaraciones.push({
+              client_id: client.id,
+              f22_tipo_id: tipo.id,
+              anio_tributario: filterAnio,
+              estado: 'pendiente',
+              oculta: false,
+              created_by: user?.id
+            });
+          }
+        }
+      }
+
+      if (newDeclaraciones.length === 0) {
+        toast({
+          title: "Información",
+          description: "Todas las declaraciones ya están registradas para este período"
+        });
+        setIsPreloading(false);
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('f22_declaraciones')
+        .insert(newDeclaraciones);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Declaraciones pre-cargadas",
+        description: `Se crearon ${newDeclaraciones.length} declaraciones pendientes`
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error preloading declaraciones:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron pre-cargar las declaraciones",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPreloading(false);
+    }
+  };
+
+  const maskClave = (clave: string | null | undefined) => {
+    if (!clave) return 'No configurada';
+    return '•'.repeat(8);
   };
 
   const getFechaLimite = (tipo: F22Tipo, anio: number) => {
@@ -341,10 +442,36 @@ export default function F22Declarations() {
             </div>
           </div>
           {canModify && (
-            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-              <FileText className="mr-2 h-4 w-4" />
-              Nueva Declaración
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => window.open('https://www.sii.cl', '_blank')}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Ir al SII
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handlePreloadDeclaraciones}
+                disabled={isPreloading}
+              >
+                {isPreloading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Pre-cargando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Pre-cargar DJ
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                <FileText className="mr-2 h-4 w-4" />
+                Nueva Declaración
+              </Button>
+            </div>
           )}
         </div>
 
@@ -450,6 +577,8 @@ export default function F22Declarations() {
                   <TableRow>
                     {filterClientId === 'all' && <TableHead>Cliente</TableHead>}
                     <TableHead>Declaración</TableHead>
+                    <TableHead>RUT / Clave SII</TableHead>
+                    <TableHead>Representante Legal</TableHead>
                     <TableHead>Fecha Límite</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Fecha Presentación</TableHead>
@@ -460,7 +589,7 @@ export default function F22Declarations() {
                 <TableBody>
                   {declaraciones.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                         No hay declaraciones registradas
                       </TableCell>
                     </TableRow>
@@ -477,6 +606,22 @@ export default function F22Declarations() {
                             <div className="font-medium">{decl.f22_tipos?.codigo}</div>
                             <div className="text-xs text-muted-foreground">
                               {decl.f22_tipos?.nombre}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{decl.clients?.rut || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {maskClave(decl.clients?.clave_sii)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{decl.clients?.representante_legal || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {decl.clients?.rut_representante || 'N/A'} · {maskClave(decl.clients?.clave_sii_repr)}
                             </div>
                           </div>
                         </TableCell>
@@ -576,6 +721,8 @@ export default function F22Declarations() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Cliente</TableHead>
+                            <TableHead>RUT / Clave SII</TableHead>
+                            <TableHead>Representante Legal</TableHead>
                             <TableHead>Régimen</TableHead>
                             <TableHead>Estado</TableHead>
                             <TableHead>Fecha Presentación</TableHead>
@@ -586,6 +733,22 @@ export default function F22Declarations() {
                           {clientesDJ.map((decl) => (
                             <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
                               <TableCell className="font-medium">{decl.cliente}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <div className="font-medium">{decl.clients?.rut || 'N/A'}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {maskClave(decl.clients?.clave_sii)}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <div className="font-medium">{decl.clients?.representante_legal || 'N/A'}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {decl.clients?.rut_representante || 'N/A'} · {maskClave(decl.clients?.clave_sii_repr)}
+                                  </div>
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline">
                                   {decl.clients?.regimen_tributario || 'N/A'}
@@ -714,7 +877,7 @@ export default function F22Declarations() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pendiente">Pendiente</SelectItem>
-                      <SelectItem value="presentada">Presentada</SelectItem>
+                      <SelectItem value="declarada">Declarada</SelectItem>
                       <SelectItem value="aceptada">Aceptada</SelectItem>
                       <SelectItem value="observada">Observada</SelectItem>
                     </SelectContent>
