@@ -580,6 +580,7 @@ export default function ClientWorkspace() {
       <UploadDocumentDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
+        clients={[client]}
         preselectedClientId={client.id}
         onUploadSuccess={() => {
           toast({

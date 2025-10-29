@@ -293,17 +293,34 @@ export default function F22Declarations() {
 
   const getEstadoBadge = (estado: string) => {
     const badges = {
-      pendiente: { icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pendiente' },
-      declarada: { icon: FileText, bg: 'bg-blue-100', text: 'text-blue-800', label: 'Declarada' },
-      aceptada: { icon: CheckCircle2, bg: 'bg-green-100', text: 'text-green-800', label: 'Aceptada' },
-      observada: { icon: AlertCircle, bg: 'bg-red-100', text: 'text-red-800', label: 'Observada' }
+      pendiente: { icon: Clock, bg: 'bg-yellow-500/10', text: 'text-yellow-700 dark:text-yellow-400', label: 'Pendiente' },
+      declarada: { icon: FileText, bg: 'bg-blue-500/10', text: 'text-blue-700 dark:text-blue-400', label: 'Declarada' }
     };
     
     const badge = badges[estado as keyof typeof badges] || badges.pendiente;
     const Icon = badge.icon;
     
     return (
-      <Badge variant="secondary" className={`${badge.bg} ${badge.text} gap-1`}>
+      <Badge variant="secondary" className={`${badge.bg} ${badge.text} gap-1 text-xs`}>
+        <Icon className="h-3 w-3" />
+        {badge.label}
+      </Badge>
+    );
+  };
+
+  const getResultadoBadge = (estado: string) => {
+    const badges = {
+      aceptada: { icon: CheckCircle2, bg: 'bg-green-500/10', text: 'text-green-700 dark:text-green-400', label: 'Aceptada' },
+      observada: { icon: AlertCircle, bg: 'bg-red-500/10', text: 'text-red-700 dark:text-red-400', label: 'Observada' }
+    };
+    
+    const badge = badges[estado as keyof typeof badges];
+    if (!badge) return null;
+    
+    const Icon = badge.icon;
+    
+    return (
+      <Badge variant="secondary" className={`${badge.bg} ${badge.text} gap-1 text-xs`}>
         <Icon className="h-3 w-3" />
         {badge.label}
       </Badge>
@@ -675,15 +692,15 @@ export default function F22Declarations() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {filterClientId === 'all' && <TableHead>Cliente</TableHead>}
-                    <TableHead>Declaración</TableHead>
-                    <TableHead>RUT / Clave SII</TableHead>
-                    <TableHead>Representante Legal</TableHead>
-                    <TableHead>Fecha Límite</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha Presentación</TableHead>
-                    <TableHead>Fecha Aceptación</TableHead>
-                    {canModify && <TableHead className="text-right">Acciones</TableHead>}
+                    {filterClientId === 'all' && <TableHead className="w-[180px]">Cliente</TableHead>}
+                    <TableHead className="w-[200px]">Declaración</TableHead>
+                    <TableHead className="w-[140px]">RUT / Clave SII</TableHead>
+                    <TableHead className="w-[140px]">Representante</TableHead>
+                    <TableHead className="w-[180px]">Fecha Límite</TableHead>
+                    <TableHead className="w-[100px]">Estado</TableHead>
+                    <TableHead className="w-[100px]">Resultado</TableHead>
+                    <TableHead className="w-[100px]">F. Presentación</TableHead>
+                    {canModify && <TableHead className="text-right w-[100px]">Acciones</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -697,43 +714,42 @@ export default function F22Declarations() {
                     declaraciones.map((decl) => (
                       <TableRow key={decl.id} className={decl.oculta ? 'opacity-50' : ''}>
                         {filterClientId === 'all' && (
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium text-sm">
                             {decl.clients?.razon_social}
                           </TableCell>
                         )}
                         <TableCell>
-                          <div>
-                            <div className="font-medium">{decl.f22_tipos?.codigo}</div>
-                            <div className="text-xs text-muted-foreground">
+                          <div className="text-sm">
+                            <div className="font-semibold">{decl.f22_tipos?.codigo}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">
                               {decl.f22_tipos?.nombre}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">
+                          <div className="text-xs">
                             <div className="font-medium">{decl.clients?.rut || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {decl.clients?.clave_sii || 'No configurada'}
+                            <div className="text-muted-foreground truncate">
+                              {decl.clients?.clave_sii ? '••••••' : 'Sin clave'}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">{decl.clients?.representante_legal || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {decl.clients?.rut_representante || 'N/A'} · {decl.clients?.clave_sii_repr || 'No configurada'}
+                          <div className="text-xs">
+                            <div className="font-medium truncate">{decl.clients?.representante_legal || 'N/A'}</div>
+                            <div className="text-muted-foreground">
+                              {decl.clients?.rut_representante || 'N/A'}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           {decl.f22_tipos && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-xs">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
                                 {format(
                                   getFechaLimite(decl.f22_tipos, decl.anio_tributario),
-                                  "d 'de' MMMM, yyyy",
-                                  { locale: es }
+                                  "dd/MM/yy"
                                 )}
                               </div>
                               {getAlertaBadge(decl)}
@@ -741,34 +757,32 @@ export default function F22Declarations() {
                           )}
                         </TableCell>
                         <TableCell>{getEstadoBadge(decl.estado)}</TableCell>
-                        <TableCell>
+                        <TableCell>{getResultadoBadge(decl.estado)}</TableCell>
+                        <TableCell className="text-xs">
                           {decl.fecha_presentacion
-                            ? format(new Date(decl.fecha_presentacion), 'dd/MM/yyyy')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {decl.fecha_aceptacion
-                            ? format(new Date(decl.fecha_aceptacion), 'dd/MM/yyyy')
+                            ? format(new Date(decl.fecha_presentacion), 'dd/MM/yy')
                             : '-'}
                         </TableCell>
                         {canModify && (
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7"
                                 onClick={() => handleToggleOculta(decl)}
                                 title={decl.oculta ? 'Mostrar' : 'Ocultar'}
                               >
                                 {decl.oculta ? (
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3 w-3" />
                                 ) : (
-                                  <EyeOff className="h-4 w-4" />
+                                  <EyeOff className="h-3 w-3" />
                                 )}
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-7 px-2 text-xs"
                                 onClick={() => handleEdit(decl)}
                               >
                                 Editar
@@ -1007,10 +1021,13 @@ export default function F22Declarations() {
                     <SelectContent>
                       <SelectItem value="pendiente">Pendiente</SelectItem>
                       <SelectItem value="declarada">Declarada</SelectItem>
-                      <SelectItem value="aceptada">Aceptada</SelectItem>
-                      <SelectItem value="observada">Observada</SelectItem>
+                      <SelectItem value="aceptada">Aceptada (Declarada + SII Aceptó)</SelectItem>
+                      <SelectItem value="observada">Observada (Declarada + SII Observó)</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Estado: Pendiente/Declarada | Resultado: Aceptada/Observada
+                  </p>
                 </div>
               </div>
 
