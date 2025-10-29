@@ -11,22 +11,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Crear cliente con SERVICE_ROLE_KEY para operaciones administrativas
+    // Crear cliente con SERVICE_ROLE_KEY para todas las operaciones
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
-    // Crear cliente con ANON_KEY para verificar el usuario actual
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         auth: {
           autoRefreshToken: false,
@@ -45,7 +33,8 @@ Deno.serve(async (req) => {
     const token = authHeader.replace('Bearer ', '')
     
     console.log('Verifying user authentication...')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    // Usar SERVICE_ROLE_KEY para verificar el token
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError) {
       console.error('Auth error:', authError)
@@ -60,7 +49,7 @@ Deno.serve(async (req) => {
     console.log('User authenticated:', user.email)
 
     // Verificar que el usuario tenga rol master
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
