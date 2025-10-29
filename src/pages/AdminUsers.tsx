@@ -36,6 +36,7 @@ export default function AdminUsers() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCleaningOrphans, setIsCleaningOrphans] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   
@@ -250,6 +251,55 @@ export default function AdminUsers() {
     }
   };
 
+  const handleCleanupOrphans = async () => {
+    if (!confirm('¿Estás seguro de eliminar usuarios huérfanos? Esto eliminará usuarios que existen en autenticación pero no tienen perfil.')) {
+      return;
+    }
+
+    setIsCleaningOrphans(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cleanup-orphan-users`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al limpiar usuarios huérfanos');
+      }
+
+      toast({
+        title: 'Limpieza completada',
+        description: `Se eliminaron ${result.deletedUsers?.length || 0} usuarios huérfanos`,
+      });
+      
+      loadUsers();
+    } catch (error: any) {
+      console.error('Error cleaning orphan users:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'No se pudo limpiar los usuarios huérfanos',
+      });
+    } finally {
+      setIsCleaningOrphans(false);
+    }
+  };
+
   const handleUpdateRole = async (userId: string, newRole: AppRole) => {
     const { error } = await supabase
       .from('profiles')
@@ -299,7 +349,27 @@ export default function AdminUsers() {
                 Gestión de Usuarios
               </h1>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCleanupOrphans}
+                disabled={isCleaningOrphans}
+                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                {isCleaningOrphans ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Limpiando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Limpiar Huérfanos
+                  </>
+                )}
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-primary to-accent">
                   <UserPlus className="h-4 w-4 mr-2" />
@@ -409,7 +479,8 @@ export default function AdminUsers() {
                   </Button>
                 </form>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            </div>
           </div>
         </div>
       </header>
