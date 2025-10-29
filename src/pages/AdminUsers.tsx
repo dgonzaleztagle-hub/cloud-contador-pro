@@ -18,8 +18,14 @@ interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
-  role: string; // AppRole pero dejamos string temporalmente hasta que se actualicen los tipos
+  role: string;
   created_at: string;
+}
+
+interface Client {
+  id: string;
+  razon_social: string;
+  rut: string;
 }
 
 export default function AdminUsers() {
@@ -30,12 +36,15 @@ export default function AdminUsers() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
   
   // Form state
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newFullName, setNewFullName] = useState('');
   const [newRole, setNewRole] = useState<AppRole>('cliente');
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
 
   useEffect(() => {
     console.log('AdminUsers - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
@@ -55,8 +64,30 @@ export default function AdminUsers() {
   useEffect(() => {
     if (user && userRole === 'master') {
       loadUsers();
+      loadClients();
     }
   }, [user, userRole]);
+
+  const loadClients = async () => {
+    setLoadingClients(true);
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, razon_social, rut')
+      .eq('activo', true)
+      .order('razon_social', { ascending: true });
+
+    if (error) {
+      console.error('Error loading clients:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudieron cargar las empresas',
+      });
+    } else {
+      setClients(data || []);
+    }
+    setLoadingClients(false);
+  };
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -80,6 +111,17 @@ export default function AdminUsers() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar que si es cliente, se haya seleccionado una empresa
+    if (newRole === 'cliente' && !selectedClientId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Debes seleccionar una empresa para el cliente',
+      });
+      return;
+    }
+
     setIsCreating(true);
 
     try {
@@ -101,12 +143,22 @@ export default function AdminUsers() {
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ 
-            role: newRole as any, // Cast temporalmente hasta que se actualicen los tipos
+            role: newRole as any,
             full_name: newFullName 
           })
           .eq('id', authData.user.id);
 
         if (updateError) throw updateError;
+
+        // Si es cliente, asociar con la empresa seleccionada
+        if (newRole === 'cliente' && selectedClientId) {
+          const { error: clientUpdateError } = await supabase
+            .from('clients')
+            .update({ user_id: authData.user.id })
+            .eq('id', selectedClientId);
+
+          if (clientUpdateError) throw clientUpdateError;
+        }
 
         toast({
           title: 'Usuario creado',
@@ -118,6 +170,7 @@ export default function AdminUsers() {
         setNewPassword('');
         setNewFullName('');
         setNewRole('cliente');
+        setSelectedClientId('');
         setIsDialogOpen(false);
         loadUsers();
       }
@@ -275,9 +328,41 @@ export default function AdminUsers() {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {newRole === 'cliente' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="client">Empresa *</Label>
+                      <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                        <SelectTrigger className="bg-input border-border">
+                          <SelectValue placeholder="Selecciona una empresa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {loadingClients ? (
+                            <SelectItem value="loading" disabled>
+                              Cargando empresas...
+                            </SelectItem>
+                          ) : clients.length === 0 ? (
+                            <SelectItem value="no-clients" disabled>
+                              No hay empresas disponibles
+                            </SelectItem>
+                          ) : (
+                            clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.razon_social} - {client.rut}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        El usuario tendrá acceso a la información de esta empresa
+                      </p>
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
-                    disabled={isCreating}
+                    disabled={isCreating || (newRole === 'cliente' && !selectedClientId)}
                     className="w-full bg-gradient-to-r from-primary to-accent"
                   >
                     {isCreating ? (
