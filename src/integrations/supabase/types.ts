@@ -247,77 +247,128 @@ export type Database = {
         }
         Relationships: []
       }
+      correccion_monetaria_sii: {
+        Row: {
+          anio: number
+          created_at: string
+          id: string
+          mes_debio_declarar: number
+          mes_declara: number
+          tasa: number
+        }
+        Insert: {
+          anio: number
+          created_at?: string
+          id?: string
+          mes_debio_declarar: number
+          mes_declara: number
+          tasa: number
+        }
+        Update: {
+          anio?: number
+          created_at?: string
+          id?: string
+          mes_debio_declarar?: number
+          mes_declara?: number
+          tasa?: number
+        }
+        Relationships: []
+      }
       f29_declarations: {
         Row: {
           client_id: string
+          correccion_monetaria: number | null
           created_at: string
           created_by: string | null
+          dias_atraso: number | null
           estado_declaracion: string
           estado_honorarios: string
+          fecha_limite_declaracion: string | null
+          fuera_de_plazo: boolean | null
           honorarios: number
           id: string
           impuesto_unico: number
+          interes_moratorio: number | null
           iva_compras: number
           iva_neto: number
           iva_ventas: number
+          multa: number | null
           observaciones: string | null
           periodo_anio: number
           periodo_mes: number
           ppm: number
+          recargos_con_condonacion: number | null
           remanente_anterior: number
           remanente_proximo: number
           retencion_2cat: number
           tasa_ppm: number | null
           total_general: number
           total_impuestos: number
+          total_recargos: number | null
           ultima_sincronizacion_sii: string | null
         }
         Insert: {
           client_id: string
+          correccion_monetaria?: number | null
           created_at?: string
           created_by?: string | null
+          dias_atraso?: number | null
           estado_declaracion?: string
           estado_honorarios?: string
+          fecha_limite_declaracion?: string | null
+          fuera_de_plazo?: boolean | null
           honorarios?: number
           id?: string
           impuesto_unico?: number
+          interes_moratorio?: number | null
           iva_compras?: number
           iva_neto?: number
           iva_ventas?: number
+          multa?: number | null
           observaciones?: string | null
           periodo_anio: number
           periodo_mes: number
           ppm?: number
+          recargos_con_condonacion?: number | null
           remanente_anterior?: number
           remanente_proximo?: number
           retencion_2cat?: number
           tasa_ppm?: number | null
           total_general?: number
           total_impuestos?: number
+          total_recargos?: number | null
           ultima_sincronizacion_sii?: string | null
         }
         Update: {
           client_id?: string
+          correccion_monetaria?: number | null
           created_at?: string
           created_by?: string | null
+          dias_atraso?: number | null
           estado_declaracion?: string
           estado_honorarios?: string
+          fecha_limite_declaracion?: string | null
+          fuera_de_plazo?: boolean | null
           honorarios?: number
           id?: string
           impuesto_unico?: number
+          interes_moratorio?: number | null
           iva_compras?: number
           iva_neto?: number
           iva_ventas?: number
+          multa?: number | null
           observaciones?: string | null
           periodo_anio?: number
           periodo_mes?: number
           ppm?: number
+          recargos_con_condonacion?: number | null
           remanente_anterior?: number
           remanente_proximo?: number
           retencion_2cat?: number
           tasa_ppm?: number | null
           total_general?: number
           total_impuestos?: number
+          total_recargos?: number | null
           ultima_sincronizacion_sii?: string | null
         }
         Relationships: [
@@ -661,6 +712,30 @@ export type Database = {
           created_at?: string
           id?: string
           nombre?: string
+        }
+        Relationships: []
+      }
+      utm_mensual: {
+        Row: {
+          anio: number
+          created_at: string
+          id: string
+          mes: number
+          valor: number
+        }
+        Insert: {
+          anio: number
+          created_at?: string
+          id?: string
+          mes: number
+          valor: number
+        }
+        Update: {
+          anio?: number
+          created_at?: string
+          id?: string
+          mes?: number
+          valor?: number
         }
         Relationships: []
       }

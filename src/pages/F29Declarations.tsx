@@ -44,6 +44,14 @@ interface F29Declaration {
   created_at: string;
   estado_honorarios: string;
   estado_declaracion: string;
+  fuera_de_plazo: boolean;
+  fecha_limite_declaracion: string | null;
+  dias_atraso: number;
+  correccion_monetaria: number;
+  interes_moratorio: number;
+  multa: number;
+  total_recargos: number;
+  recargos_con_condonacion: number;
   clients?: { rut: string; razon_social: string };
 }
 
@@ -88,6 +96,16 @@ export default function F29Declarations() {
   const [estadoHonorarios, setEstadoHonorarios] = useState('pendiente');
   const [estadoDeclaracion, setEstadoDeclaracion] = useState('pendiente');
   const [isSyncingSII, setIsSyncingSII] = useState(false);
+  
+  // Nuevos campos para declaración fuera de plazo
+  const [fueraDePlazo, setFueraDePlazo] = useState(false);
+  const [fechaLimite, setFechaLimite] = useState('');
+  const [diasAtraso, setDiasAtraso] = useState(0);
+  const [correccionMonetaria, setCorreccionMonetaria] = useState(0);
+  const [interesMoratorio, setInteresMoratorio] = useState(0);
+  const [multaCalculada, setMultaCalculada] = useState(0);
+  const [totalRecargos, setTotalRecargos] = useState(0);
+  const [recargosConCondonacion, setRecargosConCondonacion] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -139,6 +157,173 @@ export default function F29Declarations() {
     }
 
     setLoadingData(false);
+  };
+
+  // Calcular y actualizar remanente anterior ajustado por UTM cuando cambia el periodo
+  useEffect(() => {
+    if (selectedClientId && mes && anio) {
+      calcularRemanenteAjustado();
+      // Calcular fecha límite para el mes seleccionado (día 12 del mes siguiente)
+      const fechaLim = new Date(anio, mes, 12); // mes es 0-indexed en Date, pero mes del form es 1-12
+      setFechaLimite(fechaLim.toISOString().split('T')[0]);
+    }
+  }, [selectedClientId, mes, anio]);
+
+  // Calcular recargos cuando cambian los datos relevantes
+  useEffect(() => {
+    if (fueraDePlazo && fechaLimite) {
+      calcularRecargos();
+    } else {
+      // Resetear recargos si no está fuera de plazo
+      setDiasAtraso(0);
+      setCorreccionMonetaria(0);
+      setInteresMoratorio(0);
+      setMultaCalculada(0);
+      setTotalRecargos(0);
+      setRecargosConCondonacion(0);
+    }
+  }, [fueraDePlazo, fechaLimite, ivaVentas, ivaCompras, ppm, honorarios, retencion2cat, impuestoUnico]);
+
+  const calcularRemanenteAjustado = async () => {
+    if (!selectedClientId) return;
+
+    try {
+      // Buscar declaración del mes anterior para este cliente
+      let mesAnterior = mes - 1;
+      let anioAnterior = anio;
+      if (mesAnterior === 0) {
+        mesAnterior = 12;
+        anioAnterior--;
+      }
+
+      const { data: declaracionAnterior, error: errorDecl } = await supabase
+        .from('f29_declarations')
+        .select('remanente_proximo')
+        .eq('client_id', selectedClientId)
+        .eq('periodo_mes', mesAnterior)
+        .eq('periodo_anio', anioAnterior)
+        .maybeSingle();
+
+      if (errorDecl) {
+        console.error('Error buscando declaración anterior:', errorDecl);
+        return;
+      }
+
+      if (!declaracionAnterior || declaracionAnterior.remanente_proximo === 0) {
+        setRemanenteAnterior('0');
+        return;
+      }
+
+      // Obtener UTM del mes anterior y del mes actual
+      const { data: utmAnterior } = await supabase
+        .from('utm_mensual')
+        .select('valor')
+        .eq('mes', mesAnterior)
+        .eq('anio', anioAnterior)
+        .maybeSingle();
+
+      const { data: utmActual } = await supabase
+        .from('utm_mensual')
+        .select('valor')
+        .eq('mes', mes)
+        .eq('anio', anio)
+        .maybeSingle();
+
+      if (!utmAnterior || !utmActual) {
+        // Si no hay UTM, usar el remanente directo
+        setRemanenteAnterior(declaracionAnterior.remanente_proximo.toString());
+        return;
+      }
+
+      // Aplicar fórmula: (Remanente anterior / UTM mes anterior) * UTM mes seleccionado
+      const remanenteAjustado = (declaracionAnterior.remanente_proximo / utmAnterior.valor) * utmActual.valor;
+      setRemanenteAnterior(Math.round(remanenteAjustado).toString());
+
+    } catch (error) {
+      console.error('Error calculando remanente ajustado:', error);
+    }
+  };
+
+  const calcularRecargos = async () => {
+    if (!fechaLimite) return;
+
+    try {
+      // Calcular días de atraso
+      const hoy = new Date();
+      const limite = new Date(fechaLimite);
+      const diffTime = hoy.getTime() - limite.getTime();
+      const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      setDiasAtraso(diffDays);
+
+      if (diffDays === 0) {
+        setCorreccionMonetaria(0);
+        setInteresMoratorio(0);
+        setMultaCalculada(0);
+        setTotalRecargos(0);
+        setRecargosConCondonacion(0);
+        return;
+      }
+
+      // Calcular el impuesto base (total a pagar)
+      const totals = calculateTotals();
+      const impuestoBase = totals.totalGeneral;
+
+      if (impuestoBase <= 0) {
+        setCorreccionMonetaria(0);
+        setInteresMoratorio(0);
+        setMultaCalculada(0);
+        setTotalRecargos(0);
+        setRecargosConCondonacion(0);
+        return;
+      }
+
+      // 1. Corrección monetaria según tabla SII
+      // Determinar el mes que debió declarar (mes + 1 del periodo)
+      let mesDebioDeclarar = mes + 1;
+      let anioDebio = anio;
+      if (mesDebioDeclarar > 12) {
+        mesDebioDeclarar = 1;
+        anioDebio++;
+      }
+
+      // Mes actual en que se declara
+      const mesActualDeclaracion = hoy.getMonth() + 1;
+      const anioActualDeclaracion = hoy.getFullYear();
+
+      const { data: tasaCorreccion } = await supabase
+        .from('correccion_monetaria_sii')
+        .select('tasa')
+        .eq('anio', anioDebio)
+        .eq('mes_debio_declarar', mesDebioDeclarar)
+        .eq('mes_declara', mesActualDeclaracion)
+        .maybeSingle();
+
+      const tasaCM = tasaCorreccion ? tasaCorreccion.tasa : 0.7; // Default 0.7% si no hay dato
+      const correccion = impuestoBase * (tasaCM / 100);
+      setCorreccionMonetaria(correccion);
+
+      // 2. Interés moratorio: 0.05% por día
+      const interes = impuestoBase * (0.05 / 100) * diffDays;
+      setInteresMoratorio(interes);
+
+      // 3. Multa: 10% el primer mes, +2% por cada mes adicional hasta 30%
+      const mesesAtraso = Math.ceil(diffDays / 30);
+      let porcentajeMulta = 10 + ((mesesAtraso - 1) * 2);
+      porcentajeMulta = Math.min(porcentajeMulta, 30); // Máximo 30%
+      const multa = impuestoBase * (porcentajeMulta / 100);
+      setMultaCalculada(multa);
+
+      // Total de recargos
+      const total = correccion + interes + multa;
+      setTotalRecargos(total);
+
+      // Aplicar condonación del 70%
+      const condonacion = total * 0.30; // Paga solo el 30%
+      setRecargosConCondonacion(condonacion);
+
+    } catch (error) {
+      console.error('Error calculando recargos:', error);
+    }
   };
 
   const calculateTotals = () => {
