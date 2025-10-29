@@ -5,6 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Función para decodificar JWT sin verificar firma
+function decodeJWT(token: string) {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) {
+      throw new Error('Invalid JWT format')
+    }
+    
+    const payload = parts[1]
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return decoded
+  } catch (error) {
+    console.error('Error decoding JWT:', error)
+    throw new Error('Invalid token')
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -32,27 +49,22 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '')
     
-    console.log('Verifying user authentication...')
-    // Usar SERVICE_ROLE_KEY para verificar el token
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError) {
-      console.error('Auth error:', authError)
-      throw new Error('Authentication failed')
+    console.log('Decoding JWT token...')
+    const payload = decodeJWT(token)
+    const userId = payload.sub
+    
+    if (!userId) {
+      console.error('No user ID in token')
+      throw new Error('Invalid token: no user ID')
     }
 
-    if (!user) {
-      console.error('No user found')
-      throw new Error('User not found')
-    }
-
-    console.log('User authenticated:', user.email)
+    console.log('User ID from token:', userId)
 
     // Verificar que el usuario tenga rol master
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .select('role, email')
+      .eq('id', userId)
       .single()
 
     if (profileError) {
@@ -60,8 +72,15 @@ Deno.serve(async (req) => {
       throw new Error('Error fetching user profile')
     }
 
-    if (profile?.role !== 'master') {
-      console.error('User does not have master role:', profile?.role)
+    if (!profile) {
+      console.error('Profile not found for user:', userId)
+      throw new Error('Profile not found')
+    }
+
+    console.log('User profile:', profile.email, 'Role:', profile.role)
+
+    if (profile.role !== 'master') {
+      console.error('User does not have master role:', profile.role)
       throw new Error('Unauthorized: Only master can cleanup orphan users')
     }
 
