@@ -599,17 +599,6 @@ export default function Clients() {
                 {/* Botones de acción - NO clickeables con el card */}
                 <CardContent className="pt-0">
                   <div className="flex gap-2 pt-4 border-t border-border">
-                    {/* Botón de Vista Simplificada */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleQuickView(client, e)}
-                      className="hover:bg-primary/10"
-                      title="Vista Simplificada"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-
                     {/* Botón de Descarga Ficha Completa */}
                     <Button
                       size="sm"

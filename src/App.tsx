@@ -10,6 +10,7 @@ import MasterSignup from "./pages/MasterSignup";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetails from "./pages/ClientDetails";
+import ClientWorkspace from "./pages/ClientWorkspace";
 import AdminUsers from "./pages/AdminUsers";
 import F29Declarations from "./pages/F29Declarations";
 import RRHH from "./pages/RRHH";
@@ -33,7 +34,8 @@ const App = () => (
             <Route path="/master" element={<MasterSignup />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/clients" element={<Clients />} />
-            <Route path="/clients/:id" element={<ClientDetails />} />
+            <Route path="/clients/:id" element={<ClientWorkspace />} />
+            <Route path="/clients/:id/edit" element={<ClientDetails />} />
             <Route path="/f29" element={<F29Declarations />} />
             <Route path="/rrhh" element={<RRHH />} />
             <Route path="/honorarios" element={<Honorarios />} />
