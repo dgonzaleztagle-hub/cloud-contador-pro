@@ -362,7 +362,7 @@ export function OrdenesTrabajoSection() {
     // Si hay múltiples órdenes, agruparlas en un acordeón cerrado por defecto
     return (
       <Card className="bg-card border-border">
-        <Accordion type="multiple" className="w-full">
+        <Accordion type="single" collapsible className="w-full">
           <AccordionItem value={`client-${clientId}`} className="border-0">
             <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-secondary/50 transition-colors">
               <div className="flex items-center justify-between w-full pr-4">
