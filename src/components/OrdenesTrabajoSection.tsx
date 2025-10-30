@@ -285,42 +285,50 @@ export function OrdenesTrabajoSection() {
               Archivos adjuntos ({orden.ot_archivos.length}):
             </Label>
             <div className="space-y-2">
-              {orden.ot_archivos.map((archivo) => (
-                <div
-                  key={archivo.id}
-                  className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border hover:border-primary/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{archivo.file_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {archivo.file_type || 'Archivo'}
-                      </p>
+              {orden.ot_archivos.map((archivo) => {
+                const isPreviewable = archivo.file_type?.startsWith('image/') || 
+                                     archivo.file_type === 'application/pdf' ||
+                                     archivo.file_name?.toLowerCase().endsWith('.pdf');
+                
+                return (
+                  <div
+                    key={archivo.id}
+                    className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border hover:border-primary/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{archivo.file_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {archivo.file_type || 'Archivo'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {isPreviewable && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => viewFile(archivo.file_path, archivo.file_name)}
+                          className="hover:bg-primary/10"
+                          title="Ver archivo"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
+                        className="hover:bg-primary/10"
+                        title="Descargar archivo"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => viewFile(archivo.file_path, archivo.file_name)}
-                      className="hover:bg-primary/10"
-                      title="Ver archivo"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
-                      className="hover:bg-primary/10"
-                      title="Descargar archivo"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -451,42 +459,50 @@ export function OrdenesTrabajoSection() {
                               Archivos adjuntos ({orden.ot_archivos.length}):
                             </Label>
                             <div className="space-y-2">
-                              {orden.ot_archivos.map((archivo) => (
-                                <div
-                                  key={archivo.id}
-                                  className="flex items-center justify-between p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors"
-                                >
-                                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium truncate">{archivo.file_name}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {archivo.file_type || 'Archivo'}
-                                      </p>
+                              {orden.ot_archivos.map((archivo) => {
+                                const isPreviewable = archivo.file_type?.startsWith('image/') || 
+                                                     archivo.file_type === 'application/pdf' ||
+                                                     archivo.file_name?.toLowerCase().endsWith('.pdf');
+                                
+                                return (
+                                  <div
+                                    key={archivo.id}
+                                    className="flex items-center justify-between p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                      <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{archivo.file_name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {archivo.file_type || 'Archivo'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      {isPreviewable && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => viewFile(archivo.file_path, archivo.file_name)}
+                                          className="hover:bg-primary/10"
+                                          title="Ver archivo"
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
+                                        className="hover:bg-primary/10"
+                                        title="Descargar archivo"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
                                     </div>
                                   </div>
-                                  <div className="flex gap-1 flex-shrink-0">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => viewFile(archivo.file_path, archivo.file_name)}
-                                      className="hover:bg-primary/10"
-                                      title="Ver archivo"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
-                                      className="hover:bg-primary/10"
-                                      title="Descargar archivo"
-                                    >
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )}
