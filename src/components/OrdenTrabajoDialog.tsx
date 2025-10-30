@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,12 +26,16 @@ export function OrdenTrabajoDialog({
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [descripcion, setDescripcion] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setSelectedFiles(e.target.files);
+      setSelectedFiles(Array.from(e.target.files));
     }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,14 +69,15 @@ export function OrdenTrabajoDialog({
       if (otError) throw otError;
 
       // Subir archivos si existen
-      if (selectedFiles && selectedFiles.length > 0) {
-        for (let i = 0; i < selectedFiles.length; i++) {
-          const archivo = selectedFiles[i];
-          const fileName = `ot/${ot.id}/${Date.now()}_${archivo.name}`;
+      if (selectedFiles.length > 0) {
+        for (const archivo of selectedFiles) {
+          const fileExt = archivo.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `ot/${ot.id}/${fileName}`;
           
           const { error: uploadError } = await supabase.storage
             .from('documents')
-            .upload(fileName, archivo);
+            .upload(filePath, archivo);
 
           if (uploadError) {
             console.error('Error uploading file:', uploadError);
@@ -83,8 +88,8 @@ export function OrdenTrabajoDialog({
           await supabase.from('ot_archivos').insert({
             ot_id: ot.id,
             file_name: archivo.name,
-            file_path: fileName,
-            file_type: archivo.type,
+            file_path: filePath,
+            file_type: archivo.type || 'application/octet-stream',
             uploaded_by: user?.id
           });
         }
@@ -112,7 +117,7 @@ export function OrdenTrabajoDialog({
 
   const resetForm = () => {
     setDescripcion('');
-    setSelectedFiles(null);
+    setSelectedFiles([]);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -153,10 +158,29 @@ export function OrdenTrabajoDialog({
               multiple
               className="bg-input border-border"
             />
-            {selectedFiles && selectedFiles.length > 0 && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedFiles.length} archivo{selectedFiles.length > 1 ? 's' : ''} seleccionado{selectedFiles.length > 1 ? 's' : ''}
-              </p>
+            {selectedFiles.length > 0 && (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {selectedFiles.length} archivo{selectedFiles.length > 1 ? 's' : ''} seleccionado{selectedFiles.length > 1 ? 's' : ''}:
+                </p>
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-secondary/30 rounded-lg border border-border"
+                  >
+                    <span className="text-sm truncate flex-1">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      className="ml-2 h-6 w-6 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
