@@ -128,16 +128,8 @@ export function OrdenTrabajoDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange} modal={true}>
-      <DialogContent 
-        className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto"
-        onInteractOutside={(e) => {
-          // Prevenir que el diálogo se cierre al abrir selector de archivos en móvil
-          if (isSaving) {
-            e.preventDefault();
-          }
-        }}
-      >
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nueva Orden de Trabajo</DialogTitle>
           <p className="text-sm text-muted-foreground">{clientName}</p>
