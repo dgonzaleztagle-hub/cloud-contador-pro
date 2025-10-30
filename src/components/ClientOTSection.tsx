@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Plus } from 'lucide-react';
+import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Plus, Hash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -16,6 +16,8 @@ interface OrdenTrabajo {
   client_id: string;
   descripcion: string;
   estado: 'pendiente' | 'terminada';
+  folio: number;
+  comentario_cierre?: string | null;
   created_at: string;
   updated_at: string;
   ot_archivos?: Array<{
@@ -125,6 +127,10 @@ export function ClientOTSection({ clientId, clientName }: ClientOTSectionProps) 
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle className="text-base flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Hash className="h-3 w-3" />
+                {orden.folio}
+              </Badge>
               Orden de Trabajo
               <Badge variant={orden.estado === 'pendiente' ? 'default' : 'secondary'}>
                 {orden.estado === 'pendiente' ? (
@@ -152,6 +158,15 @@ export function ClientOTSection({ clientId, clientName }: ClientOTSectionProps) 
             {orden.descripcion}
           </p>
         </div>
+
+        {orden.comentario_cierre && (
+          <div className="bg-secondary/30 p-3 rounded-lg border border-border">
+            <Label className="text-sm font-semibold">Comentario de cierre:</Label>
+            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+              {orden.comentario_cierre}
+            </p>
+          </div>
+        )}
 
         {orden.ot_archivos && orden.ot_archivos.length > 0 && (
           <div>

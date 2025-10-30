@@ -723,28 +723,34 @@ export type Database = {
       ordenes_trabajo: {
         Row: {
           client_id: string
+          comentario_cierre: string | null
           created_at: string
           created_by: string | null
           descripcion: string
           estado: string
+          folio: number
           id: string
           updated_at: string
         }
         Insert: {
           client_id: string
+          comentario_cierre?: string | null
           created_at?: string
           created_by?: string | null
           descripcion: string
           estado?: string
+          folio?: number
           id?: string
           updated_at?: string
         }
         Update: {
           client_id?: string
+          comentario_cierre?: string | null
           created_at?: string
           created_by?: string | null
           descripcion?: string
           estado?: string
+          folio?: number
           id?: string
           updated_at?: string
         }

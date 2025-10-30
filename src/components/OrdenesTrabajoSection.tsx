@@ -5,8 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Building2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Building2, Hash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -17,6 +19,8 @@ interface OrdenTrabajo {
   client_id: string;
   descripcion: string;
   estado: 'pendiente' | 'terminada';
+  folio: number;
+  comentario_cierre?: string | null;
   created_at: string;
   updated_at: string;
   clients?: {
@@ -36,6 +40,9 @@ export function OrdenesTrabajoSection() {
   const [ordenes, setOrdenes] = useState<OrdenTrabajo[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [selectedOrdenId, setSelectedOrdenId] = useState<string | null>(null);
+  const [comentarioCierre, setComentarioCierre] = useState('');
 
   useEffect(() => {
     loadOrdenes();
@@ -67,30 +74,45 @@ export function OrdenesTrabajoSection() {
     }
   };
 
-  const toggleEstado = async (otId: string, currentEstado: string) => {
-    setUpdatingId(otId);
+  const handleToggleEstado = (otId: string, currentEstado: string) => {
+    if (currentEstado === 'pendiente') {
+      // Si está pendiente, mostrar diálogo para cerrar con comentario
+      setSelectedOrdenId(otId);
+      setShowCloseDialog(true);
+    }
+    // Si ya está terminada, no hacer nada (no se puede reabrir)
+  };
+
+  const cerrarOrden = async () => {
+    if (!selectedOrdenId) return;
+    
+    setUpdatingId(selectedOrdenId);
     try {
-      const newEstado = currentEstado === 'pendiente' ? 'terminada' : 'pendiente';
-      
       const { error } = await supabase
         .from('ordenes_trabajo')
-        .update({ estado: newEstado })
-        .eq('id', otId);
+        .update({ 
+          estado: 'terminada',
+          comentario_cierre: comentarioCierre.trim() || null
+        })
+        .eq('id', selectedOrdenId);
 
       if (error) throw error;
 
       toast({
-        title: 'Estado actualizado',
-        description: `La orden fue marcada como ${newEstado}`
+        title: 'Orden cerrada',
+        description: 'La orden fue marcada como terminada'
       });
 
+      setShowCloseDialog(false);
+      setComentarioCierre('');
+      setSelectedOrdenId(null);
       loadOrdenes();
     } catch (error: any) {
-      console.error('Error updating estado:', error);
+      console.error('Error cerrando orden:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo actualizar el estado'
+        description: 'No se pudo cerrar la orden'
       });
     } finally {
       setUpdatingId(null);
@@ -155,6 +177,10 @@ export function OrdenesTrabajoSection() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle className="text-base flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Hash className="h-3 w-3" />
+                {orden.folio}
+              </Badge>
               {orden.clients?.razon_social}
               <Badge variant={orden.estado === 'pendiente' ? 'default' : 'secondary'}>
                 {orden.estado === 'pendiente' ? (
@@ -179,8 +205,8 @@ export function OrdenesTrabajoSection() {
             <Switch
               id={`switch-${orden.id}`}
               checked={orden.estado === 'terminada'}
-              onCheckedChange={() => toggleEstado(orden.id, orden.estado)}
-              disabled={updatingId === orden.id}
+              onCheckedChange={() => handleToggleEstado(orden.id, orden.estado)}
+              disabled={updatingId === orden.id || orden.estado === 'terminada'}
             />
           </div>
         </div>
@@ -192,6 +218,15 @@ export function OrdenesTrabajoSection() {
             {orden.descripcion}
           </p>
         </div>
+
+        {orden.comentario_cierre && (
+          <div className="bg-secondary/30 p-3 rounded-lg border border-border">
+            <Label className="text-sm font-semibold">Comentario de cierre:</Label>
+            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+              {orden.comentario_cierre}
+            </p>
+          </div>
+        )}
 
         {orden.ot_archivos && orden.ot_archivos.length > 0 && (
           <div>
@@ -297,7 +332,11 @@ export function OrdenesTrabajoSection() {
               <div className="space-y-4">
                 {group.ordenes.map((orden, idx) => (
                   <div key={orden.id}>
-                    <div className="mb-2">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        Folio {orden.folio}
+                      </Badge>
                       <Badge variant="outline" className="text-xs">
                         Orden #{idx + 1}
                       </Badge>
@@ -318,8 +357,8 @@ export function OrdenesTrabajoSection() {
                             <Switch
                               id={`switch-${orden.id}`}
                               checked={orden.estado === 'terminada'}
-                              onCheckedChange={() => toggleEstado(orden.id, orden.estado)}
-                              disabled={updatingId === orden.id}
+                              onCheckedChange={() => handleToggleEstado(orden.id, orden.estado)}
+                              disabled={updatingId === orden.id || orden.estado === 'terminada'}
                             />
                           </div>
                         </div>
@@ -331,6 +370,15 @@ export function OrdenesTrabajoSection() {
                             {orden.descripcion}
                           </p>
                         </div>
+
+                        {orden.comentario_cierre && (
+                          <div className="bg-background p-3 rounded-lg border border-border">
+                            <Label className="text-sm font-semibold">Comentario de cierre:</Label>
+                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                              {orden.comentario_cierre}
+                            </p>
+                          </div>
+                        )}
 
                         {orden.ot_archivos && orden.ot_archivos.length > 0 && (
                           <div>
@@ -398,47 +446,96 @@ export function OrdenesTrabajoSection() {
   }
 
   return (
-    <div className="space-y-4">
-      <Tabs defaultValue="pendientes" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="pendientes" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Pendientes ({ordenesPendientes.length})
-          </TabsTrigger>
-          <TabsTrigger value="terminadas" className="gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Terminadas ({ordenesTerminadas.length})
-          </TabsTrigger>
-        </TabsList>
+    <>
+      <div className="space-y-4">
+        <Tabs defaultValue="pendientes" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pendientes" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Pendientes ({ordenesPendientes.length})
+            </TabsTrigger>
+            <TabsTrigger value="terminadas" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Terminadas ({ordenesTerminadas.length})
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="pendientes" className="space-y-4 mt-4">
-          {groupedPendientes.length === 0 ? (
-            <Card className="bg-card border-border">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No hay órdenes de trabajo pendientes
-              </CardContent>
-            </Card>
-          ) : (
-            groupedPendientes.map((group, idx) => (
-              <ClientGroupCard key={`pending-${idx}`} group={group} estado="pendiente" clientId={group.clientId} />
-            ))
-          )}
-        </TabsContent>
+          <TabsContent value="pendientes" className="space-y-4 mt-4">
+            {groupedPendientes.length === 0 ? (
+              <Card className="bg-card border-border">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No hay órdenes de trabajo pendientes
+                </CardContent>
+              </Card>
+            ) : (
+              groupedPendientes.map((group, idx) => (
+                <ClientGroupCard key={`pending-${idx}`} group={group} estado="pendiente" clientId={group.clientId} />
+              ))
+            )}
+          </TabsContent>
 
-        <TabsContent value="terminadas" className="space-y-4 mt-4">
-          {groupedTerminadas.length === 0 ? (
-            <Card className="bg-card border-border">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No hay órdenes de trabajo terminadas
-              </CardContent>
-            </Card>
-          ) : (
-            groupedTerminadas.map((group, idx) => (
-              <ClientGroupCard key={`completed-${idx}`} group={group} estado="terminada" clientId={group.clientId} />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="terminadas" className="space-y-4 mt-4">
+            {groupedTerminadas.length === 0 ? (
+              <Card className="bg-card border-border">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No hay órdenes de trabajo terminadas
+                </CardContent>
+              </Card>
+            ) : (
+              groupedTerminadas.map((group, idx) => (
+                <ClientGroupCard key={`completed-${idx}`} group={group} estado="terminada" clientId={group.clientId} />
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Diálogo para cerrar orden con comentario */}
+      <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cerrar Orden de Trabajo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="comentario">Comentario de cierre (opcional)</Label>
+              <Textarea
+                id="comentario"
+                placeholder="Agrega un comentario sobre el cierre de esta orden..."
+                value={comentarioCierre}
+                onChange={(e) => setComentarioCierre(e.target.value)}
+                rows={4}
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Este comentario será visible para el cliente
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCloseDialog(false);
+                setComentarioCierre('');
+                setSelectedOrdenId(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={cerrarOrden} disabled={updatingId !== null}>
+              {updatingId ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cerrando...
+                </>
+              ) : (
+                'Cerrar Orden'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
