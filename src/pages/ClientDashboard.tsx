@@ -344,11 +344,12 @@ export default function ClientDashboard() {
 
               <button 
                 onClick={() => navigate('/cotizaciones')}
-                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
+                className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group relative"
               >
                 <Calendar className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                 <h3 className="font-semibold text-foreground mb-1">Previred</h3>
                 <p className="text-sm text-muted-foreground">Trazabilidad de cotizaciones</p>
+                <ChevronRight className="h-5 w-5 text-muted-foreground absolute bottom-6 right-6 group-hover:text-primary transition-colors" />
               </button>
 
               <button 
