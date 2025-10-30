@@ -353,6 +353,7 @@ export function OrdenesTrabajoSection() {
 
   const ClientGroupCard = ({ group, estado, clientId }: { group: { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }, estado: 'pendiente' | 'terminada', clientId: string }) => {
     const ordenesCount = group.ordenes.length;
+    const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
     
     if (ordenesCount === 1) {
       // Si solo hay una orden, mostrarla directamente sin acordeón
@@ -362,7 +363,13 @@ export function OrdenesTrabajoSection() {
     // Si hay múltiples órdenes, agruparlas en un acordeón cerrado por defecto
     return (
       <Card className="bg-card border-border">
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion 
+          type="single" 
+          collapsible 
+          className="w-full"
+          value={openAccordion}
+          onValueChange={setOpenAccordion}
+        >
           <AccordionItem value={`client-${clientId}`} className="border-0">
             <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-secondary/50 transition-colors">
               <div className="flex items-center justify-between w-full pr-4">
