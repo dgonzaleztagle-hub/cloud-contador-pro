@@ -1292,25 +1292,27 @@ export default function RRHH() {
 
           {/* Filtros principales */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
-            <div>
-              <Label>Cliente</Label>
-              <Select value={filterClientId} onValueChange={(val) => {
-                setFilterClientId(val);
-                setFilterWorkerId('all');
-              }}>
-                <SelectTrigger className="w-full bg-input border-border">
-                  <SelectValue placeholder="Seleccionar cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los clientes</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.razon_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canModify && (
+              <div>
+                <Label>Cliente</Label>
+                <Select value={filterClientId} onValueChange={(val) => {
+                  setFilterClientId(val);
+                  setFilterWorkerId('all');
+                }}>
+                  <SelectTrigger className="w-full bg-input border-border">
+                    <SelectValue placeholder="Seleccionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los clientes</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.razon_social}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div>
               <Label>Trabajador</Label>
