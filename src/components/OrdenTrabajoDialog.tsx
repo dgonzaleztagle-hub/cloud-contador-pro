@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Upload, X, FileText } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,20 +24,14 @@ export function OrdenTrabajoDialog({
   onSuccess
 }: OrdenTrabajoDialogProps) {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [descripcion, setDescripcion] = useState('');
-  const [archivos, setArchivos] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setArchivos(prev => [...prev, ...newFiles]);
+      setSelectedFiles(e.target.files);
     }
-  };
-
-  const removeFile = (index: number) => {
-    setArchivos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,8 +65,9 @@ export function OrdenTrabajoDialog({
       if (otError) throw otError;
 
       // Subir archivos si existen
-      if (archivos.length > 0) {
-        for (const archivo of archivos) {
+      if (selectedFiles && selectedFiles.length > 0) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const archivo = selectedFiles[i];
           const fileName = `ot/${ot.id}/${Date.now()}_${archivo.name}`;
           
           const { error: uploadError } = await supabase.storage
@@ -100,8 +95,7 @@ export function OrdenTrabajoDialog({
         description: 'Tu orden de trabajo ha sido enviada exitosamente'
       });
 
-      setDescripcion('');
-      setArchivos([]);
+      resetForm();
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -116,100 +110,53 @@ export function OrdenTrabajoDialog({
     }
   };
 
+  const resetForm = () => {
+    setDescripcion('');
+    setSelectedFiles(null);
+  };
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      setDescripcion('');
-      setArchivos([]);
+      resetForm();
       onClose();
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nueva Orden de Trabajo</DialogTitle>
           <p className="text-sm text-muted-foreground">{clientName}</p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="descripcion">Descripción del Trabajo *</Label>
             <Textarea
               id="descripcion"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              rows={5}
+              rows={6}
               placeholder="Describe detalladamente el trabajo que necesitas..."
               required
-              className="bg-input border-border resize-none"
+              className="bg-input border-border"
             />
           </div>
 
-          <div className="space-y-3">
-            <Label>Archivos Adjuntos (opcional)</Label>
-            
-            <input
-              ref={fileInputRef}
+          <div>
+            <Label htmlFor="archivos">Archivos Adjuntos (opcional)</Label>
+            <Input
+              id="archivos"
               type="file"
-              onChange={handleFileChange}
+              onChange={handleFileSelect}
               multiple
-              style={{ display: 'none' }}
-              id="file-upload-input"
-              accept="*/*"
+              className="bg-input border-border"
             />
-            
-            <Button
-              type="button"
-              variant="outline"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-              className="w-full"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Seleccionar Archivos
-              {archivos.length > 0 && (
-                <span className="ml-2 bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs">
-                  {archivos.length}
-                </span>
-              )}
-            </Button>
-
-            {archivos.length > 0 && (
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {archivos.map((file, index) => (
-                  <div
-                    key={`${file.name}-${index}`}
-                    className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        removeFile(index);
-                      }}
-                      className="flex-shrink-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+            {selectedFiles && selectedFiles.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {selectedFiles.length} archivo{selectedFiles.length > 1 ? 's' : ''} seleccionado{selectedFiles.length > 1 ? 's' : ''}
+              </p>
             )}
           </div>
 
@@ -225,7 +172,7 @@ export function OrdenTrabajoDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isSaving || !descripcion.trim()}
+              disabled={isSaving}
               className="flex-1 bg-gradient-to-r from-primary to-accent"
             >
               {isSaving ? (
