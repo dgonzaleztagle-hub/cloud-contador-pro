@@ -7,8 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Upload, X, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OrdenTrabajoDialogProps {
   clientId: string;
@@ -26,21 +24,15 @@ export function OrdenTrabajoDialog({
   onSuccess
 }: OrdenTrabajoDialogProps) {
   const { toast } = useToast();
-  const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [descripcion, setDescripcion] = useState('');
   const [archivos, setArchivos] = useState<File[]>([]);
-  const [isFilesSectionOpen, setIsFilesSectionOpen] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setArchivos(prev => [...prev, ...newFiles]);
-      // Reset input value para permitir subir el mismo archivo de nuevo si se elimina
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -134,7 +126,7 @@ export function OrdenTrabajoDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nueva Orden de Trabajo</DialogTitle>
           <p className="text-sm text-muted-foreground">{clientName}</p>
@@ -142,88 +134,84 @@ export function OrdenTrabajoDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Descripción del Trabajo *</Label>
+            <Label htmlFor="descripcion">Descripción del Trabajo *</Label>
             <Textarea
+              id="descripcion"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              rows={isMobile ? 4 : 6}
+              rows={5}
               placeholder="Describe detalladamente el trabajo que necesitas..."
               required
-              className="bg-input border-border"
+              className="bg-input border-border resize-none"
             />
           </div>
 
-          <Collapsible open={isFilesSectionOpen} onOpenChange={setIsFilesSectionOpen}>
-            <div className="space-y-2">
-              <CollapsibleTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Archivos Adjuntos (opcional)
-                  </span>
-                  {archivos.length > 0 && (
-                    <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                      {archivos.length}
-                    </span>
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+          <div className="space-y-3">
+            <Label>Archivos Adjuntos (opcional)</Label>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileChange}
+              multiple
+              style={{ display: 'none' }}
+              id="file-upload-input"
+              accept="*/*"
+            />
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="w-full"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Seleccionar Archivos
+              {archivos.length > 0 && (
+                <span className="ml-2 bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs">
+                  {archivos.length}
+                </span>
+              )}
+            </Button>
 
-              <CollapsibleContent className="space-y-3 pt-2">
-                <Input
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={handleFileChange}
-                  multiple
-                  className="hidden"
-                  id="file-upload"
-                  accept="*/*"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full"
-                  size="sm"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Seleccionar Archivos
-                </Button>
-
-                {archivos.length > 0 && (
-                  <div className="space-y-2">
-                    {archivos.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span className="text-sm truncate">{file.name}</span>
-                          <span className="text-xs text-muted-foreground flex-shrink-0">
-                            ({(file.size / 1024).toFixed(1)} KB)
-                          </span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          className="flex-shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+            {archivos.length > 0 && (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {archivos.map((file, index) => (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </p>
                       </div>
-                    ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeFile(index);
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2 pt-4">
             <Button
@@ -237,7 +225,7 @@ export function OrdenTrabajoDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || !descripcion.trim()}
               className="flex-1 bg-gradient-to-r from-primary to-accent"
             >
               {isSaving ? (
