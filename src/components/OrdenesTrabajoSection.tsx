@@ -46,6 +46,7 @@ export function OrdenesTrabajoSection() {
   const [comentarioCierre, setComentarioCierre] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadOrdenes();
@@ -353,12 +354,14 @@ export function OrdenesTrabajoSection() {
 
   const ClientGroupCard = ({ group, estado, clientId }: { group: { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }, estado: 'pendiente' | 'terminada', clientId: string }) => {
     const ordenesCount = group.ordenes.length;
-    const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
     
     if (ordenesCount === 1) {
       // Si solo hay una orden, mostrarla directamente sin acordeón
       return <OrdenCard orden={group.ordenes[0]} />;
     }
+
+    const accordionValue = `client-${clientId}`;
+    const isOpen = openAccordions[accordionValue] || false;
 
     // Si hay múltiples órdenes, agruparlas en un acordeón cerrado por defecto
     return (
@@ -367,10 +370,15 @@ export function OrdenesTrabajoSection() {
           type="single" 
           collapsible 
           className="w-full"
-          value={openAccordion}
-          onValueChange={setOpenAccordion}
+          value={isOpen ? accordionValue : undefined}
+          onValueChange={(value) => {
+            setOpenAccordions(prev => ({
+              ...prev,
+              [accordionValue]: value === accordionValue
+            }));
+          }}
         >
-          <AccordionItem value={`client-${clientId}`} className="border-0">
+          <AccordionItem value={accordionValue} className="border-0">
             <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-secondary/50 transition-colors">
               <div className="flex items-center justify-between w-full pr-4">
                 <div className="flex items-center gap-3">
