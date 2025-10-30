@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Loader2, ArrowLeft, Trash2, Download, ClipboardList } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
@@ -408,25 +409,21 @@ export default function ClientDetails() {
 
               <div className="space-y-2">
                 <Label htmlFor="clave_sii">Clave Sii</Label>
-                <Input
+                <PasswordInput
                   id="clave_sii"
-                  type={canEditPasswords ? 'text' : 'password'}
                   value={formData.clave_sii || ''}
                   onChange={(e) => setFormData({ ...formData, clave_sii: e.target.value })}
-                  placeholder={canEditPasswords ? '' : '••••••••'}
-                  readOnly={!canEditPasswords}
+                  disabled={!canEditPasswords}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="clave_certificado">Clave Certificado</Label>
-                <Input
+                <PasswordInput
                   id="clave_certificado"
-                  type={canEditPasswords ? 'text' : 'password'}
                   value={formData.clave_certificado || ''}
                   onChange={(e) => setFormData({ ...formData, clave_certificado: e.target.value })}
-                  placeholder={canEditPasswords ? '' : '••••••••'}
-                  readOnly={!canEditPasswords}
+                  disabled={!canEditPasswords}
                 />
               </div>
 
