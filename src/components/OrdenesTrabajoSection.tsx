@@ -251,13 +251,14 @@ export function OrdenesTrabajoSection() {
       const clientId = orden.client_id;
       if (!acc[clientId]) {
         acc[clientId] = {
+          clientId: clientId,
           client: orden.clients || { razon_social: 'Cliente desconocido', rut: 'N/A' },
           ordenes: []
         };
       }
       acc[clientId].ordenes.push(orden);
       return acc;
-    }, {} as Record<string, { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }>);
+    }, {} as Record<string, { clientId: string; client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }>);
 
     return Object.values(grouped);
   };
@@ -265,7 +266,7 @@ export function OrdenesTrabajoSection() {
   const groupedPendientes = groupByClient(ordenesPendientes);
   const groupedTerminadas = groupByClient(ordenesTerminadas);
 
-  const ClientGroupCard = ({ group, estado }: { group: { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }, estado: 'pendiente' | 'terminada' }) => {
+  const ClientGroupCard = ({ group, estado, clientId }: { group: { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }, estado: 'pendiente' | 'terminada', clientId: string }) => {
     const ordenesCount = group.ordenes.length;
     
     if (ordenesCount === 1) {
@@ -277,7 +278,7 @@ export function OrdenesTrabajoSection() {
     return (
       <Card className="bg-card border-border">
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="client-group" className="border-0">
+          <AccordionItem value={`client-${clientId}`} className="border-0">
             <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-secondary/50 transition-colors">
               <div className="flex items-center justify-between w-full pr-4">
                 <div className="flex items-center gap-3">
@@ -419,7 +420,7 @@ export function OrdenesTrabajoSection() {
             </Card>
           ) : (
             groupedPendientes.map((group, idx) => (
-              <ClientGroupCard key={`pending-${idx}`} group={group} estado="pendiente" />
+              <ClientGroupCard key={`pending-${idx}`} group={group} estado="pendiente" clientId={group.clientId} />
             ))
           )}
         </TabsContent>
@@ -433,7 +434,7 @@ export function OrdenesTrabajoSection() {
             </Card>
           ) : (
             groupedTerminadas.map((group, idx) => (
-              <ClientGroupCard key={`completed-${idx}`} group={group} estado="terminada" />
+              <ClientGroupCard key={`completed-${idx}`} group={group} estado="terminada" clientId={group.clientId} />
             ))
           )}
         </TabsContent>
