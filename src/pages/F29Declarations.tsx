@@ -1529,22 +1529,24 @@ export default function F29Declarations() {
           <CardContent>
             {/* Filtros */}
             <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
-              <div>
-                <Label>Cliente</Label>
-                <Select value={filterClientId} onValueChange={setFilterClientId}>
-                  <SelectTrigger className="bg-input border-border">
-                    <SelectValue placeholder="Todos los clientes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los clientes</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.rut} - {client.razon_social}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {(userRole === 'master' || userRole === 'admin') && (
+                <div>
+                  <Label>Cliente</Label>
+                  <Select value={filterClientId} onValueChange={setFilterClientId}>
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue placeholder="Todos los clientes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los clientes</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.rut} - {client.razon_social}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label>Mes</Label>
                 <Select value={filterMes.toString()} onValueChange={(v) => setFilterMes(parseInt(v))}>
