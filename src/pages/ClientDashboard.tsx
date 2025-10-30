@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Users, DollarSign, ClipboardList, BookOpen, LogOut, TrendingUp, Calendar, Building2 } from 'lucide-react';
+import { Loader2, FileText, Users, DollarSign, ClipboardList, BookOpen, LogOut, TrendingUp, Calendar, Building2, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
@@ -232,16 +232,24 @@ export default function ClientDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all">
+            <Card 
+              className="border-border bg-card hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer group"
+              onClick={() => navigate('/cotizaciones')}
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Cotizaciones
+                  Previred
                 </CardTitle>
                 <Calendar className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stats.cotizaciones_mes}</div>
-                <p className="text-xs text-muted-foreground mt-1">Mes actual</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">{stats.cotizaciones_mes}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Mes actual</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
               </CardContent>
             </Card>
 
@@ -339,7 +347,7 @@ export default function ClientDashboard() {
                 className="p-6 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-all text-left group"
               >
                 <Calendar className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                <h3 className="font-semibold text-foreground mb-1">Cotizaciones</h3>
+                <h3 className="font-semibold text-foreground mb-1">Previred</h3>
                 <p className="text-sm text-muted-foreground">Trazabilidad de cotizaciones</p>
               </button>
 
