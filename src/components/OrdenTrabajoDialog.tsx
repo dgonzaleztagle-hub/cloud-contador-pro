@@ -53,7 +53,11 @@ export function OrdenTrabajoDialog({
     setIsSaving(true);
 
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('No hay sesión activa');
+      }
       
       // Crear la orden de trabajo
       const { data: ot, error: otError } = await supabase
@@ -61,12 +65,15 @@ export function OrdenTrabajoDialog({
         .insert({
           client_id: clientId,
           descripcion: descripcion.trim(),
-          created_by: user?.id
+          created_by: user.id
         })
         .select()
         .single();
 
-      if (otError) throw otError;
+      if (otError) {
+        console.error('Error creating OT:', otError);
+        throw otError;
+      }
 
       // Subir archivos si existen
       if (selectedFiles.length > 0) {
