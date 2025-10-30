@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Building2, Hash } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Building2, Hash, Upload, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -43,6 +44,8 @@ export function OrdenesTrabajoSection() {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [selectedOrdenId, setSelectedOrdenId] = useState<string | null>(null);
   const [comentarioCierre, setComentarioCierre] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadOrdenes();
@@ -76,19 +79,31 @@ export function OrdenesTrabajoSection() {
 
   const handleToggleEstado = (otId: string, currentEstado: string) => {
     if (currentEstado === 'pendiente') {
-      // Si está pendiente, mostrar diálogo para cerrar con comentario
       setSelectedOrdenId(otId);
+      setComentarioCierre('');
+      setSelectedFiles([]);
       setShowCloseDialog(true);
     }
-    // Si ya está terminada, no hacer nada (no se puede reabrir)
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files));
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const cerrarOrden = async () => {
     if (!selectedOrdenId) return;
     
     setUpdatingId(selectedOrdenId);
+    setUploading(true);
     try {
-      const { error } = await supabase
+      // Primero cerrar la orden
+      const { error: updateError } = await supabase
         .from('ordenes_trabajo')
         .update({ 
           estado: 'terminada',
@@ -96,15 +111,49 @@ export function OrdenesTrabajoSection() {
         })
         .eq('id', selectedOrdenId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Luego subir archivos si hay
+      if (selectedFiles.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        for (const file of selectedFiles) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `ot/${selectedOrdenId}/${fileName}`;
+
+          // Subir archivo a storage
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          // Guardar registro en la tabla
+          const { error: dbError } = await supabase
+            .from('ot_archivos')
+            .insert({
+              ot_id: selectedOrdenId,
+              file_name: file.name,
+              file_path: filePath,
+              file_type: file.type || 'application/octet-stream',
+              uploaded_by: user?.id
+            });
+
+          if (dbError) throw dbError;
+        }
+      }
 
       toast({
         title: 'Orden cerrada',
-        description: 'La orden fue marcada como terminada'
+        description: selectedFiles.length > 0 
+          ? `La orden fue cerrada con ${selectedFiles.length} archivo(s) adjunto(s)`
+          : 'La orden fue marcada como terminada'
       });
 
       setShowCloseDialog(false);
       setComentarioCierre('');
+      setSelectedFiles([]);
       setSelectedOrdenId(null);
       loadOrdenes();
     } catch (error: any) {
@@ -112,10 +161,11 @@ export function OrdenesTrabajoSection() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo cerrar la orden'
+        description: error.message || 'No se pudo cerrar la orden'
       });
     } finally {
       setUpdatingId(null);
+      setUploading(false);
     }
   };
 
@@ -154,7 +204,7 @@ export function OrdenesTrabajoSection() {
     try {
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(filePath, 3600); // URL válida por 1 hora
+        .createSignedUrl(filePath, 3600);
 
       if (error) throw error;
 
@@ -511,6 +561,50 @@ export function OrdenesTrabajoSection() {
                 Este comentario será visible para el cliente
               </p>
             </div>
+
+            <div>
+              <Label htmlFor="archivos">Archivos adjuntos (opcional)</Label>
+              <div className="mt-2">
+                <Input
+                  id="archivos"
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Puedes subir múltiples archivos que el cliente podrá descargar
+                </p>
+              </div>
+              
+              {selectedFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium">Archivos seleccionados:</p>
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-secondary/30 rounded-lg border border-border"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span className="text-sm truncate">{file.name}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          ({(file.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                        className="flex-shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -518,19 +612,24 @@ export function OrdenesTrabajoSection() {
               onClick={() => {
                 setShowCloseDialog(false);
                 setComentarioCierre('');
+                setSelectedFiles([]);
                 setSelectedOrdenId(null);
               }}
+              disabled={uploading}
             >
               Cancelar
             </Button>
-            <Button onClick={cerrarOrden} disabled={updatingId !== null}>
-              {updatingId ? (
+            <Button onClick={cerrarOrden} disabled={updatingId !== null || uploading}>
+              {uploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Cerrando...
+                  {selectedFiles.length > 0 ? 'Subiendo archivos...' : 'Cerrando...'}
                 </>
               ) : (
-                'Cerrar Orden'
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Cerrar Orden
+                </>
               )}
             </Button>
           </DialogFooter>
