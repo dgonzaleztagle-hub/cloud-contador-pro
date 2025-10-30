@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, Clock, CheckCircle2, FileText, Download, Eye } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Loader2, Clock, CheckCircle2, FileText, Download, Eye, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -244,6 +245,149 @@ export function OrdenesTrabajoSection() {
   const ordenesPendientes = ordenes.filter(o => o.estado === 'pendiente');
   const ordenesTerminadas = ordenes.filter(o => o.estado === 'terminada');
 
+  // Agrupar órdenes por cliente
+  const groupByClient = (ordenesArray: OrdenTrabajo[]) => {
+    const grouped = ordenesArray.reduce((acc, orden) => {
+      const clientId = orden.client_id;
+      if (!acc[clientId]) {
+        acc[clientId] = {
+          client: orden.clients || { razon_social: 'Cliente desconocido', rut: 'N/A' },
+          ordenes: []
+        };
+      }
+      acc[clientId].ordenes.push(orden);
+      return acc;
+    }, {} as Record<string, { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }>);
+
+    return Object.values(grouped);
+  };
+
+  const groupedPendientes = groupByClient(ordenesPendientes);
+  const groupedTerminadas = groupByClient(ordenesTerminadas);
+
+  const ClientGroupCard = ({ group, estado }: { group: { client: { razon_social: string; rut: string }, ordenes: OrdenTrabajo[] }, estado: 'pendiente' | 'terminada' }) => {
+    const ordenesCount = group.ordenes.length;
+    
+    if (ordenesCount === 1) {
+      // Si solo hay una orden, mostrarla directamente sin acordeón
+      return <OrdenCard orden={group.ordenes[0]} />;
+    }
+
+    // Si hay múltiples órdenes, agruparlas en un acordeón
+    return (
+      <Card className="bg-card border-border">
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="client-group" className="border-0">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-secondary/50 transition-colors">
+              <div className="flex items-center justify-between w-full pr-4">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <div className="text-left">
+                    <p className="font-semibold text-base">{group.client.razon_social}</p>
+                    <p className="text-xs text-muted-foreground">RUT: {group.client.rut}</p>
+                  </div>
+                </div>
+                <Badge variant={estado === 'pendiente' ? 'default' : 'secondary'} className="ml-2">
+                  {ordenesCount} {ordenesCount === 1 ? 'orden' : 'órdenes'}
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-4 pt-2">
+              <div className="space-y-4">
+                {group.ordenes.map((orden, idx) => (
+                  <div key={orden.id}>
+                    <div className="mb-2">
+                      <Badge variant="outline" className="text-xs">
+                        Orden #{idx + 1}
+                      </Badge>
+                    </div>
+                    <Card className="bg-secondary/20 border-border">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(orden.created_at), "dd 'de' MMMM yyyy 'a las' HH:mm", { locale: es })}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`switch-${orden.id}`} className="text-xs text-muted-foreground">
+                              {orden.estado === 'pendiente' ? 'Marcar terminada' : 'Marcar pendiente'}
+                            </Label>
+                            <Switch
+                              id={`switch-${orden.id}`}
+                              checked={orden.estado === 'terminada'}
+                              onCheckedChange={() => toggleEstado(orden.id, orden.estado)}
+                              disabled={updatingId === orden.id}
+                            />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-semibold">Descripción:</Label>
+                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                            {orden.descripcion}
+                          </p>
+                        </div>
+
+                        {orden.ot_archivos && orden.ot_archivos.length > 0 && (
+                          <div>
+                            <Label className="text-sm font-semibold mb-2 block">
+                              Archivos adjuntos ({orden.ot_archivos.length}):
+                            </Label>
+                            <div className="space-y-2">
+                              {orden.ot_archivos.map((archivo) => (
+                                <div
+                                  key={archivo.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border border-border hover:border-primary/50 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{archivo.file_name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {archivo.file_type || 'Archivo'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1 flex-shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => viewFile(archivo.file_path, archivo.file_name)}
+                                      className="hover:bg-primary/10"
+                                      title="Ver archivo"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => downloadFile(archivo.file_path, archivo.file_name)}
+                                      className="hover:bg-primary/10"
+                                      title="Descargar archivo"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -267,29 +411,29 @@ export function OrdenesTrabajoSection() {
         </TabsList>
 
         <TabsContent value="pendientes" className="space-y-4 mt-4">
-          {ordenesPendientes.length === 0 ? (
+          {groupedPendientes.length === 0 ? (
             <Card className="bg-card border-border">
               <CardContent className="py-8 text-center text-muted-foreground">
                 No hay órdenes de trabajo pendientes
               </CardContent>
             </Card>
           ) : (
-            ordenesPendientes.map(orden => (
-              <OrdenCard key={orden.id} orden={orden} />
+            groupedPendientes.map((group, idx) => (
+              <ClientGroupCard key={`pending-${idx}`} group={group} estado="pendiente" />
             ))
           )}
         </TabsContent>
 
         <TabsContent value="terminadas" className="space-y-4 mt-4">
-          {ordenesTerminadas.length === 0 ? (
+          {groupedTerminadas.length === 0 ? (
             <Card className="bg-card border-border">
               <CardContent className="py-8 text-center text-muted-foreground">
                 No hay órdenes de trabajo terminadas
               </CardContent>
             </Card>
           ) : (
-            ordenesTerminadas.map(orden => (
-              <OrdenCard key={orden.id} orden={orden} />
+            groupedTerminadas.map((group, idx) => (
+              <ClientGroupCard key={`completed-${idx}`} group={group} estado="terminada" />
             ))
           )}
         </TabsContent>
