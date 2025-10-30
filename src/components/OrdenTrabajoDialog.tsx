@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ export function OrdenTrabajoDialog({
   onSuccess
 }: OrdenTrabajoDialogProps) {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [descripcion, setDescripcion] = useState('');
   const [archivos, setArchivos] = useState<File[]>([]);
@@ -32,6 +33,10 @@ export function OrdenTrabajoDialog({
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setArchivos(prev => [...prev, ...newFiles]);
+      // Reset input value para permitir subir el mismo archivo de nuevo si se elimina
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -149,16 +154,18 @@ export function OrdenTrabajoDialog({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Input
+                  ref={fileInputRef}
                   type="file"
                   onChange={handleFileChange}
                   multiple
                   className="hidden"
                   id="file-upload"
+                  accept="*/*"
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => document.getElementById('file-upload')?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                   className="w-full"
                 >
                   <Upload className="mr-2 h-4 w-4" />
