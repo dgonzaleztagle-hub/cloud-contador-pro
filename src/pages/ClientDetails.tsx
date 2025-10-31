@@ -554,25 +554,23 @@ export default function ClientDetails() {
 
               <div className="space-y-2">
                 <Label htmlFor="clave_sii_repr">Clave Sii Representante</Label>
-                <Input
+                <PasswordInput
                   id="clave_sii_repr"
-                  type={canEditPasswords ? 'text' : 'password'}
                   value={formData.clave_sii_repr || ''}
                   onChange={(e) => setFormData({ ...formData, clave_sii_repr: e.target.value })}
-                  placeholder={canEditPasswords ? '' : '••••••••'}
                   readOnly={!canEditPasswords}
+                  disabled={!canEditPasswords}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="clave_unica">Clave Única</Label>
-                <Input
+                <PasswordInput
                   id="clave_unica"
-                  type={canEditPasswords ? 'text' : 'password'}
                   value={formData.clave_unica || ''}
                   onChange={(e) => setFormData({ ...formData, clave_unica: e.target.value })}
-                  placeholder={canEditPasswords ? '' : '••••••••'}
                   readOnly={!canEditPasswords}
+                  disabled={!canEditPasswords}
                 />
               </div>
 
