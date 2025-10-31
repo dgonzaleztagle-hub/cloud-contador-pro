@@ -414,6 +414,7 @@ export default function ClientDetails() {
                   value={formData.clave_sii || ''}
                   onChange={(e) => setFormData({ ...formData, clave_sii: e.target.value })}
                   readOnly={!canEditPasswords}
+                  disabled={!canEditPasswords}
                 />
               </div>
 
@@ -424,6 +425,7 @@ export default function ClientDetails() {
                   value={formData.clave_certificado || ''}
                   onChange={(e) => setFormData({ ...formData, clave_certificado: e.target.value })}
                   readOnly={!canEditPasswords}
+                  disabled={!canEditPasswords}
                 />
               </div>
 
