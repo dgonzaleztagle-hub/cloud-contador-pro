@@ -902,7 +902,10 @@ export default function F29Declarations() {
     doc.setFontSize(12);
     doc.setTextColor(0);
     const totalConHonorarios = declaration.total_general;
-    doc.text(`TOTAL + HONORARIOS: ${totalConHonorarios.toLocaleString('es-CL')}`, 105, currentY + 7, { align: 'center' });
+    const totalLabel = declaration.estado_honorarios === 'pagado' 
+      ? `TOTAL: ${totalConHonorarios.toLocaleString('es-CL')}`
+      : `TOTAL + HONORARIOS: ${totalConHonorarios.toLocaleString('es-CL')}`;
+    doc.text(totalLabel, 105, currentY + 7, { align: 'center' });
     
     // Información de la empresa
     currentY += 25;
@@ -1057,7 +1060,10 @@ export default function F29Declarations() {
     doc.setFontSize(12);
     doc.setTextColor(0);
     const totalConHonorarios = declaration.total_general;
-    doc.text(`TOTAL + HONORARIOS: ${totalConHonorarios.toLocaleString('es-CL')}`, 105, currentY + 7, { align: 'center' });
+    const totalLabel = declaration.estado_honorarios === 'pagado' 
+      ? `TOTAL: ${totalConHonorarios.toLocaleString('es-CL')}`
+      : `TOTAL + HONORARIOS: ${totalConHonorarios.toLocaleString('es-CL')}`;
+    doc.text(totalLabel, 105, currentY + 7, { align: 'center' });
     
     currentY += 25;
     doc.setFont(undefined, 'bold');
