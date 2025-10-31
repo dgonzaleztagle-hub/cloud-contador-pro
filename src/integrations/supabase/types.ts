@@ -1027,6 +1027,27 @@ export type Database = {
         }
         Relationships: []
       }
+      uf_diaria: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          fecha: string
+          id?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       utm_mensual: {
         Row: {
           anio: number

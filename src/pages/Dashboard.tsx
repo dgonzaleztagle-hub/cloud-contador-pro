@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale';
 import { Footer } from '@/components/Footer';
 import NotificationBell from '@/components/NotificationBell';
 import { OrdenesTrabajoSection } from '@/components/OrdenesTrabajoSection';
+import { HistoricalIndicatorsDialog } from '@/components/HistoricalIndicatorsDialog';
 import logo from '@/assets/logo.png';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -166,12 +167,13 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-wrap">
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-muted-foreground">UF: <span className="font-medium text-foreground">${uf}</span></span>
                 <span className="text-muted-foreground">UTM: <span className="font-medium text-foreground">${utm}</span></span>
                 <span className="text-muted-foreground">USD: <span className="font-medium text-foreground">${dollar}</span></span>
               </div>
+              <HistoricalIndicatorsDialog />
               <NotificationBell />
               <Button
                 onClick={signOut}
